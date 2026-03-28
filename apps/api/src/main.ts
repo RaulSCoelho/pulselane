@@ -6,6 +6,7 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -22,6 +23,32 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Pulselane API')
+    .setDescription('Multi-tenant operations SaaS API')
+    .setVersion('1.0.0')
+    .addBearerAuth()
+    .addGlobalParameters({
+      name: 'x-organization-id',
+      in: 'header',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Current organization context',
+    })
+    .addGlobalResponse({
+      status: 500,
+      description: 'Internal server error',
+    })
+    .build();
+
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+
+  SwaggerModule.setup('docs', app, swaggerDocument, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   const prismaService = app.get(PrismaService);
   await prismaService.enableShutdownHooks(app);
