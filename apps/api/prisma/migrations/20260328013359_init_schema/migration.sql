@@ -1,6 +1,9 @@
 -- CreateEnum
 CREATE TYPE "MembershipRole" AS ENUM ('owner', 'admin', 'member', 'viewer');
 
+-- CreateEnum
+CREATE TYPE "ClientStatus" AS ENUM ('active', 'inactive', 'archived');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -42,7 +45,7 @@ CREATE TABLE "clients" (
     "name" TEXT NOT NULL,
     "email" CITEXT,
     "company_name" TEXT,
-    "status" TEXT NOT NULL DEFAULT 'active',
+    "status" "ClientStatus" NOT NULL DEFAULT 'active',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -75,15 +78,3 @@ ALTER TABLE "memberships" ADD CONSTRAINT "memberships_organization_id_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "clients" ADD CONSTRAINT "clients_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- SEARCH OPTIMIZATION (pg_trgm)
-
--- Trigram index for fast fuzzy search on client name
-CREATE INDEX "clients_name_trgm_idx"
-ON "clients"
-USING gin ("name" gin_trgm_ops);
-
--- Trigram index for company name search
-CREATE INDEX "clients_company_name_trgm_idx"
-ON "clients"
-USING gin ("company_name" gin_trgm_ops);
