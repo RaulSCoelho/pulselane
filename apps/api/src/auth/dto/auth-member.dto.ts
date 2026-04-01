@@ -6,7 +6,6 @@ export class AuthMemberDto {
   @ApiProperty({ example: 'clxmem123' })
   id!: string;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   @ApiProperty({ enum: MembershipRole, example: MembershipRole.owner })
   role!: MembershipRole;
 
