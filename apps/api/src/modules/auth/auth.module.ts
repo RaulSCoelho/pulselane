@@ -11,15 +11,26 @@ import { TokenService } from './token.service';
 import { SessionRepository } from './domain/session.repository';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { CookieService } from './cookie.service';
+import { OrganizationModule } from '../organization/organization.module';
+import { CryptoService } from '@/infra/crypto/crypto.service';
+import { UserModule } from '../user/user.module';
+import { MembershipModule } from '../membership/membership.module';
 
 @Module({
-  imports: [PassportModule, JwtModule.register({})],
+  imports: [
+    PassportModule,
+    JwtModule.register({}),
+    UserModule,
+    OrganizationModule,
+    MembershipModule,
+  ],
   controllers: [AuthController],
   providers: [
     { provide: 'APP_GUARD', useClass: AccessTokenGuard },
     AuthService,
     SessionService,
     TokenService,
+    CryptoService,
     CookieService,
     SessionRepository,
     AccessTokenStrategy,

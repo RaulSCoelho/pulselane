@@ -3,6 +3,7 @@ import { AuthSession } from '@prisma/client';
 
 import { SessionRepository } from './domain/session.repository';
 import { TokenService } from './token.service';
+import { CryptoService } from '@/infra/crypto/crypto.service';
 
 type CreateSessionParams = {
   userId: string;
@@ -26,11 +27,12 @@ export class SessionService {
   constructor(
     private readonly sessionRepository: SessionRepository,
     private readonly tokenService: TokenService,
+    private readonly cryptoService: CryptoService,
   ) {}
 
   async upsert(params: CreateSessionParams) {
     const deviceId = params.deviceId ?? this.tokenService.generateDeviceId();
-    const refreshTokenHash = await this.tokenService.hash(params.refreshToken);
+    const refreshTokenHash = await this.cryptoService.hash(params.refreshToken);
     const expiresAt = this.tokenService.getRefreshExpiresAt();
 
     return this.sessionRepository.upsert({
@@ -49,7 +51,7 @@ export class SessionService {
       params.sessionId,
       params.refreshToken,
     );
-    const newRefreshTokenHash = await this.tokenService.hash(
+    const newRefreshTokenHash = await this.cryptoService.hash(
       params.newRefreshToken,
     );
 
@@ -114,7 +116,7 @@ export class SessionService {
     }
 
     if (refreshToken) {
-      const isValid = await this.tokenService.compare(
+      const isValid = await this.cryptoService.compare(
         refreshToken,
         session.refreshTokenHash,
       );

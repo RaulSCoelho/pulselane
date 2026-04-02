@@ -83,16 +83,6 @@ export class TokenService {
     }
   }
 
-  async hash(value: string) {
-    const bcrypt = await import('bcrypt');
-    return bcrypt.hash(value, 10);
-  }
-
-  async compare(value: string, hash: string) {
-    const bcrypt = await import('bcrypt');
-    return bcrypt.compare(value, hash);
-  }
-
   generateDeviceId() {
     return randomUUID();
   }

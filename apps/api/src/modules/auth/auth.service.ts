@@ -3,11 +3,13 @@ import { PrismaService } from '@/infra/prisma/prisma.service';
 
 import { SessionService } from './session.service';
 import { TokenService } from './token.service';
-import { MembershipRole, PrismaClient } from '@prisma/client';
-import { ITXClientDenyList } from '@prisma/client/runtime/library';
+import { MembershipRole } from '@prisma/client';
 import { SignupDto } from './dto/requests/signup.dto';
-import { slugifyOrganizationName } from './infra/organization-slug.util';
 import { LoginDto } from './dto/requests/login.dto';
+import { OrganizationService } from '../organization/organization.service';
+import { CryptoService } from '@/infra/crypto/crypto.service';
+import { UserService } from '../user/user.service';
+import { MembershipService } from '../membership/membership.service';
 
 type SessionParams = {
   deviceId?: string;
@@ -29,47 +31,27 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly sessionService: SessionService,
     private readonly tokenService: TokenService,
+    private readonly cryptoService: CryptoService,
+    private readonly userService: UserService,
+    private readonly organizationService: OrganizationService,
+    private readonly membershipService: MembershipService,
   ) {}
 
   async signup(dto: SignupDto, params: SessionParams) {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-
-    if (existing) {
-      throw new UnauthorizedException('Email already in use');
-    }
-
-    const passwordHash = await this.tokenService.hash(dto.password);
-
     await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          name: dto.name,
-          email: dto.email,
-          passwordHash,
-        },
-      });
-
-      const slug = await this.generateUniqueOrganizationSlug(
+      const user = await this.userService.create(dto, tx);
+      const organization = await this.organizationService.create(
+        dto.organizationName,
         tx,
-        slugifyOrganizationName(dto.organizationName),
       );
-
-      const organization = await tx.organization.create({
-        data: {
-          name: dto.organizationName,
-          slug,
-        },
-      });
-
-      await tx.membership.create({
-        data: {
+      await this.membershipService.create(
+        {
           userId: user.id,
           organizationId: organization.id,
           role: MembershipRole.owner,
         },
-      });
+        tx,
+      );
     });
 
     return this.login(
@@ -86,15 +68,13 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, params: SessionParams) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    const user = await this.userService.findByEmail(dto.email);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const passwordValid = await this.tokenService.compare(
+    const passwordValid = await this.cryptoService.compare(
       dto.password,
       user.passwordHash,
     );
@@ -185,27 +165,5 @@ export class AuthService {
       isCurrent: session.id === currentSessionId,
       isActive: !session.revokedAt && session.expiresAt > new Date(),
     }));
-  }
-
-  private async generateUniqueOrganizationSlug(
-    tx: Omit<PrismaClient, ITXClientDenyList>,
-    baseSlug: string,
-  ) {
-    const safeBaseSlug = baseSlug || 'workspace';
-    let slug = safeBaseSlug;
-    let counter = 1;
-
-    while (true) {
-      const existingOrganization = await tx.organization.findUnique({
-        where: { slug },
-      });
-
-      if (!existingOrganization) {
-        return slug;
-      }
-
-      counter += 1;
-      slug = `${safeBaseSlug}-${counter}`;
-    }
   }
 }
