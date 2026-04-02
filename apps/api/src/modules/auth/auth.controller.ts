@@ -37,6 +37,7 @@ import type { RefreshTokenPayload } from './contracts/refresh-token-payload';
 import { Public } from '@/common/decorators/is-public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CookieService } from './cookie.service';
+import { MeResponseDto } from './dto/responses/me-response.dto';
 
 @ApiTags('Auth')
 @ApiCookieAuth(REFRESH_COOKIE_NAME)
@@ -120,6 +121,25 @@ export class AuthController {
       accessToken: result.accessToken.token,
       expiresIn: result.accessToken.expiresIn,
     };
+  }
+
+  @Get('me')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get current user',
+    description:
+      'Returns the authenticated user with memberships and organizations.',
+  })
+  @ApiOkResponse({
+    type: MeResponseDto,
+    description: 'User data retrieved successfully',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Unauthorized',
+  })
+  async me(@CurrentUser() user: AccessTokenPayload): Promise<MeResponseDto> {
+    return this.authService.me(user.sub);
   }
 
   @Public()

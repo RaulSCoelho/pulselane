@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 import { SessionService } from './session.service';
@@ -10,6 +14,7 @@ import { OrganizationService } from '../organization/organization.service';
 import { CryptoService } from '@/infra/crypto/crypto.service';
 import { UserService } from '../user/user.service';
 import { MembershipService } from '../membership/membership.service';
+import { MeResponseDto } from './dto/responses/me-response.dto';
 
 type SessionParams = {
   deviceId?: string;
@@ -111,6 +116,39 @@ export class AuthService {
       session,
       accessToken,
       refreshToken,
+    };
+  }
+
+  async me(userId: string): Promise<MeResponseDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        memberships: {
+          include: {
+            organization: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      memberships: user.memberships.map((membership) => ({
+        userId: membership.userId,
+        role: membership.role,
+        organization: {
+          name: membership.organization.name,
+          slug: membership.organization.slug,
+        },
+      })),
     };
   }
 
