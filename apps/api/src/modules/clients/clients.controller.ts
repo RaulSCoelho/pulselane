@@ -8,7 +8,6 @@ import {
   Post,
   Query,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -22,17 +21,16 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentOrganizationId } from '../common/decorators/current-organization-id.decorator';
+import { CurrentOrganizationId } from '../../common/decorators/current-organization-id.decorator';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { ListClientsQueryDto } from './dto/list-clients-query.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
-import type { AuthenticatedRequest } from '@/auth/auth.controller';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { ClientResponseDto } from './dto/client-response.dto';
 import { ListClientsResponseDto } from './dto/list-clients-response.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
+import type { FastifyRequest } from 'fastify';
 
 @ApiTags('Clients')
 @ApiBearerAuth()
@@ -49,7 +47,6 @@ import { SuccessResponseDto } from '@/common/dto/success-response.dto';
   description: 'You do not belong to this organization',
   type: ErrorResponseDto,
 })
-@UseGuards(JwtAuthGuard)
 @Controller('clients')
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
@@ -65,11 +62,11 @@ export class ClientsController {
   })
   @Post()
   create(
-    @Req() req: AuthenticatedRequest,
+    @Req() req: FastifyRequest,
     @CurrentOrganizationId() organizationId: string,
     @Body() dto: CreateClientDto,
   ): Promise<ClientResponseDto> {
-    return this.clientsService.create(req.user.userId, organizationId, dto);
+    return this.clientsService.create(req.user!.sub, organizationId, dto);
   }
 
   @ApiOperation({ summary: 'List clients' })
@@ -83,12 +80,12 @@ export class ClientsController {
   })
   @Get()
   async findAll(
-    @Req() req: AuthenticatedRequest,
+    @Req() req: FastifyRequest,
     @CurrentOrganizationId() organizationId: string,
     @Query() query: ListClientsQueryDto,
   ): Promise<ListClientsResponseDto> {
     const items = await this.clientsService.findAll(
-      req.user.userId,
+      req.user!.sub,
       organizationId,
       query,
     );
@@ -111,15 +108,11 @@ export class ClientsController {
   })
   @Get(':id')
   findOne(
-    @Req() req: AuthenticatedRequest,
+    @Req() req: FastifyRequest,
     @CurrentOrganizationId() organizationId: string,
     @Param('id') clientId: string,
   ): Promise<ClientResponseDto> {
-    return this.clientsService.findOne(
-      req.user.userId,
-      organizationId,
-      clientId,
-    );
+    return this.clientsService.findOne(req.user!.sub, organizationId, clientId);
   }
 
   @ApiOperation({ summary: 'Update client' })
@@ -137,13 +130,13 @@ export class ClientsController {
   })
   @Patch(':id')
   update(
-    @Req() req: AuthenticatedRequest,
+    @Req() req: FastifyRequest,
     @CurrentOrganizationId() organizationId: string,
     @Param('id') clientId: string,
     @Body() dto: UpdateClientDto,
   ): Promise<ClientResponseDto> {
     return this.clientsService.update(
-      req.user.userId,
+      req.user!.sub,
       organizationId,
       clientId,
       dto,
@@ -165,14 +158,10 @@ export class ClientsController {
   })
   @Delete(':id')
   remove(
-    @Req() req: AuthenticatedRequest,
+    @Req() req: FastifyRequest,
     @CurrentOrganizationId() organizationId: string,
     @Param('id') clientId: string,
   ): Promise<SuccessResponseDto> {
-    return this.clientsService.remove(
-      req.user.userId,
-      organizationId,
-      clientId,
-    );
+    return this.clientsService.remove(req.user!.sub, organizationId, clientId);
   }
 }

@@ -1,0 +1,243 @@
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Ip,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCookieAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+
+import { AuthResponseDto } from './dto/responses/auth-response.dto';
+import { LoginDto } from './dto/requests/login.dto';
+import { SessionResponseDto } from './dto/responses/session-response.dto';
+import { RefreshTokenGuard } from './guards/refresh-token.guard';
+import { AuthService } from './auth.service';
+import { CurrentUser } from './decorators/current-user.decorator';
+import {
+  DEVICE_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+} from './infra/auth.constants';
+import {
+  clearRefreshCookie,
+  setDeviceCookie,
+  setRefreshCookie,
+} from './infra/cookie.util';
+import { SignupDto } from './dto/requests/signup.dto';
+import { SuccessResponseDto } from '@/common/dto/success-response.dto';
+import { ErrorResponseDto } from '@/common/dto/error-response.dto';
+import type { AccessTokenPayload } from './contracts/access-token-payload';
+import type { RefreshTokenPayload } from './contracts/refresh-token-payload';
+import { Public } from '@/common/decorators/is-public.decorator';
+
+@ApiTags('Auth')
+@ApiCookieAuth(REFRESH_COOKIE_NAME)
+@ApiCookieAuth(DEVICE_COOKIE_NAME)
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Public()
+  @Post('signup')
+  @HttpCode(201)
+  @ApiOperation({
+    summary: 'Create account and initial session',
+    description:
+      'Creates a new user and organization, and initializes a session per device.',
+  })
+  @ApiOkResponse({
+    type: AuthResponseDto,
+    description: 'User created and authenticated successfully',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Email already in use',
+  })
+  async signup(
+    @Body() dto: SignupDto,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+    @Ip() ipAddress: string,
+  ): Promise<AuthResponseDto> {
+    const result = await this.authService.signup(dto, {
+      deviceId: request.cookies[DEVICE_COOKIE_NAME],
+      userAgent: request.headers['user-agent'],
+      ipAddress,
+    });
+
+    setRefreshCookie(reply, result.refreshToken);
+    setDeviceCookie(reply, result.session.deviceId);
+
+    return {
+      accessToken: result.accessToken.token,
+      expiresIn: result.accessToken.expiresIn,
+    };
+  }
+
+  @Public()
+  @Post('login')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Authenticate user',
+    description:
+      'Authenticates user credentials and creates a session per device.',
+  })
+  @ApiOkResponse({
+    type: AuthResponseDto,
+    description: 'User authenticated successfully',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Invalid credentials',
+  })
+  async login(
+    @Body() dto: LoginDto,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+    @Ip() ipAddress: string,
+  ): Promise<AuthResponseDto> {
+    const result = await this.authService.login(dto, {
+      deviceId: request.cookies[DEVICE_COOKIE_NAME],
+      userAgent: request.headers['user-agent'],
+      ipAddress,
+    });
+
+    setRefreshCookie(reply, result.refreshToken);
+    setDeviceCookie(reply, result.session.deviceId);
+
+    return {
+      accessToken: result.accessToken.token,
+      expiresIn: result.accessToken.expiresIn,
+    };
+  }
+
+  @Post('refresh')
+  @HttpCode(200)
+  @UseGuards(RefreshTokenGuard)
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description:
+      'Generates a new access token using the refresh token stored in cookies.',
+  })
+  @ApiOkResponse({
+    type: AuthResponseDto,
+    description: 'Token refreshed successfully',
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Invalid or expired refresh token',
+  })
+  async refresh(
+    @CurrentUser() user: RefreshTokenPayload,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+    @Ip() ipAddress: string,
+  ): Promise<AuthResponseDto> {
+    const refreshToken = request.cookies[REFRESH_COOKIE_NAME];
+
+    if (!user?.sub || !user?.sid || !refreshToken) {
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    const result = await this.authService.rotate({
+      userId: user.sub,
+      sessionId: user.sid,
+      refreshToken: refreshToken,
+      userAgent: request.headers['user-agent'],
+      ipAddress,
+    });
+
+    setRefreshCookie(reply, result.newRefreshToken);
+
+    return {
+      accessToken: result.accessToken.token,
+      expiresIn: result.accessToken.expiresIn,
+    };
+  }
+
+  @Post('logout')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Logout current session',
+    description: 'Invalidates the current device session.',
+  })
+  @ApiOkResponse({
+    type: SuccessResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Unauthorized',
+  })
+  async logout(
+    @CurrentUser() user: AccessTokenPayload,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    await this.authService.logoutCurrentSession(user.sub, user.sid);
+
+    clearRefreshCookie(reply);
+
+    return {
+      success: true,
+    };
+  }
+
+  @Post('logout-all')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Logout from all devices',
+    description: 'Revokes all sessions for the user.',
+  })
+  @ApiOkResponse({
+    type: SuccessResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Unauthorized',
+  })
+  async logoutAll(
+    @CurrentUser('sub') userId: AccessTokenPayload['sub'],
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    await this.authService.logoutAllSessions(userId);
+
+    clearRefreshCookie(reply);
+
+    return {
+      success: true,
+    };
+  }
+
+  @Get('sessions')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List user sessions',
+    description: 'Returns all sessions associated with the user.',
+  })
+  @ApiOkResponse({
+    type: SessionResponseDto,
+    isArray: true,
+  })
+  @ApiUnauthorizedResponse({
+    type: ErrorResponseDto,
+    description: 'Unauthorized',
+  })
+  async listSessions(
+    @CurrentUser() user: AccessTokenPayload,
+  ): Promise<SessionResponseDto[]> {
+    return this.authService.listSessions(user.sub, user.sid);
+  }
+}
