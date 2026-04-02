@@ -29,17 +29,6 @@ async function bootstrap() {
     .setDescription('Multi-tenant operations SaaS API')
     .setVersion('1.0.0')
     .addBearerAuth()
-    .addGlobalParameters({
-      name: 'x-organization-id',
-      in: 'header',
-      required: false,
-      schema: { type: 'string' },
-      description: 'Current organization context',
-    })
-    .addGlobalResponse({
-      status: 500,
-      description: 'Internal server error',
-    })
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);

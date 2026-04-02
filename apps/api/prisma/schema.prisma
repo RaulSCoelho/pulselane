@@ -75,5 +75,6 @@ model Client {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
+  @@index([organizationId, status])
   @@map("clients")
 }

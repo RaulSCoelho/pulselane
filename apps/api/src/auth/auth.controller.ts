@@ -14,9 +14,9 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { SignupResponseDto } from './dto/signup-response.dto';
-import { ErrorResponseDto } from 'src/common/dto/error-response.dto';
 import { LoginResponseDto } from './dto/login-response.dto';
 import { MeResponseDto } from './dto/me-response.dto';
+import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 
 export type AuthenticatedRequest = FastifyRequest & {
   user: {
