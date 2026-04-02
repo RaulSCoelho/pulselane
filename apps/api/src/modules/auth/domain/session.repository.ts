@@ -1,4 +1,5 @@
 import { PrismaService } from '@/infra/prisma/prisma.service';
+import { removeUndefinedFields } from '@/lib/object/remove-undefined';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
@@ -23,15 +24,15 @@ export class SessionRepository {
           deviceId: input.deviceId,
         },
       },
-      update: {
+      update: removeUndefinedFields({
         refreshTokenHash: input.refreshTokenHash,
         expiresAt: input.expiresAt,
-        userAgent: input.userAgent ?? null,
-        ipAddress: input.ipAddress ?? null,
+        userAgent: input.userAgent,
+        ipAddress: input.ipAddress,
         lastUsedAt: new Date(),
         revokedAt: null,
         compromisedAt: null,
-      },
+      }),
       create: {
         userId: input.userId,
         deviceId: input.deviceId,

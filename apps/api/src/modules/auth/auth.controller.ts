@@ -25,29 +25,28 @@ import { LoginDto } from './dto/requests/login.dto';
 import { SessionResponseDto } from './dto/responses/session-response.dto';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { AuthService } from './auth.service';
-import { CurrentUser } from './decorators/current-user.decorator';
 import {
   DEVICE_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
 } from './infra/auth.constants';
-import {
-  clearRefreshCookie,
-  setDeviceCookie,
-  setRefreshCookie,
-} from './infra/cookie.util';
 import { SignupDto } from './dto/requests/signup.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import type { AccessTokenPayload } from './contracts/access-token-payload';
 import type { RefreshTokenPayload } from './contracts/refresh-token-payload';
 import { Public } from '@/common/decorators/is-public.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { CookieService } from './cookie.service';
 
 @ApiTags('Auth')
 @ApiCookieAuth(REFRESH_COOKIE_NAME)
 @ApiCookieAuth(DEVICE_COOKIE_NAME)
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly cookieService: CookieService,
+  ) {}
 
   @Public()
   @Post('signup')
@@ -77,8 +76,8 @@ export class AuthController {
       ipAddress,
     });
 
-    setRefreshCookie(reply, result.refreshToken);
-    setDeviceCookie(reply, result.session.deviceId);
+    this.cookieService.setRefreshCookie(reply, result.refreshToken);
+    this.cookieService.setDeviceCookie(reply, result.session.deviceId);
 
     return {
       accessToken: result.accessToken.token,
@@ -114,8 +113,8 @@ export class AuthController {
       ipAddress,
     });
 
-    setRefreshCookie(reply, result.refreshToken);
-    setDeviceCookie(reply, result.session.deviceId);
+    this.cookieService.setRefreshCookie(reply, result.refreshToken);
+    this.cookieService.setDeviceCookie(reply, result.session.deviceId);
 
     return {
       accessToken: result.accessToken.token,
@@ -123,9 +122,10 @@ export class AuthController {
     };
   }
 
+  @Public()
+  @UseGuards(RefreshTokenGuard)
   @Post('refresh')
   @HttpCode(200)
-  @UseGuards(RefreshTokenGuard)
   @ApiOperation({
     summary: 'Refresh access token',
     description:
@@ -159,7 +159,7 @@ export class AuthController {
       ipAddress,
     });
 
-    setRefreshCookie(reply, result.newRefreshToken);
+    this.cookieService.setRefreshCookie(reply, result.newRefreshToken);
 
     return {
       accessToken: result.accessToken.token,
@@ -187,7 +187,7 @@ export class AuthController {
   ) {
     await this.authService.logoutCurrentSession(user.sub, user.sid);
 
-    clearRefreshCookie(reply);
+    this.cookieService.clearRefreshCookie(reply);
 
     return {
       success: true,
@@ -214,7 +214,7 @@ export class AuthController {
   ) {
     await this.authService.logoutAllSessions(userId);
 
-    clearRefreshCookie(reply);
+    this.cookieService.clearRefreshCookie(reply);
 
     return {
       success: true,

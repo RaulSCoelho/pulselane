@@ -1,18 +1,34 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-
-import {
-  ACCESS_TOKEN_TTL_SECONDS,
-  REFRESH_TOKEN_TTL_DAYS,
-} from './infra/auth.constants';
 
 import { AccessTokenPayload } from './contracts/access-token-payload';
 import { RefreshTokenPayload } from './contracts/refresh-token-payload';
+import { EnvConfig } from '@/config/env.config';
 
 @Injectable()
 export class TokenService {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService<EnvConfig>,
+  ) {}
+
+  private get jwtAccessSecret() {
+    return this.configService.getOrThrow<string>('jwtAccessSecret');
+  }
+
+  private get jwtRefreshSecret() {
+    return this.configService.getOrThrow<string>('jwtRefreshSecret');
+  }
+
+  private get accessTokenTtlSeconds() {
+    return this.configService.getOrThrow<number>('accessTokenTtlSeconds');
+  }
+
+  private get refreshTokenTtlDays() {
+    return this.configService.getOrThrow<number>('refreshTokenTtlDays');
+  }
 
   async signAccessToken(payload: { userId: string; sessionId: string }) {
     const jwtPayload: AccessTokenPayload = {
@@ -23,20 +39,20 @@ export class TokenService {
     };
 
     const token = await this.jwtService.signAsync(jwtPayload, {
-      secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+      secret: this.jwtAccessSecret,
+      expiresIn: this.accessTokenTtlSeconds,
     });
 
     return {
       token,
-      expiresIn: ACCESS_TOKEN_TTL_SECONDS,
+      expiresIn: this.accessTokenTtlSeconds,
     };
   }
 
   async verifyAccessToken(token: string) {
     try {
       return await this.jwtService.verifyAsync<AccessTokenPayload>(token, {
-        secret: process.env.JWT_ACCESS_SECRET,
+        secret: this.jwtAccessSecret,
       });
     } catch {
       throw new UnauthorizedException('Invalid access token');
@@ -44,22 +60,23 @@ export class TokenService {
   }
 
   async signRefreshToken(payload: { userId: string; sessionId: string }) {
-    const jwtPayload: RefreshTokenPayload = {
-      sub: payload.userId,
-      sid: payload.sessionId,
-      typ: 'refresh',
-    };
-
-    return this.jwtService.signAsync(jwtPayload, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: `${REFRESH_TOKEN_TTL_DAYS}d`,
-    });
+    return this.jwtService.signAsync(
+      {
+        sub: payload.userId,
+        sid: payload.sessionId,
+        typ: 'refresh',
+      } satisfies RefreshTokenPayload,
+      {
+        secret: this.jwtRefreshSecret,
+        expiresIn: `${this.refreshTokenTtlDays}d`,
+      },
+    );
   }
 
   async verifyRefreshToken(token: string) {
     try {
       return await this.jwtService.verifyAsync<RefreshTokenPayload>(token, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: this.jwtRefreshSecret,
       });
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
@@ -82,7 +99,7 @@ export class TokenService {
 
   getRefreshExpiresAt() {
     const date = new Date();
-    date.setDate(date.getDate() + REFRESH_TOKEN_TTL_DAYS);
+    date.setDate(date.getDate() + this.refreshTokenTtlDays);
     return date;
   }
 }

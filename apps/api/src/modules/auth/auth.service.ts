@@ -123,10 +123,8 @@ export class AuthService {
 
     session = await this.sessionService.upsert({
       userId: user.id,
-      deviceId: params.deviceId,
+      deviceId: session.deviceId,
       refreshToken,
-      userAgent: params.userAgent,
-      ipAddress: params.ipAddress,
     });
 
     return {

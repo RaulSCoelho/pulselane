@@ -10,6 +10,7 @@ import { SessionService } from './session.service';
 import { TokenService } from './token.service';
 import { SessionRepository } from './domain/session.repository';
 import { AccessTokenGuard } from './guards/access-token.guard';
+import { CookieService } from './cookie.service';
 
 @Module({
   imports: [PassportModule, JwtModule.register({})],
@@ -19,6 +20,7 @@ import { AccessTokenGuard } from './guards/access-token.guard';
     AuthService,
     SessionService,
     TokenService,
+    CookieService,
     SessionRepository,
     AccessTokenStrategy,
     RefreshTokenStrategy,

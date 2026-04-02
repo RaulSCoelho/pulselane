@@ -8,6 +8,8 @@ import {
 } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import fastifyCookie from '@fastify/cookie';
+import { ConfigService } from '@nestjs/config';
+import { EnvConfig } from './config/env.config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -16,10 +18,22 @@ async function bootstrap() {
     { rawBody: true },
   );
 
+  const configService = app.get(ConfigService<EnvConfig>);
+  const port = configService.getOrThrow<number>('port');
+  const nodeEnv = configService.getOrThrow<string>('nodeEnv');
+  const allowedCorsOrigins =
+    configService.getOrThrow<string[]>('allowedCorsOrigins');
+  const cookieSecret = configService.getOrThrow<string>('cookieSecret');
+
   await app.register(fastifyCookie, {
-    secret: process.env.COOKIE_SECRET,
+    secret: cookieSecret,
   });
 
+  app.enableCors({
+    origin: allowedCorsOrigins,
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  });
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
@@ -47,13 +61,13 @@ async function bootstrap() {
   const prismaService = app.get(PrismaService);
   await prismaService.enableShutdownHooks(app);
 
-  await app.listen(
-    process.env.PORT ? Number(process.env.PORT) : 3001,
-    '0.0.0.0',
-  );
+  await app.listen(port, '0.0.0.0');
 
-  Logger.log(`📦 Environment: ${process.env.NODE_ENV}`, 'Bootstrap');
-  Logger.log(`🌐 Allowed CORS Origins: ${''}`, 'Bootstrap');
+  Logger.log(`📦 Environment: ${nodeEnv}`, 'Bootstrap');
+  Logger.log(
+    `🌐 Allowed CORS Origins: ${allowedCorsOrigins.join(', ')}`,
+    'Bootstrap',
+  );
   Logger.log(
     `🚀 Server is up and running at: ${await app.getUrl()}`,
     'Bootstrap',
