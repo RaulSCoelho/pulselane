@@ -41,6 +41,12 @@ enum TaskPriority {
   urgent
 }
 
+enum AuditLogAction {
+  created
+  updated
+  deleted
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -52,6 +58,7 @@ model User {
   authSessions AuthSession[]
   memberships  Membership[]
   tasks        Task[]
+  auditLogs    AuditLog[]
 
   @@map("users")
 }
@@ -90,6 +97,7 @@ model Organization {
   clients     Client[]
   projects    Project[]
   tasks       Task[]
+  auditLogs   AuditLog[]
 
   @@map("organizations")
 }
@@ -171,4 +179,24 @@ model Task {
   @@index([organizationId, status])
   @@index([organizationId, priority])
   @@map("tasks")
+}
+
+model AuditLog {
+  id             String         @id @default(cuid())
+  organizationId String         @map("organization_id")
+  actorUserId    String         @map("actor_user_id")
+  entityType     String         @map("entity_type")
+  entityId       String         @map("entity_id")
+  action         AuditLogAction
+  metadata       Json?          @map("metadata")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorUser    User         @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
 }
