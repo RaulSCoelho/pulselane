@@ -1,25 +1,59 @@
-import { IS_PUBLIC_KEY } from '@/common/decorators/is-public.decorator';
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  AUTH_OPTIONS_KEY,
+  type AuthOptions,
+} from '@/common/decorators/auth.decorator';
+import {
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { ACCESS_TOKEN_STRATEGY } from '../infra/auth.constants';
 
 @Injectable()
 export class AccessTokenGuard extends AuthGuard(ACCESS_TOKEN_STRATEGY) {
-  constructor(private reflector: Reflector) {
+  constructor(private readonly reflector: Reflector) {
     super();
   }
 
   canActivate(context: ExecutionContext) {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const authOptions = this.getAuthOptions(context);
 
-    if (isPublic) {
+    if (authOptions.mode === 'public') {
       return true;
     }
 
     return super.canActivate(context);
+  }
+
+  handleRequest<TUser = any>(
+    err: any,
+    user: TUser | false,
+    _info: any,
+    context: ExecutionContext,
+  ): TUser {
+    const authOptions = this.getAuthOptions(context);
+
+    if (authOptions.mode === 'optional') {
+      return (user || undefined) as TUser;
+    }
+
+    if (err || !user) {
+      throw err || new UnauthorizedException();
+    }
+
+    return user;
+  }
+
+  private getAuthOptions(context: ExecutionContext): Required<AuthOptions> {
+    const authOptions = this.reflector.getAllAndOverride<AuthOptions>(
+      AUTH_OPTIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    return {
+      mode: authOptions?.mode ?? 'private',
+    };
   }
 }

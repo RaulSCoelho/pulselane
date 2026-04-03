@@ -1,29 +1,27 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ClientStatus } from '@prisma/client';
+import { MembershipService } from '@/modules/membership/membership.service';
 import { CreateClientDto } from './dto/requests/create-client.dto';
 import { ListClientsQueryDto } from './dto/requests/list-clients-query.dto';
 import { UpdateClientDto } from './dto/requests/update-client.dto';
-import { PrismaService } from '@/infra/prisma/prisma.service';
+import { ClientRepository } from './client.repository';
 
 @Injectable()
 export class ClientsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly clientRepository: ClientRepository,
+    private readonly membershipService: MembershipService,
+  ) {}
 
   async create(userId: string, organizationId: string, dto: CreateClientDto) {
-    await this.assertMembership(userId, organizationId);
+    await this.membershipService.ensureUserIsMember(userId, organizationId);
 
-    return this.prisma.client.create({
-      data: {
-        organizationId,
-        name: dto.name,
-        email: dto.email,
-        companyName: dto.companyName,
-        status: dto.status ?? ClientStatus.active,
-      },
+    return this.clientRepository.create({
+      organizationId,
+      name: dto.name,
+      email: dto.email,
+      companyName: dto.companyName,
+      status: dto.status ?? ClientStatus.active,
     });
   }
 
@@ -32,35 +30,22 @@ export class ClientsService {
     organizationId: string,
     query: ListClientsQueryDto,
   ) {
-    await this.assertMembership(userId, organizationId);
+    await this.membershipService.ensureUserIsMember(userId, organizationId);
 
-    return this.prisma.client.findMany({
-      where: {
-        organizationId,
-        status: query.status,
-        OR: query.search
-          ? [
-              { name: { contains: query.search, mode: 'insensitive' } },
-              { email: { contains: query.search, mode: 'insensitive' } },
-              { companyName: { contains: query.search, mode: 'insensitive' } },
-            ]
-          : undefined,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+    return this.clientRepository.findManyByOrganization({
+      organizationId,
+      search: query.search,
+      status: query.status,
     });
   }
 
   async findOne(userId: string, organizationId: string, clientId: string) {
-    await this.assertMembership(userId, organizationId);
+    await this.membershipService.ensureUserIsMember(userId, organizationId);
 
-    const client = await this.prisma.client.findFirst({
-      where: {
-        id: clientId,
-        organizationId,
-      },
-    });
+    const client = await this.clientRepository.findByIdAndOrganization(
+      clientId,
+      organizationId,
+    );
 
     if (!client) {
       throw new NotFoundException('Client not found');
@@ -75,65 +60,33 @@ export class ClientsService {
     clientId: string,
     dto: UpdateClientDto,
   ) {
-    await this.assertMembership(userId, organizationId);
+    await this.membershipService.ensureUserIsMember(userId, organizationId);
 
-    await this.ensureClientExists(organizationId, clientId);
+    await this.ensureClientExists(clientId, organizationId);
 
-    return this.prisma.client.update({
-      where: {
-        id: clientId,
-      },
-      data: dto,
-    });
+    return this.clientRepository.update(clientId, dto);
   }
 
   async remove(userId: string, organizationId: string, clientId: string) {
-    await this.assertMembership(userId, organizationId);
+    await this.membershipService.ensureUserIsMember(userId, organizationId);
 
-    await this.ensureClientExists(organizationId, clientId);
+    await this.ensureClientExists(clientId, organizationId);
 
-    await this.prisma.client.delete({
-      where: {
-        id: clientId,
-      },
-    });
+    await this.clientRepository.delete(clientId);
 
     return {
       success: true,
     };
   }
 
-  private async assertMembership(
-    userId: string,
-    organizationId: string,
-  ): Promise<void> {
-    const membership = await this.prisma.membership.findUnique({
-      where: {
-        userId_organizationId: {
-          userId,
-          organizationId,
-        },
-      },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException('You do not belong to this organization');
-    }
-  }
-
   private async ensureClientExists(
-    organizationId: string,
     clientId: string,
+    organizationId: string,
   ): Promise<void> {
-    const client = await this.prisma.client.findFirst({
-      where: {
-        id: clientId,
-        organizationId,
-      },
-      select: {
-        id: true,
-      },
-    });
+    const client = await this.clientRepository.findByIdAndOrganization(
+      clientId,
+      organizationId,
+    );
 
     if (!client) {
       throw new NotFoundException('Client not found');

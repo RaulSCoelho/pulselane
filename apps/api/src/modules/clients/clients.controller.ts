@@ -7,7 +7,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,16 +20,19 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+
+import { CurrentOrganizationId } from '@/common/decorators/current-organization-id.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { ErrorResponseDto } from '@/common/dto/error-response.dto';
+import { SuccessResponseDto } from '@/common/dto/success-response.dto';
+import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
+
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/requests/create-client.dto';
 import { ListClientsQueryDto } from './dto/requests/list-clients-query.dto';
 import { UpdateClientDto } from './dto/requests/update-client.dto';
-import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { ClientResponseDto } from './dto/responses/client-response.dto';
 import { ListClientsResponseDto } from './dto/responses/list-clients-response.dto';
-import { SuccessResponseDto } from '@/common/dto/success-response.dto';
-import type { FastifyRequest } from 'fastify';
-import { CurrentOrganizationId } from '@/common/decorators/current-organization-id.decorator';
 
 @ApiTags('Clients')
 @ApiBearerAuth()
@@ -51,6 +53,7 @@ import { CurrentOrganizationId } from '@/common/decorators/current-organization-
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
+  @Post()
   @ApiOperation({ summary: 'Create client' })
   @ApiCreatedResponse({
     description: 'Client created successfully',
@@ -60,15 +63,15 @@ export class ClientsController {
     description: 'Invalid payload or missing organization header',
     type: ErrorResponseDto,
   })
-  @Post()
   create(
-    @Req() req: FastifyRequest,
+    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganizationId() organizationId: string,
     @Body() dto: CreateClientDto,
   ): Promise<ClientResponseDto> {
-    return this.clientsService.create(req.user!.sub, organizationId, dto);
+    return this.clientsService.create(userId, organizationId, dto);
   }
 
+  @Get()
   @ApiOperation({ summary: 'List clients' })
   @ApiOkResponse({
     description: 'Clients returned successfully',
@@ -78,14 +81,13 @@ export class ClientsController {
     description: 'Invalid query or missing organization header',
     type: ErrorResponseDto,
   })
-  @Get()
   async findAll(
-    @Req() req: FastifyRequest,
+    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganizationId() organizationId: string,
     @Query() query: ListClientsQueryDto,
   ): Promise<ListClientsResponseDto> {
     const items = await this.clientsService.findAll(
-      req.user!.sub,
+      userId,
       organizationId,
       query,
     );
@@ -93,6 +95,7 @@ export class ClientsController {
     return { items };
   }
 
+  @Get(':id')
   @ApiOperation({ summary: 'Get client by id' })
   @ApiOkResponse({
     description: 'Client returned successfully',
@@ -106,15 +109,15 @@ export class ClientsController {
     description: 'Missing organization header',
     type: ErrorResponseDto,
   })
-  @Get(':id')
   findOne(
-    @Req() req: FastifyRequest,
+    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganizationId() organizationId: string,
     @Param('id') clientId: string,
   ): Promise<ClientResponseDto> {
-    return this.clientsService.findOne(req.user!.sub, organizationId, clientId);
+    return this.clientsService.findOne(userId, organizationId, clientId);
   }
 
+  @Patch(':id')
   @ApiOperation({ summary: 'Update client' })
   @ApiOkResponse({
     description: 'Client updated successfully',
@@ -128,21 +131,16 @@ export class ClientsController {
     description: 'Invalid payload or missing organization header',
     type: ErrorResponseDto,
   })
-  @Patch(':id')
   update(
-    @Req() req: FastifyRequest,
+    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganizationId() organizationId: string,
     @Param('id') clientId: string,
     @Body() dto: UpdateClientDto,
   ): Promise<ClientResponseDto> {
-    return this.clientsService.update(
-      req.user!.sub,
-      organizationId,
-      clientId,
-      dto,
-    );
+    return this.clientsService.update(userId, organizationId, clientId, dto);
   }
 
+  @Delete(':id')
   @ApiOperation({ summary: 'Delete client' })
   @ApiOkResponse({
     description: 'Client deleted successfully',
@@ -156,12 +154,11 @@ export class ClientsController {
     description: 'Missing organization header',
     type: ErrorResponseDto,
   })
-  @Delete(':id')
   remove(
-    @Req() req: FastifyRequest,
+    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganizationId() organizationId: string,
     @Param('id') clientId: string,
   ): Promise<SuccessResponseDto> {
-    return this.clientsService.remove(req.user!.sub, organizationId, clientId);
+    return this.clientsService.remove(userId, organizationId, clientId);
   }
 }

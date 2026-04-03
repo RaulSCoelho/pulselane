@@ -5,11 +5,13 @@ import { ApiProperty, IntersectionType, PickType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 class MeOrganizationDto extends PickType(OrganizationResponseDto, [
+  'id',
   'name',
   'slug',
 ] as const) {}
 
 class MeMembershipDto extends PickType(MembershipResponseDto, [
+  'id',
   'role',
 ] as const) {
   @ApiProperty({ type: MeOrganizationDto })

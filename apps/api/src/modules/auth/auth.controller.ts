@@ -32,12 +32,12 @@ import {
 import { SignupDto } from './dto/requests/signup.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
-import { Public } from '@/common/decorators/is-public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CookieService } from './cookie.service';
 import { MeResponseDto } from './dto/responses/me-response.dto';
 import type { RefreshRequestUser } from './contracts/refresh-request-user';
 import type { AccessRequestUser } from './contracts/access-request-user';
+import { Auth } from '@/common/decorators/auth.decorator';
 
 @ApiTags('Auth')
 @ApiCookieAuth(REFRESH_COOKIE_NAME)
@@ -49,7 +49,7 @@ export class AuthController {
     private readonly cookieService: CookieService,
   ) {}
 
-  @Public()
+  @Auth({ mode: 'public' })
   @Post('signup')
   @HttpCode(201)
   @ApiOperation({
@@ -86,7 +86,7 @@ export class AuthController {
     };
   }
 
-  @Public()
+  @Auth({ mode: 'public' })
   @Post('login')
   @HttpCode(200)
   @ApiOperation({
@@ -142,7 +142,7 @@ export class AuthController {
     return this.authService.me(user.sub);
   }
 
-  @Public()
+  @Auth({ mode: 'public' })
   @UseGuards(RefreshTokenGuard)
   @Post('refresh')
   @HttpCode(200)

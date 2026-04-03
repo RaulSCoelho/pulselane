@@ -12,8 +12,9 @@
     "declaration": true,
     "removeComments": true,
     "sourceMap": true,
+
+    "rootDir": "./",
     "outDir": "./dist",
-    "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -24,12 +25,7 @@
     "incremental": true,
     "skipLibCheck": true,
 
-    "strict": true,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "forceConsistentCasingInFileNames": true,
-    "strictBindCallApply": true,
-    "noFallthroughCasesInSwitch": true
+    "strict": true
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "*.ts"],
   "exclude": ["node_modules", "dist"]

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { MembershipRepository } from './membership.repository';
 import { MembershipRole, Prisma } from '@prisma/client';
 
@@ -29,7 +29,7 @@ export class MembershipService {
       );
 
     if (!membership) {
-      throw new Error('User is not a member of this organization');
+      throw new ForbiddenException('User is not a member of this organization');
     }
 
     return membership;

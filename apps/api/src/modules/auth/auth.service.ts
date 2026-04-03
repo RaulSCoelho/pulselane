@@ -144,9 +144,10 @@ export class AuthService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       memberships: user.memberships.map((membership) => ({
-        userId: membership.userId,
+        id: membership.id,
         role: membership.role,
         organization: {
+          id: membership.organization.id,
           name: membership.organization.name,
           slug: membership.organization.slug,
         },
