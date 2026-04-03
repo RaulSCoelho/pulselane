@@ -107,7 +107,7 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Invalid request or missing x-organization-id header',
+    description: 'Validation error or missing x-organization-id header',
     type: ErrorResponseDto,
   })
   findOne(
@@ -152,7 +152,7 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Invalid request or missing x-organization-id header',
+    description: 'Validation error or missing x-organization-id header',
     type: ErrorResponseDto,
   })
   remove(
