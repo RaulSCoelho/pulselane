@@ -67,11 +67,11 @@ export class ProjectsController {
     type: ErrorResponseDto,
   })
   create(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Body() dto: CreateProjectDto,
   ): Promise<ProjectResponseDto> {
-    return this.projectsService.create(userId, organizationId, dto);
+    return this.projectsService.create(actorUserId, organizationId, dto);
   }
 
   @Get()
@@ -86,15 +86,10 @@ export class ProjectsController {
     type: ErrorResponseDto,
   })
   async findAll(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListProjectsQueryDto,
   ): Promise<ListProjectsResponseDto> {
-    const items = await this.projectsService.findAll(
-      userId,
-      organizationId,
-      query,
-    );
+    const items = await this.projectsService.findAll(organizationId, query);
 
     return { items };
   }
@@ -114,11 +109,10 @@ export class ProjectsController {
     type: ErrorResponseDto,
   })
   findOne(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') projectId: string,
   ): Promise<ProjectResponseDto> {
-    return this.projectsService.findOne(userId, organizationId, projectId);
+    return this.projectsService.findOne(organizationId, projectId);
   }
 
   @Patch(':id')
@@ -136,12 +130,17 @@ export class ProjectsController {
     type: ErrorResponseDto,
   })
   update(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') projectId: string,
     @Body() dto: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
-    return this.projectsService.update(userId, organizationId, projectId, dto);
+    return this.projectsService.update(
+      actorUserId,
+      organizationId,
+      projectId,
+      dto,
+    );
   }
 
   @Delete(':id')
@@ -159,10 +158,10 @@ export class ProjectsController {
     type: ErrorResponseDto,
   })
   remove(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') projectId: string,
   ): Promise<SuccessResponseDto> {
-    return this.projectsService.remove(userId, organizationId, projectId);
+    return this.projectsService.remove(actorUserId, organizationId, projectId);
   }
 }

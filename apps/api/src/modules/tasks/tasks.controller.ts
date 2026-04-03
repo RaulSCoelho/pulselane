@@ -67,11 +67,11 @@ export class TasksController {
     type: ErrorResponseDto,
   })
   create(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Body() dto: CreateTaskDto,
   ): Promise<TaskResponseDto> {
-    return this.tasksService.create(userId, organizationId, dto);
+    return this.tasksService.create(actorUserId, organizationId, dto);
   }
 
   @Get()
@@ -86,15 +86,10 @@ export class TasksController {
     type: ErrorResponseDto,
   })
   async findAll(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListTasksQueryDto,
   ): Promise<ListTasksResponseDto> {
-    const items = await this.tasksService.findAll(
-      userId,
-      organizationId,
-      query,
-    );
+    const items = await this.tasksService.findAll(organizationId, query);
 
     return { items };
   }
@@ -114,11 +109,10 @@ export class TasksController {
     type: ErrorResponseDto,
   })
   findOne(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') taskId: string,
   ): Promise<TaskResponseDto> {
-    return this.tasksService.findOne(userId, organizationId, taskId);
+    return this.tasksService.findOne(organizationId, taskId);
   }
 
   @Patch(':id')
@@ -136,12 +130,12 @@ export class TasksController {
     type: ErrorResponseDto,
   })
   update(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') taskId: string,
     @Body() dto: UpdateTaskDto,
   ): Promise<TaskResponseDto> {
-    return this.tasksService.update(userId, organizationId, taskId, dto);
+    return this.tasksService.update(actorUserId, organizationId, taskId, dto);
   }
 
   @Delete(':id')
@@ -159,10 +153,10 @@ export class TasksController {
     type: ErrorResponseDto,
   })
   remove(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') taskId: string,
   ): Promise<SuccessResponseDto> {
-    return this.tasksService.remove(userId, organizationId, taskId);
+    return this.tasksService.remove(actorUserId, organizationId, taskId);
   }
 }

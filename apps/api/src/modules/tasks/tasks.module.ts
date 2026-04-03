@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MembershipModule } from '@/modules/membership/membership.module';
+import { OrganizationModule } from '@/modules/organization/organization.module';
 import { ProjectsModule } from '@/modules/projects/projects.module';
+import { AuditLogsModule } from '@/modules/audit-logs/audit-logs.module';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
 import { TaskRepository } from './task.repository';
-import { AuditLogsModule } from '../audit-logs/audit-logs.module';
-import { OrganizationModule } from '../organization/organization.module';
+import { MembershipModule } from '../membership/membership.module';
 
 @Module({
   imports: [

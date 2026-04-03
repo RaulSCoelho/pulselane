@@ -67,11 +67,11 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   create(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Body() dto: CreateClientDto,
   ): Promise<ClientResponseDto> {
-    return this.clientsService.create(userId, organizationId, dto);
+    return this.clientsService.create(actorUserId, organizationId, dto);
   }
 
   @Get()
@@ -86,15 +86,10 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   async findAll(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListClientsQueryDto,
   ): Promise<ListClientsResponseDto> {
-    const items = await this.clientsService.findAll(
-      userId,
-      organizationId,
-      query,
-    );
+    const items = await this.clientsService.findAll(organizationId, query);
 
     return { items };
   }
@@ -114,11 +109,10 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   findOne(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') clientId: string,
   ): Promise<ClientResponseDto> {
-    return this.clientsService.findOne(userId, organizationId, clientId);
+    return this.clientsService.findOne(organizationId, clientId);
   }
 
   @Patch(':id')
@@ -136,12 +130,17 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   update(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') clientId: string,
     @Body() dto: UpdateClientDto,
   ): Promise<ClientResponseDto> {
-    return this.clientsService.update(userId, organizationId, clientId, dto);
+    return this.clientsService.update(
+      actorUserId,
+      organizationId,
+      clientId,
+      dto,
+    );
   }
 
   @Delete(':id')
@@ -159,10 +158,10 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   remove(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Param('id') clientId: string,
   ): Promise<SuccessResponseDto> {
-    return this.clientsService.remove(userId, organizationId, clientId);
+    return this.clientsService.remove(actorUserId, organizationId, clientId);
   }
 }

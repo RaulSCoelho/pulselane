@@ -17,9 +17,12 @@ export class TasksService {
     private readonly auditLogsService: AuditLogsService,
   ) {}
 
-  async create(userId: string, organizationId: string, dto: CreateTaskDto) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-    await this.projectsService.findOne(userId, organizationId, dto.projectId);
+  async create(
+    actorUserId: string,
+    organizationId: string,
+    dto: CreateTaskDto,
+  ) {
+    await this.projectsService.findOne(organizationId, dto.projectId);
 
     if (dto.assigneeUserId) {
       await this.membershipService.ensureUserIsMember(
@@ -43,24 +46,19 @@ export class TasksService {
       dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
     });
 
-    await this.auditLog(task, userId, organizationId, AuditLogAction.created);
+    await this.auditLog(
+      task,
+      actorUserId,
+      organizationId,
+      AuditLogAction.created,
+    );
 
     return task;
   }
 
-  async findAll(
-    userId: string,
-    organizationId: string,
-    query: ListTasksQueryDto,
-  ) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-
+  async findAll(organizationId: string, query: ListTasksQueryDto) {
     if (query.projectId) {
-      await this.projectsService.findOne(
-        userId,
-        organizationId,
-        query.projectId,
-      );
+      await this.projectsService.findOne(organizationId, query.projectId);
     }
 
     if (query.assigneeUserId) {
@@ -84,9 +82,7 @@ export class TasksService {
     });
   }
 
-  async findOne(userId: string, organizationId: string, taskId: string) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-
+  async findOne(organizationId: string, taskId: string) {
     const task = await this.taskRepository.findByIdAndOrganization(
       taskId,
       organizationId,
@@ -100,16 +96,15 @@ export class TasksService {
   }
 
   async update(
-    userId: string,
+    actorUserId: string,
     organizationId: string,
     taskId: string,
     dto: UpdateTaskDto,
   ) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
     await this.ensureTaskExists(taskId, organizationId);
 
     if (dto.projectId) {
-      await this.projectsService.findOne(userId, organizationId, dto.projectId);
+      await this.projectsService.findOne(organizationId, dto.projectId);
     }
 
     if (dto.assigneeUserId) {
@@ -133,19 +128,27 @@ export class TasksService {
             : null,
     });
 
-    await this.auditLog(task, userId, organizationId, AuditLogAction.updated);
+    await this.auditLog(
+      task,
+      actorUserId,
+      organizationId,
+      AuditLogAction.updated,
+    );
 
     return task;
   }
 
-  async remove(userId: string, organizationId: string, taskId: string) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-
+  async remove(actorUserId: string, organizationId: string, taskId: string) {
     const task = await this.getTaskOrThrow(taskId, organizationId);
 
     await this.taskRepository.delete(taskId);
 
-    await this.auditLog(task, userId, organizationId, AuditLogAction.deleted);
+    await this.auditLog(
+      task,
+      actorUserId,
+      organizationId,
+      AuditLogAction.deleted,
+    );
 
     return {
       success: true,
@@ -174,13 +177,13 @@ export class TasksService {
 
   private async auditLog(
     task: Task,
-    userId: string,
+    actorUserId: string,
     organizationId: string,
     action: AuditLogAction,
   ) {
     return this.auditLogsService.create({
       organizationId,
-      actorUserId: userId,
+      actorUserId,
       entityType: 'task',
       entityId: task.id,
       action,

@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuditLogAction, Project, ProjectStatus } from '@prisma/client';
-import { MembershipService } from '@/modules/membership/membership.service';
 import { ClientsService } from '@/modules/clients/clients.service';
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service';
 import { CreateProjectDto } from './dto/requests/create-project.dto';
@@ -12,14 +11,16 @@ import { ProjectRepository } from './project.repository';
 export class ProjectsService {
   constructor(
     private readonly projectRepository: ProjectRepository,
-    private readonly membershipService: MembershipService,
     private readonly clientsService: ClientsService,
     private readonly auditLogsService: AuditLogsService,
   ) {}
 
-  async create(userId: string, organizationId: string, dto: CreateProjectDto) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-    await this.clientsService.findOne(userId, organizationId, dto.clientId);
+  async create(
+    actorUserId: string,
+    organizationId: string,
+    dto: CreateProjectDto,
+  ) {
+    await this.clientsService.findOne(organizationId, dto.clientId);
 
     const project = await this.projectRepository.create({
       organizationId,
@@ -31,7 +32,7 @@ export class ProjectsService {
 
     await this.auditLog(
       project,
-      userId,
+      actorUserId,
       organizationId,
       AuditLogAction.created,
     );
@@ -39,15 +40,9 @@ export class ProjectsService {
     return project;
   }
 
-  async findAll(
-    userId: string,
-    organizationId: string,
-    query: ListProjectsQueryDto,
-  ) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-
+  async findAll(organizationId: string, query: ListProjectsQueryDto) {
     if (query.clientId) {
-      await this.clientsService.findOne(userId, organizationId, query.clientId);
+      await this.clientsService.findOne(organizationId, query.clientId);
     }
 
     return this.projectRepository.findManyByOrganization({
@@ -58,9 +53,7 @@ export class ProjectsService {
     });
   }
 
-  async findOne(userId: string, organizationId: string, projectId: string) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-
+  async findOne(organizationId: string, projectId: string) {
     const project = await this.projectRepository.findByIdAndOrganization(
       projectId,
       organizationId,
@@ -74,23 +67,22 @@ export class ProjectsService {
   }
 
   async update(
-    userId: string,
+    actorUserId: string,
     organizationId: string,
     projectId: string,
     dto: UpdateProjectDto,
   ) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
     await this.ensureProjectExists(projectId, organizationId);
 
     if (dto.clientId) {
-      await this.clientsService.findOne(userId, organizationId, dto.clientId);
+      await this.clientsService.findOne(organizationId, dto.clientId);
     }
 
     const project = await this.projectRepository.update(projectId, dto);
 
     await this.auditLog(
       project,
-      userId,
+      actorUserId,
       organizationId,
       AuditLogAction.updated,
     );
@@ -98,16 +90,14 @@ export class ProjectsService {
     return project;
   }
 
-  async remove(userId: string, organizationId: string, projectId: string) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-
+  async remove(actorUserId: string, organizationId: string, projectId: string) {
     const project = await this.getProjectOrThrow(projectId, organizationId);
 
     await this.projectRepository.delete(projectId);
 
     await this.auditLog(
       project,
-      userId,
+      actorUserId,
       organizationId,
       AuditLogAction.deleted,
     );
@@ -139,13 +129,13 @@ export class ProjectsService {
 
   private async auditLog(
     project: Project,
-    userId: string,
+    actorUserId: string,
     organizationId: string,
     action: AuditLogAction,
   ) {
     return this.auditLogsService.create({
       organizationId,
-      actorUserId: userId,
+      actorUserId,
       entityType: 'project',
       entityId: project.id,
       action,

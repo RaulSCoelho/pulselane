@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { AuditLogAction, Prisma } from '@prisma/client';
-import { MembershipService } from '@/modules/membership/membership.service';
 import { AuditLogRepository } from './audit-log.repository';
 import { ListAuditLogsQueryDto } from './dto/requests/list-audit-logs-query.dto';
 
@@ -15,10 +14,7 @@ type RegisterAuditLogInput = {
 
 @Injectable()
 export class AuditLogsService {
-  constructor(
-    private readonly auditLogRepository: AuditLogRepository,
-    private readonly membershipService: MembershipService,
-  ) {}
+  constructor(private readonly auditLogRepository: AuditLogRepository) {}
 
   async create(input: RegisterAuditLogInput) {
     return this.auditLogRepository.create({
@@ -31,13 +27,7 @@ export class AuditLogsService {
     });
   }
 
-  async findAll(
-    userId: string,
-    organizationId: string,
-    query: ListAuditLogsQueryDto,
-  ) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
-
+  async findAll(organizationId: string, query: ListAuditLogsQueryDto) {
     return this.auditLogRepository.findManyByOrganization({
       organizationId,
       entityType: query.entityType,

@@ -11,9 +11,7 @@ import {
 } from '@nestjs/swagger';
 
 import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
-import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
 import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard';
 
 import { AuditLogsService } from './audit-logs.service';
@@ -53,15 +51,10 @@ export class AuditLogsController {
     type: ErrorResponseDto,
   })
   async findAll(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListAuditLogsQueryDto,
   ): Promise<ListAuditLogsResponseDto> {
-    const items = await this.auditLogsService.findAll(
-      userId,
-      organizationId,
-      query,
-    );
+    const items = await this.auditLogsService.findAll(organizationId, query);
 
     return {
       items: items.map((item) => ({
