@@ -9,4 +9,10 @@ export class ErrorResponseDto {
 
   @ApiProperty({ example: 'Validation failed' })
   message!: string | string[];
+
+  @ApiProperty({ example: '/api/clients' })
+  path!: string;
+
+  @ApiProperty({ example: '2026-04-03T16:00:00.000Z' })
+  timestamp!: string;
 }

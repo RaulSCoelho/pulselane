@@ -12,7 +12,9 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCookieAuth,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -57,11 +59,11 @@ export class AuthController {
     description:
       'Creates a new user and organization, and initializes a session per device.',
   })
-  @ApiOkResponse({
+  @ApiCreatedResponse({
     type: AuthResponseDto,
     description: 'User created and authenticated successfully',
   })
-  @ApiUnauthorizedResponse({
+  @ApiConflictResponse({
     type: ErrorResponseDto,
     description: 'Email already in use',
   })

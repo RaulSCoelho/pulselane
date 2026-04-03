@@ -10,6 +10,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import fastifyCookie from '@fastify/cookie';
 import { ConfigService } from '@nestjs/config';
 import { EnvConfig } from './config/env.config';
+import {
+  DEVICE_COOKIE_NAME,
+  REFRESH_COOKIE_NAME,
+} from './modules/auth/infra/auth.constants';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -34,7 +39,9 @@ async function bootstrap() {
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   });
+
   app.setGlobalPrefix('api');
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -43,11 +50,15 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Pulselane API')
     .setDescription('Multi-tenant operations SaaS API')
     .setVersion('1.0.0')
     .addBearerAuth()
+    .addCookieAuth(REFRESH_COOKIE_NAME)
+    .addCookieAuth(DEVICE_COOKIE_NAME)
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);

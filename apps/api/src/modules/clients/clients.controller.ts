@@ -60,7 +60,7 @@ export class ClientsController {
     type: ClientResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Invalid payload or missing organization header',
+    description: 'Validation error or missing x-organization-id header',
     type: ErrorResponseDto,
   })
   create(
@@ -78,7 +78,8 @@ export class ClientsController {
     type: ListClientsResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Invalid query or missing organization header',
+    description:
+      'Validation error, invalid query parameters, or missing x-organization-id header',
     type: ErrorResponseDto,
   })
   async findAll(
@@ -106,7 +107,7 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Missing organization header',
+    description: 'Invalid request or missing x-organization-id header',
     type: ErrorResponseDto,
   })
   findOne(
@@ -128,7 +129,7 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Invalid payload or missing organization header',
+    description: 'Validation error or missing x-organization-id header',
     type: ErrorResponseDto,
   })
   update(
@@ -151,7 +152,7 @@ export class ClientsController {
     type: ErrorResponseDto,
   })
   @ApiBadRequestResponse({
-    description: 'Missing organization header',
+    description: 'Invalid request or missing x-organization-id header',
     type: ErrorResponseDto,
   })
   remove(
