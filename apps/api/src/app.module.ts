@@ -8,6 +8,7 @@ import { envValidationSchema } from './config/env.validation';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { OrganizationModule } from './modules/organization/organization.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     }),
     PrismaModule,
     AuthModule,
+    OrganizationModule,
     ClientsModule,
     ProjectsModule,
     TasksModule,
