@@ -32,12 +32,12 @@ import {
 import { SignupDto } from './dto/requests/signup.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
-import type { AccessTokenPayload } from './contracts/access-token-payload';
-import type { RefreshTokenPayload } from './contracts/refresh-token-payload';
 import { Public } from '@/common/decorators/is-public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { CookieService } from './cookie.service';
 import { MeResponseDto } from './dto/responses/me-response.dto';
+import type { RefreshRequestUser } from './contracts/refresh-request-user';
+import type { AccessRequestUser } from './contracts/access-request-user';
 
 @ApiTags('Auth')
 @ApiCookieAuth(REFRESH_COOKIE_NAME)
@@ -138,7 +138,7 @@ export class AuthController {
     type: ErrorResponseDto,
     description: 'Unauthorized',
   })
-  async me(@CurrentUser() user: AccessTokenPayload): Promise<MeResponseDto> {
+  async me(@CurrentUser() user: AccessRequestUser): Promise<MeResponseDto> {
     return this.authService.me(user.sub);
   }
 
@@ -160,21 +160,20 @@ export class AuthController {
     description: 'Invalid or expired refresh token',
   })
   async refresh(
-    @CurrentUser() user: RefreshTokenPayload,
+    @CurrentUser() user: RefreshRequestUser,
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
     @Ip() ipAddress: string,
   ): Promise<AuthResponseDto> {
-    const refreshToken = request.cookies[REFRESH_COOKIE_NAME];
-
-    if (!user?.sub || !user?.sid || !refreshToken) {
+    if (!user?.sub || !user?.sid || !user?.deviceId || !user?.refreshToken) {
       throw new UnauthorizedException('Invalid session');
     }
 
     const result = await this.authService.rotate({
       userId: user.sub,
       sessionId: user.sid,
-      refreshToken: refreshToken,
+      deviceId: user.deviceId,
+      refreshToken: user.refreshToken,
       userAgent: request.headers['user-agent'],
       ipAddress,
     });
@@ -202,7 +201,7 @@ export class AuthController {
     description: 'Unauthorized',
   })
   async logout(
-    @CurrentUser() user: AccessTokenPayload,
+    @CurrentUser() user: AccessRequestUser,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     await this.authService.logoutCurrentSession(user.sub, user.sid);
@@ -229,7 +228,7 @@ export class AuthController {
     description: 'Unauthorized',
   })
   async logoutAll(
-    @CurrentUser('sub') userId: AccessTokenPayload['sub'],
+    @CurrentUser('sub') userId: AccessRequestUser['sub'],
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
     await this.authService.logoutAllSessions(userId);
@@ -256,7 +255,7 @@ export class AuthController {
     description: 'Unauthorized',
   })
   async listSessions(
-    @CurrentUser() user: AccessTokenPayload,
+    @CurrentUser() user: AccessRequestUser,
   ): Promise<SessionResponseDto[]> {
     return this.authService.listSessions(user.sub, user.sid);
   }

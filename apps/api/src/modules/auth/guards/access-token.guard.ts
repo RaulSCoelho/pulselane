@@ -10,17 +10,16 @@ export class AccessTokenGuard extends AuthGuard(ACCESS_TOKEN_STRATEGY) {
     super();
   }
 
-  async canActivate(context: ExecutionContext) {
+  canActivate(context: ExecutionContext) {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    try {
-      return (await super.canActivate(context)) as boolean;
-    } catch (error) {
-      if (isPublic) return true;
-      throw error;
+    if (isPublic) {
+      return true;
     }
+
+    return super.canActivate(context);
   }
 }

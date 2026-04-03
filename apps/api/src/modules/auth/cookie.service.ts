@@ -11,12 +11,16 @@ import { EnvConfig } from '@/config/env.config';
 export class CookieService {
   constructor(private readonly configService: ConfigService<EnvConfig>) {}
 
-  private get cookieDomain(): string | undefined {
-    return this.configService.get<string>('cookieDomain') || undefined;
-  }
-
   private get cookieSecure(): boolean {
     return this.configService.getOrThrow<boolean>('cookieSecure');
+  }
+
+  private get cookieSameSite(): 'lax' | 'none' {
+    return this.configService.getOrThrow<'lax' | 'none'>('cookieSameSite');
+  }
+
+  private get cookieDomain(): string | undefined {
+    return this.configService.get<string>('cookieDomain') || undefined;
   }
 
   private get refreshMaxAgeSeconds(): number {
@@ -32,7 +36,7 @@ export class CookieService {
     reply.setCookie(REFRESH_COOKIE_NAME, refreshToken, {
       httpOnly: true,
       secure: this.cookieSecure,
-      sameSite: 'lax',
+      sameSite: this.cookieSameSite,
       path: '/api/auth',
       domain: this.cookieDomain,
       maxAge: this.refreshMaxAgeSeconds,
@@ -50,7 +54,7 @@ export class CookieService {
     reply.setCookie(DEVICE_COOKIE_NAME, deviceId, {
       httpOnly: true,
       secure: this.cookieSecure,
-      sameSite: 'lax',
+      sameSite: this.cookieSameSite,
       path: '/',
       domain: this.cookieDomain,
       maxAge: this.refreshMaxAgeSeconds,

@@ -25,6 +25,7 @@ type SessionParams = {
 type RotateParams = {
   userId: string;
   sessionId: string;
+  deviceId: string;
   refreshToken: string;
   userAgent?: string;
   ipAddress?: string;
@@ -99,6 +100,7 @@ export class AuthService {
     const refreshToken = await this.tokenService.signRefreshToken({
       userId: user.id,
       sessionId: session.id,
+      deviceId: session.deviceId,
     });
 
     const accessToken = await this.tokenService.signAccessToken({
@@ -156,11 +158,13 @@ export class AuthService {
     const newRefreshToken = await this.tokenService.signRefreshToken({
       userId: params.userId,
       sessionId: params.sessionId,
+      deviceId: params.deviceId,
     });
 
     const session = await this.sessionService.rotate({
       userId: params.userId,
       sessionId: params.sessionId,
+      deviceId: params.deviceId,
       refreshToken: params.refreshToken,
       newRefreshToken,
       userAgent: params.userAgent,
@@ -201,7 +205,10 @@ export class AuthService {
       revokedAt: session.revokedAt,
       compromisedAt: session.compromisedAt,
       isCurrent: session.id === currentSessionId,
-      isActive: !session.revokedAt && session.expiresAt > new Date(),
+      isActive:
+        !session.revokedAt &&
+        !session.compromisedAt &&
+        session.expiresAt > new Date(),
     }));
   }
 }

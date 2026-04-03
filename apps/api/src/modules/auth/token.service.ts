@@ -59,11 +59,16 @@ export class TokenService {
     }
   }
 
-  async signRefreshToken(payload: { userId: string; sessionId: string }) {
+  async signRefreshToken(payload: {
+    userId: string;
+    sessionId: string;
+    deviceId: string;
+  }) {
     return this.jwtService.signAsync(
       {
         sub: payload.userId,
         sid: payload.sessionId,
+        did: payload.deviceId,
         typ: 'refresh',
       } satisfies RefreshTokenPayload,
       {

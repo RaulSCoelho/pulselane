@@ -8,7 +8,9 @@ export const envValidationSchema = Joi.object({
   ALLOWED_CORS_ORIGINS: Joi.string().allow('').default('*'),
 
   COOKIE_SECRET: Joi.string().required(),
-  APP_COOKIE_DOMAIN: Joi.string().allow('', null).optional(),
+  COOKIE_SECURE: Joi.boolean().default(false),
+  COOKIE_SAME_SITE: Joi.string().valid('lax', 'none').default('lax'),
+  COOKIE_DOMAIN: Joi.string().allow('', null).optional(),
 
   JWT_ACCESS_SECRET: Joi.string().required(),
   JWT_REFRESH_SECRET: Joi.string().required(),

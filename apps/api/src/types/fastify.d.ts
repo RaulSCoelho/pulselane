@@ -1,8 +1,8 @@
-import { AccessTokenPayload } from '@/modules/auth/contracts/access-token-payload';
+import { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
 import 'fastify';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    user?: AccessTokenPayload;
+    user?: AccessRequestUser;
   }
 }

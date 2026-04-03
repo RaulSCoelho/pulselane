@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { UserRepository } from './user.repository';
 import { CryptoService } from '@/infra/crypto/crypto.service';
@@ -24,7 +24,7 @@ export class UserService {
     const existing = await this.userRepository.findByEmail(data.email, tx);
 
     if (existing) {
-      throw new UnauthorizedException('Email already in use');
+      throw new ConflictException('Email already in use');
     }
 
     const passwordHash = await this.cryptoService.hash(data.password);

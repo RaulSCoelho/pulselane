@@ -14,8 +14,9 @@ export function configuration() {
       : [],
     // cookie
     cookieSecret: process.env.COOKIE_SECRET ?? '',
-    cookieDomain: process.env.APP_COOKIE_DOMAIN?.trim() || undefined,
-    cookieSecure: nodeEnv === 'production',
+    cookieSecure: process.env.COOKIE_SECURE === 'true',
+    cookieSameSite: process.env.COOKIE_SAME_SITE ?? 'lax',
+    cookieDomain: process.env.COOKIE_DOMAIN?.trim() || undefined,
     // auth
     jwtAccessSecret: process.env.JWT_ACCESS_SECRET ?? '',
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET ?? '',

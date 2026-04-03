@@ -16,6 +16,7 @@ type CreateSessionParams = {
 type RotateSessionParams = {
   sessionId: string;
   userId: string;
+  deviceId: string;
   refreshToken: string;
   newRefreshToken: string;
   userAgent?: string | null;
@@ -49,7 +50,7 @@ export class SessionService {
     const session = await this.validateSession(
       params.userId,
       params.sessionId,
-      params.refreshToken,
+      { deviceId: params.deviceId, refreshToken: params.refreshToken },
     );
     const newRefreshTokenHash = await this.cryptoService.hash(
       params.newRefreshToken,
@@ -87,7 +88,10 @@ export class SessionService {
   async validateSession(
     userId: string,
     sessionId: string,
-    refreshToken?: string,
+    options?: {
+      refreshToken?: string;
+      deviceId?: string;
+    },
   ) {
     const session = await this.sessionRepository.findById(sessionId);
 
@@ -115,9 +119,18 @@ export class SessionService {
       throw new UnauthorizedException('Session expired');
     }
 
-    if (refreshToken) {
+    if (options?.deviceId && session.deviceId !== options.deviceId) {
+      await this.sessionRepository.updateById(session.id, {
+        revokedAt: new Date(),
+        compromisedAt: new Date(),
+      });
+
+      throw new UnauthorizedException('Invalid device');
+    }
+
+    if (options?.refreshToken) {
       const isValid = await this.cryptoService.compare(
-        refreshToken,
+        options.refreshToken,
         session.refreshTokenHash,
       );
 
