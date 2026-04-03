@@ -14,7 +14,10 @@ export function configuration() {
       : [],
     // cookie
     cookieSecret: process.env.COOKIE_SECRET ?? '',
-    cookieSecure: process.env.COOKIE_SECURE === 'true',
+    cookieSecure:
+      process.env.COOKIE_SECURE != null
+        ? process.env.COOKIE_SECURE === 'true'
+        : nodeEnv === 'production',
     cookieSameSite: process.env.COOKIE_SAME_SITE ?? 'lax',
     cookieDomain: process.env.COOKIE_DOMAIN?.trim() || undefined,
     // auth
