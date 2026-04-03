@@ -9,5 +9,6 @@ import { ProjectRepository } from './project.repository';
   imports: [MembershipModule, ClientsModule],
   controllers: [ProjectsController],
   providers: [ProjectsService, ProjectRepository],
+  exports: [ProjectsService],
 })
 export class ProjectsModule {}

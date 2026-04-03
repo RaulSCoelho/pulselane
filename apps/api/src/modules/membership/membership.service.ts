@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { MembershipRepository } from './membership.repository';
 import { MembershipRole, Prisma } from '@prisma/client';
 
@@ -6,6 +10,12 @@ type CreateMembershipInput = {
   userId: string;
   organizationId: string;
   role: MembershipRole;
+};
+
+type EnsureUserIsMemberOptions = {
+  notFoundMessage?: string;
+  exceptionType?: 'forbidden' | 'not_found';
+  tx?: Prisma.TransactionClient;
 };
 
 @Injectable()
@@ -19,17 +29,24 @@ export class MembershipService {
   async ensureUserIsMember(
     userId: string,
     organizationId: string,
-    tx?: Prisma.TransactionClient,
+    options?: EnsureUserIsMemberOptions,
   ) {
     const membership =
       await this.membershipRepository.findByUserAndOrganization(
         userId,
         organizationId,
-        tx,
+        options?.tx,
       );
 
     if (!membership) {
-      throw new ForbiddenException('User is not a member of this organization');
+      const message =
+        options?.notFoundMessage ?? 'User is not a member of this organization';
+
+      if (options?.exceptionType === 'not_found') {
+        throw new NotFoundException(message);
+      }
+
+      throw new ForbiddenException(message);
     }
 
     return membership;

@@ -6,6 +6,7 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { configuration } from './config/env.config';
 import { envValidationSchema } from './config/env.validation';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
     AuthModule,
     ClientsModule,
     ProjectsModule,
+    TasksModule,
   ],
 })
 export class AppModule {}

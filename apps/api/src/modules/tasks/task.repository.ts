@@ -1,25 +1,34 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProjectStatus } from '@prisma/client';
+import { Prisma, TaskPriority, TaskStatus } from '@prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 type FindManyByOrganizationParams = {
   organizationId: string;
-  clientId?: string;
+  projectId?: string;
+  assigneeUserId?: string;
   search?: string;
-  status?: ProjectStatus;
+  status?: TaskStatus;
+  priority?: TaskPriority;
 };
 
-const projectInclude = {
-  client: {
+const taskInclude = {
+  project: {
     select: {
       id: true,
       name: true,
     },
   },
-} satisfies Prisma.ProjectInclude;
+  assignee: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+} satisfies Prisma.TaskInclude;
 
 @Injectable()
-export class ProjectRepository {
+export class TaskRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private getClient(tx?: Prisma.TransactionClient) {
@@ -27,12 +36,12 @@ export class ProjectRepository {
   }
 
   async create(
-    data: Prisma.ProjectCreateArgs['data'],
+    data: Prisma.TaskCreateArgs['data'],
     tx?: Prisma.TransactionClient,
   ) {
-    return this.getClient(tx).project.create({
+    return this.getClient(tx).task.create({
       data,
-      include: projectInclude,
+      include: taskInclude,
     });
   }
 
@@ -40,20 +49,29 @@ export class ProjectRepository {
     params: FindManyByOrganizationParams,
     tx?: Prisma.TransactionClient,
   ) {
-    const { organizationId, clientId, search, status } = params;
+    const {
+      organizationId,
+      projectId,
+      assigneeUserId,
+      search,
+      status,
+      priority,
+    } = params;
 
-    return this.getClient(tx).project.findMany({
+    return this.getClient(tx).task.findMany({
       where: {
         organizationId,
-        clientId,
+        projectId,
+        assigneeUserId,
         status,
+        priority,
         OR: search
-          ? ['name', 'description'].map((field) => ({
+          ? ['title', 'description'].map((field) => ({
               [field]: { contains: search, mode: 'insensitive' },
             }))
           : undefined,
       },
-      include: projectInclude,
+      include: taskInclude,
       orderBy: {
         createdAt: 'desc',
       },
@@ -65,31 +83,31 @@ export class ProjectRepository {
     organizationId: string,
     tx?: Prisma.TransactionClient,
   ) {
-    return this.getClient(tx).project.findFirst({
+    return this.getClient(tx).task.findFirst({
       where: {
         id,
         organizationId,
       },
-      include: projectInclude,
+      include: taskInclude,
     });
   }
 
   async update(
     id: string,
-    data: Prisma.ProjectUpdateArgs['data'],
+    data: Prisma.TaskUpdateArgs['data'],
     tx?: Prisma.TransactionClient,
   ) {
-    return this.getClient(tx).project.update({
+    return this.getClient(tx).task.update({
       where: {
         id,
       },
       data,
-      include: projectInclude,
+      include: taskInclude,
     });
   }
 
   async delete(id: string, tx?: Prisma.TransactionClient) {
-    return this.getClient(tx).project.delete({
+    return this.getClient(tx).task.delete({
       where: {
         id,
       },

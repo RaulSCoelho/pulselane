@@ -27,6 +27,20 @@ enum ProjectStatus {
   archived
 }
 
+enum TaskStatus {
+  todo
+  in_progress
+  done
+  archived
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -37,6 +51,7 @@ model User {
 
   authSessions AuthSession[]
   memberships  Membership[]
+  tasks        Task[]
 
   @@map("users")
 }
@@ -74,6 +89,7 @@ model Organization {
   memberships Membership[]
   clients     Client[]
   projects    Project[]
+  tasks       Task[]
 
   @@map("organizations")
 }
@@ -124,9 +140,35 @@ model Project {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tasks        Task[]
 
   @@index([organizationId])
   @@index([clientId])
   @@index([organizationId, status])
   @@map("projects")
+}
+
+model Task {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  projectId      String       @map("project_id")
+  assigneeUserId String?      @map("assignee_user_id")
+  title          String
+  description    String?
+  status         TaskStatus   @default(todo)
+  priority       TaskPriority @default(medium)
+  dueDate        DateTime?    @map("due_date")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee     User?        @relation(fields: [assigneeUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([assigneeUserId])
+  @@index([organizationId, status])
+  @@index([organizationId, priority])
+  @@map("tasks")
 }
