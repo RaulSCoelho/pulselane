@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,11 +22,12 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
-import { CurrentOrganizationId } from '@/common/decorators/current-organization-id.decorator';
+import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
+import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard';
 
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/requests/create-project.dto';
@@ -49,6 +51,7 @@ import { ListProjectsResponseDto } from './dto/responses/list-projects-response.
   description: 'User is not a member of this organization',
   type: ErrorResponseDto,
 })
+@UseGuards(OrganizationContextGuard)
 @Controller('projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
@@ -65,7 +68,7 @@ export class ProjectsController {
   })
   create(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Body() dto: CreateProjectDto,
   ): Promise<ProjectResponseDto> {
     return this.projectsService.create(userId, organizationId, dto);
@@ -84,7 +87,7 @@ export class ProjectsController {
   })
   async findAll(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Query() query: ListProjectsQueryDto,
   ): Promise<ListProjectsResponseDto> {
     const items = await this.projectsService.findAll(
@@ -112,7 +115,7 @@ export class ProjectsController {
   })
   findOne(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') projectId: string,
   ): Promise<ProjectResponseDto> {
     return this.projectsService.findOne(userId, organizationId, projectId);
@@ -134,7 +137,7 @@ export class ProjectsController {
   })
   update(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') projectId: string,
     @Body() dto: UpdateProjectDto,
   ): Promise<ProjectResponseDto> {
@@ -157,7 +160,7 @@ export class ProjectsController {
   })
   remove(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') projectId: string,
   ): Promise<SuccessResponseDto> {
     return this.projectsService.remove(userId, organizationId, projectId);

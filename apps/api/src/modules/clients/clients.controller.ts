@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,11 +22,12 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
-import { CurrentOrganizationId } from '@/common/decorators/current-organization-id.decorator';
+import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
+import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard';
 
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/requests/create-client.dto';
@@ -46,9 +48,10 @@ import { ListClientsResponseDto } from './dto/responses/list-clients-response.dt
   type: ErrorResponseDto,
 })
 @ApiForbiddenResponse({
-  description: 'You do not belong to this organization',
+  description: 'User is not a member of this organization',
   type: ErrorResponseDto,
 })
+@UseGuards(OrganizationContextGuard)
 @Controller('clients')
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
@@ -65,7 +68,7 @@ export class ClientsController {
   })
   create(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Body() dto: CreateClientDto,
   ): Promise<ClientResponseDto> {
     return this.clientsService.create(userId, organizationId, dto);
@@ -84,7 +87,7 @@ export class ClientsController {
   })
   async findAll(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Query() query: ListClientsQueryDto,
   ): Promise<ListClientsResponseDto> {
     const items = await this.clientsService.findAll(
@@ -112,7 +115,7 @@ export class ClientsController {
   })
   findOne(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') clientId: string,
   ): Promise<ClientResponseDto> {
     return this.clientsService.findOne(userId, organizationId, clientId);
@@ -134,7 +137,7 @@ export class ClientsController {
   })
   update(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') clientId: string,
     @Body() dto: UpdateClientDto,
   ): Promise<ClientResponseDto> {
@@ -157,7 +160,7 @@ export class ClientsController {
   })
   remove(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') clientId: string,
   ): Promise<SuccessResponseDto> {
     return this.clientsService.remove(userId, organizationId, clientId);

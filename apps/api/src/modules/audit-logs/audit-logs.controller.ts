@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -10,10 +10,11 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
-import { CurrentOrganizationId } from '@/common/decorators/current-organization-id.decorator';
+import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
+import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard';
 
 import { AuditLogsService } from './audit-logs.service';
 import { ListAuditLogsQueryDto } from './dto/requests/list-audit-logs-query.dto';
@@ -35,6 +36,7 @@ import { normalizeMetadata } from './audit-logs.utils';
   description: 'User is not a member of this organization',
   type: ErrorResponseDto,
 })
+@UseGuards(OrganizationContextGuard)
 @Controller('audit-logs')
 export class AuditLogsController {
   constructor(private readonly auditLogsService: AuditLogsService) {}
@@ -52,7 +54,7 @@ export class AuditLogsController {
   })
   async findAll(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Query() query: ListAuditLogsQueryDto,
   ): Promise<ListAuditLogsResponseDto> {
     const items = await this.auditLogsService.findAll(

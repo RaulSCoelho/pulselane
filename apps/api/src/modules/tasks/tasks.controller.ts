@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,11 +22,12 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
-import { CurrentOrganizationId } from '@/common/decorators/current-organization-id.decorator';
+import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
+import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard';
 
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/requests/create-task.dto';
@@ -49,6 +51,7 @@ import { ListTasksResponseDto } from './dto/responses/list-tasks-response.dto';
   description: 'User is not a member of this organization',
   type: ErrorResponseDto,
 })
+@UseGuards(OrganizationContextGuard)
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
@@ -65,7 +68,7 @@ export class TasksController {
   })
   create(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Body() dto: CreateTaskDto,
   ): Promise<TaskResponseDto> {
     return this.tasksService.create(userId, organizationId, dto);
@@ -84,7 +87,7 @@ export class TasksController {
   })
   async findAll(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Query() query: ListTasksQueryDto,
   ): Promise<ListTasksResponseDto> {
     const items = await this.tasksService.findAll(
@@ -112,7 +115,7 @@ export class TasksController {
   })
   findOne(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') taskId: string,
   ): Promise<TaskResponseDto> {
     return this.tasksService.findOne(userId, organizationId, taskId);
@@ -134,7 +137,7 @@ export class TasksController {
   })
   update(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') taskId: string,
     @Body() dto: UpdateTaskDto,
   ): Promise<TaskResponseDto> {
@@ -157,7 +160,7 @@ export class TasksController {
   })
   remove(
     @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+    @CurrentOrganization('id') organizationId: string,
     @Param('id') taskId: string,
   ): Promise<SuccessResponseDto> {
     return this.tasksService.remove(userId, organizationId, taskId);

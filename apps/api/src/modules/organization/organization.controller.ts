@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -11,7 +11,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
-import { CurrentOrganizationId } from '@/common/decorators/current-organization-id.decorator';
+import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
@@ -19,6 +19,7 @@ import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-
 import { OrganizationService } from './organization.service';
 import { OrganizationResponseDto } from './dto/responses/organization-response.dto';
 import { ListOrganizationsResponseDto } from './dto/responses/list-organizations-response.dto';
+import { OrganizationContextGuard } from './guards/organization-context.guard';
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -45,6 +46,7 @@ export class OrganizationController {
   }
 
   @Get('current')
+  @UseGuards(OrganizationContextGuard)
   @ApiHeader({
     name: 'x-organization-id',
     required: true,
@@ -67,10 +69,9 @@ export class OrganizationController {
     description: 'Organization not found',
     type: ErrorResponseDto,
   })
-  async current(
-    @CurrentUser('sub') userId: AccessRequestUser['sub'],
-    @CurrentOrganizationId() organizationId: string,
+  current(
+    @CurrentOrganization() organization: OrganizationResponseDto,
   ): Promise<OrganizationResponseDto> {
-    return this.organizationService.findCurrentByUserId(userId, organizationId);
+    return Promise.resolve(organization);
   }
 }

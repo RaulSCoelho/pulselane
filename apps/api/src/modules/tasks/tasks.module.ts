@@ -5,9 +5,15 @@ import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
 import { TaskRepository } from './task.repository';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { OrganizationModule } from '../organization/organization.module';
 
 @Module({
-  imports: [MembershipModule, ProjectsModule, AuditLogsModule],
+  imports: [
+    MembershipModule,
+    OrganizationModule,
+    ProjectsModule,
+    AuditLogsModule,
+  ],
   controllers: [TasksController],
   providers: [TasksService, TaskRepository],
 })
