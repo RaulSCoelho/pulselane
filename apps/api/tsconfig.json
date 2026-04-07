@@ -27,6 +27,6 @@
 
     "strict": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "*.ts", "vitest.integration.config.mts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "*.ts", "prisma/seed.ts","vitest.integration.config.mts"],
   "exclude": ["node_modules", "dist"]
 }
