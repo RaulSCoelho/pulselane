@@ -4,7 +4,6 @@
 import './helpers/test-env';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { PrismaClient } from '@prisma/client';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import {
   setupTestDatabase,
@@ -18,7 +17,7 @@ import { createTestApp } from './helpers/create-test-app';
 
 describe('Projects and Tasks integration', () => {
   let app: NestFastifyApplication;
-  let prisma: PrismaClient;
+  let prisma: Awaited<ReturnType<typeof setupTestDatabase>>;
 
   beforeAll(async () => {
     prisma = await setupTestDatabase();
