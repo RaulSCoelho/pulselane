@@ -9,6 +9,8 @@ type FindManyByOrganizationParams = {
   search?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
+  page: number;
+  pageSize: number;
 };
 
 const taskInclude = {
@@ -56,26 +58,43 @@ export class TaskRepository {
       search,
       status,
       priority,
+      page,
+      pageSize,
     } = params;
 
-    return this.getClient(tx).task.findMany({
-      where: {
-        organizationId,
-        projectId,
-        assigneeUserId,
-        status,
-        priority,
-        OR: search
-          ? ['title', 'description'].map((field) => ({
-              [field]: { contains: search, mode: 'insensitive' },
-            }))
-          : undefined,
-      },
-      include: taskInclude,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const skip = (page - 1) * pageSize;
+
+    const where: Prisma.TaskWhereInput = {
+      organizationId,
+      projectId,
+      assigneeUserId,
+      status,
+      priority,
+      OR: search
+        ? [
+            { title: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+          ]
+        : undefined,
+    };
+
+    const [items, total] = await Promise.all([
+      this.getClient(tx).task.findMany({
+        where,
+        include: taskInclude,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: pageSize,
+      }),
+      this.getClient(tx).task.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+    };
   }
 
   async findByIdAndOrganization(

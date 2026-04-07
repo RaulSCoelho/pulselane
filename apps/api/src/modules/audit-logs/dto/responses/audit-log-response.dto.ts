@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AuditLogAction } from '@prisma/client';
 import { AuditLogActorResponseDto } from './audit-log-actor-response.dto';
+import { type JsonValue } from '@prisma/client/runtime/library';
 
 export class AuditLogResponseDto {
   @ApiProperty({ example: 'clxaudit123' })
@@ -28,7 +29,7 @@ export class AuditLogResponseDto {
     },
     nullable: true,
   })
-  metadata!: Record<string, unknown> | null;
+  metadata!: JsonValue;
 
   @ApiProperty({ type: AuditLogActorResponseDto })
   actorUser!: AuditLogActorResponseDto;

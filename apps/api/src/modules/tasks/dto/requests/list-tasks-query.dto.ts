@@ -1,8 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskPriority, TaskStatus } from '@prisma/client';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 
-export class ListTasksQueryDto {
+export class ListTasksQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ example: 'proposal' })
   @IsOptional()
   @IsString()

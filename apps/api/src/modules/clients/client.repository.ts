@@ -6,6 +6,8 @@ type FindManyByOrganizationParams = {
   organizationId: string;
   search?: string;
   status?: ClientStatus;
+  page: number;
+  pageSize: number;
 };
 
 @Injectable()
@@ -29,22 +31,35 @@ export class ClientRepository {
     params: FindManyByOrganizationParams,
     tx?: Prisma.TransactionClient,
   ) {
-    const { organizationId, search, status } = params;
+    const { organizationId, search, status, page, pageSize } = params;
+    const skip = (page - 1) * pageSize;
 
-    return this.getClient(tx).client.findMany({
-      where: {
-        organizationId,
-        status,
-        OR: search
-          ? ['name', 'email', 'companyName'].map((field) => ({
-              [field]: { contains: search, mode: 'insensitive' },
-            }))
-          : undefined,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const where: Prisma.ClientWhereInput = {
+      organizationId,
+      status,
+      OR: search
+        ? ['name', 'email', 'companyName'].map((field) => ({
+            [field]: { contains: search, mode: 'insensitive' },
+          }))
+        : undefined,
+    };
+
+    const [items, total] = await Promise.all([
+      this.getClient(tx).client.findMany({
+        where,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: pageSize,
+      }),
+      this.getClient(tx).client.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+    };
   }
 
   async findByIdAndOrganization(

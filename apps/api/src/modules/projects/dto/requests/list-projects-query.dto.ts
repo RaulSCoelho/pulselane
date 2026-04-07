@@ -1,8 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectStatus } from '@prisma/client';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
 
-export class ListProjectsQueryDto {
+export class ListProjectsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ example: 'website' })
   @IsOptional()
   @IsString()

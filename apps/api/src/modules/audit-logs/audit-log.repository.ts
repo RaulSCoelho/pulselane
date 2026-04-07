@@ -8,6 +8,8 @@ type FindManyByOrganizationParams = {
   entityId?: string;
   actorUserId?: string;
   action?: AuditLogAction;
+  page: number;
+  pageSize: number;
 };
 
 const auditLogInclude = {
@@ -42,21 +44,42 @@ export class AuditLogRepository {
     params: FindManyByOrganizationParams,
     tx?: Prisma.TransactionClient,
   ) {
-    const { organizationId, entityType, entityId, actorUserId, action } =
-      params;
+    const {
+      organizationId,
+      entityType,
+      entityId,
+      actorUserId,
+      action,
+      page,
+      pageSize,
+    } = params;
 
-    return this.getClient(tx).auditLog.findMany({
-      where: {
-        organizationId,
-        entityType,
-        entityId,
-        actorUserId,
-        action,
-      },
-      include: auditLogInclude,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const skip = (page - 1) * pageSize;
+
+    const where: Prisma.AuditLogWhereInput = {
+      organizationId,
+      entityType,
+      entityId,
+      actorUserId,
+      action,
+    };
+
+    const [items, total] = await Promise.all([
+      this.getClient(tx).auditLog.findMany({
+        where,
+        include: auditLogInclude,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: pageSize,
+      }),
+      this.getClient(tx).auditLog.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+    };
   }
 }

@@ -57,6 +57,9 @@ export class TasksService {
   }
 
   async findAll(organizationId: string, query: ListTasksQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
     if (query.projectId) {
       await this.projectsService.findOne(organizationId, query.projectId);
     }
@@ -72,14 +75,26 @@ export class TasksService {
       );
     }
 
-    return this.taskRepository.findManyByOrganization({
+    const { items, total } = await this.taskRepository.findManyByOrganization({
       organizationId,
       projectId: query.projectId,
       assigneeUserId: query.assigneeUserId,
       search: query.search,
       status: query.status,
       priority: query.priority,
+      page,
+      pageSize,
     });
+
+    return {
+      items,
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   }
 
   async findOne(organizationId: string, taskId: string) {

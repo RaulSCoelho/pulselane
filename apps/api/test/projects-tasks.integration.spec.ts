@@ -79,5 +79,7 @@ describe('Projects and Tasks integration', () => {
 
     expect(auditResponse.body.items).toHaveLength(1);
     expect(auditResponse.body.items[0].entityType).toBe('task');
+    expect(auditResponse.body.items[0].action).toBe('created');
+    expect(auditResponse.body.meta.total).toBe(1);
   });
 });

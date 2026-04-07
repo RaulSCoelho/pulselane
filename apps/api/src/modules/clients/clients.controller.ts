@@ -89,9 +89,7 @@ export class ClientsController {
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListClientsQueryDto,
   ): Promise<ListClientsResponseDto> {
-    const items = await this.clientsService.findAll(organizationId, query);
-
-    return { items };
+    return this.clientsService.findAll(organizationId, query);
   }
 
   @Get(':id')

@@ -51,20 +51,26 @@ describe('Clients integration', () => {
       .get('/api/clients')
       .set('Authorization', `Bearer ${accessToken}`)
       .set('x-organization-id', organizationId)
+      .query({ page: 1, pageSize: 10 })
       .expect(200);
 
     expect(listResponse.body.items).toHaveLength(1);
     expect(listResponse.body.items[0].name).toBe('Acme Corp');
+    expect(listResponse.body.meta.page).toBe(1);
+    expect(listResponse.body.meta.pageSize).toBe(10);
+    expect(listResponse.body.meta.total).toBe(1);
+    expect(listResponse.body.meta.totalPages).toBe(1);
 
     const auditResponse = await request(app.getHttpServer())
       .get('/api/audit-logs')
       .set('Authorization', `Bearer ${accessToken}`)
       .set('x-organization-id', organizationId)
-      .query({ entityType: 'client', action: 'created' })
+      .query({ entityType: 'client', action: 'created', page: 1, pageSize: 10 })
       .expect(200);
 
     expect(auditResponse.body.items).toHaveLength(1);
     expect(auditResponse.body.items[0].entityType).toBe('client');
     expect(auditResponse.body.items[0].action).toBe('created');
+    expect(auditResponse.body.meta.total).toBe(1);
   });
 });

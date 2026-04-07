@@ -89,9 +89,7 @@ export class TasksController {
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListTasksQueryDto,
   ): Promise<ListTasksResponseDto> {
-    const items = await this.tasksService.findAll(organizationId, query);
-
-    return { items };
+    return this.tasksService.findAll(organizationId, query);
   }
 
   @Get(':id')

@@ -41,16 +41,32 @@ export class ProjectsService {
   }
 
   async findAll(organizationId: string, query: ListProjectsQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
     if (query.clientId) {
       await this.clientsService.findOne(organizationId, query.clientId);
     }
 
-    return this.projectRepository.findManyByOrganization({
-      organizationId,
-      clientId: query.clientId,
-      search: query.search,
-      status: query.status,
-    });
+    const { items, total } =
+      await this.projectRepository.findManyByOrganization({
+        organizationId,
+        clientId: query.clientId,
+        search: query.search,
+        status: query.status,
+        page,
+        pageSize,
+      });
+
+    return {
+      items,
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   }
 
   async findOne(organizationId: string, projectId: string) {

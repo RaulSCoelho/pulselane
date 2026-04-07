@@ -37,11 +37,28 @@ export class ClientsService {
   }
 
   async findAll(organizationId: string, query: ListClientsQueryDto) {
-    return this.clientRepository.findManyByOrganization({
-      organizationId,
-      search: query.search,
-      status: query.status,
-    });
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
+    const { items, total } = await this.clientRepository.findManyByOrganization(
+      {
+        organizationId,
+        search: query.search,
+        status: query.status,
+        page,
+        pageSize,
+      },
+    );
+
+    return {
+      items,
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   }
 
   async findOne(organizationId: string, clientId: string) {

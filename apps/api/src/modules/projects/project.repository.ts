@@ -7,16 +7,16 @@ type FindManyByOrganizationParams = {
   clientId?: string;
   search?: string;
   status?: ProjectStatus;
+  page: number;
+  pageSize: number;
 };
 
-const projectInclude = {
-  client: {
-    select: {
-      id: true,
-      name: true,
-    },
+const clientInclude = {
+  select: {
+    id: true,
+    name: true,
   },
-} satisfies Prisma.ProjectInclude;
+} satisfies Prisma.ProjectInclude['client'];
 
 @Injectable()
 export class ProjectRepository {
@@ -32,7 +32,9 @@ export class ProjectRepository {
   ) {
     return this.getClient(tx).project.create({
       data,
-      include: projectInclude,
+      include: {
+        client: clientInclude,
+      },
     });
   }
 
@@ -40,24 +42,39 @@ export class ProjectRepository {
     params: FindManyByOrganizationParams,
     tx?: Prisma.TransactionClient,
   ) {
-    const { organizationId, clientId, search, status } = params;
+    const { organizationId, clientId, search, status, page, pageSize } = params;
+    const skip = (page - 1) * pageSize;
 
-    return this.getClient(tx).project.findMany({
-      where: {
-        organizationId,
-        clientId,
-        status,
-        OR: search
-          ? ['name', 'description'].map((field) => ({
-              [field]: { contains: search, mode: 'insensitive' },
-            }))
-          : undefined,
-      },
-      include: projectInclude,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const where: Prisma.ProjectWhereInput = {
+      organizationId,
+      clientId,
+      status,
+      OR: search
+        ? ['name', 'description'].map((field) => ({
+            [field]: { contains: search, mode: 'insensitive' },
+          }))
+        : undefined,
+    };
+
+    const [items, total] = await Promise.all([
+      this.getClient(tx).project.findMany({
+        where,
+        include: {
+          client: clientInclude,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: pageSize,
+      }),
+      this.getClient(tx).project.count({ where }),
+    ]);
+
+    return {
+      items,
+      total,
+    };
   }
 
   async findByIdAndOrganization(
@@ -70,7 +87,9 @@ export class ProjectRepository {
         id,
         organizationId,
       },
-      include: projectInclude,
+      include: {
+        client: clientInclude,
+      },
     });
   }
 
@@ -84,7 +103,9 @@ export class ProjectRepository {
         id,
       },
       data,
-      include: projectInclude,
+      include: {
+        client: clientInclude,
+      },
     });
   }
 

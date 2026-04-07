@@ -17,7 +17,6 @@ import { OrganizationContextGuard } from '@/modules/organization/guards/organiza
 import { AuditLogsService } from './audit-logs.service';
 import { ListAuditLogsQueryDto } from './dto/requests/list-audit-logs-query.dto';
 import { ListAuditLogsResponseDto } from './dto/responses/list-audit-logs-response.dto';
-import { normalizeMetadata } from './audit-logs.utils';
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
@@ -54,13 +53,6 @@ export class AuditLogsController {
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListAuditLogsQueryDto,
   ): Promise<ListAuditLogsResponseDto> {
-    const items = await this.auditLogsService.findAll(organizationId, query);
-
-    return {
-      items: items.map((item) => ({
-        ...item,
-        metadata: normalizeMetadata(item.metadata),
-      })),
-    };
+    return this.auditLogsService.findAll(organizationId, query);
   }
 }

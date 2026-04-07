@@ -28,12 +28,28 @@ export class AuditLogsService {
   }
 
   async findAll(organizationId: string, query: ListAuditLogsQueryDto) {
-    return this.auditLogRepository.findManyByOrganization({
-      organizationId,
-      entityType: query.entityType,
-      entityId: query.entityId,
-      actorUserId: query.actorUserId,
-      action: query.action,
-    });
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
+    const { items, total } =
+      await this.auditLogRepository.findManyByOrganization({
+        organizationId,
+        entityType: query.entityType,
+        entityId: query.entityId,
+        actorUserId: query.actorUserId,
+        action: query.action,
+        page,
+        pageSize,
+      });
+
+    return {
+      items,
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   }
 }
