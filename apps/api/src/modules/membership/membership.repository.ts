@@ -2,6 +2,13 @@ import { PrismaService } from '@/infra/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { MembershipRole, Prisma } from '@prisma/client';
 
+type FindManyByOrganizationParams = {
+  page: number;
+  pageSize: number;
+  search?: string;
+  role?: MembershipRole | undefined;
+};
+
 const membershipInclude = {
   user: {
     select: {
@@ -63,12 +70,7 @@ export class MembershipRepository {
 
   async findManyByOrganization(
     organizationId: string,
-    params?: {
-      page: number;
-      pageSize: number;
-      search?: string;
-      role?: MembershipRole | undefined;
-    },
+    params?: FindManyByOrganizationParams,
   ) {
     const page = params?.page ?? 1;
     const pageSize = params?.pageSize ?? 20;

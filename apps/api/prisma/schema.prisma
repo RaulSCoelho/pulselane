@@ -49,6 +49,13 @@ enum AuditLogAction {
   deleted
 }
 
+enum OrganizationInvitationStatus {
+  pending
+  accepted
+  revoked
+  expired
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -57,10 +64,11 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  authSessions AuthSession[]
-  memberships  Membership[]
-  tasks        Task[]
-  auditLogs    AuditLog[]
+  authSessions            AuthSession[]
+  memberships             Membership[]
+  tasks                   Task[]
+  auditLogs               AuditLog[]
+  organizationInvitations OrganizationInvitation[] @relation("OrganizationInvitationInvitedByUser")
 
   @@map("users")
 }
@@ -97,11 +105,12 @@ model Organization {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  memberships Membership[]
-  clients     Client[]
-  projects    Project[]
-  tasks       Task[]
-  auditLogs   AuditLog[]
+  memberships             Membership[]
+  clients                 Client[]
+  projects                Project[]
+  tasks                   Task[]
+  auditLogs               AuditLog[]
+  organizationInvitations OrganizationInvitation[]
 
   @@map("organizations")
 }
@@ -206,4 +215,29 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([organizationId, createdAt])
   @@map("audit_logs")
+}
+
+model OrganizationInvitation {
+  id              String                       @id @default(cuid())
+  organizationId  String                       @map("organization_id")
+  invitedByUserId String                       @map("invited_by_user_id")
+  email           String                       @db.Citext
+  role            MembershipRole
+  token           String                       @unique
+  status          OrganizationInvitationStatus @default(pending)
+  expiresAt       DateTime                     @map("expires_at")
+  acceptedAt      DateTime?                    @map("accepted_at")
+  revokedAt       DateTime?                    @map("revoked_at")
+  createdAt       DateTime                     @default(now()) @map("created_at")
+  updatedAt       DateTime                     @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("OrganizationInvitationInvitedByUser", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([status])
+  @@index([organizationId, status])
+  @@index([organizationId, email])
+  @@map("organization_invitations")
 }

@@ -16,6 +16,10 @@ export class UserService {
     private readonly cryptoService: CryptoService,
   ) {}
 
+  async findById(id: string, tx?: Prisma.TransactionClient) {
+    return this.userRepository.findById(id, tx);
+  }
+
   async findByEmail(email: string, tx?: Prisma.TransactionClient) {
     return this.userRepository.findByEmail(email, tx);
   }

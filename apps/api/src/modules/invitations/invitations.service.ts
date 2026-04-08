@@ -1,0 +1,305 @@
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  AuditLogAction,
+  MembershipRole,
+  OrganizationInvitationStatus,
+} from '@prisma/client';
+import { randomBytes } from 'node:crypto';
+import { PrismaService } from '@/infra/prisma/prisma.service';
+import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service';
+import { MembershipService } from '@/modules/membership/membership.service';
+import { UserService } from '@/modules/user/user.service';
+import { CreateInvitationDto } from './dto/requests/create-invitation.dto';
+import { ListInvitationsQueryDto } from './dto/requests/list-invitations-query.dto';
+import { AcceptInvitationDto } from './dto/requests/accept-invitation.dto';
+import { InvitationRepository } from './invitation.repository';
+
+@Injectable()
+export class InvitationsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly invitationRepository: InvitationRepository,
+    private readonly membershipService: MembershipService,
+    private readonly auditLogsService: AuditLogsService,
+    private readonly userService: UserService,
+  ) {}
+
+  async create(
+    actorUserId: string,
+    organizationId: string,
+    dto: CreateInvitationDto,
+  ) {
+    const actorMembership = await this.membershipService.ensureUserIsMember(
+      actorUserId,
+      organizationId,
+    );
+
+    if (
+      actorMembership.role !== MembershipRole.owner &&
+      actorMembership.role !== MembershipRole.admin
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to manage invitations',
+      );
+    }
+
+    if (
+      actorMembership.role === MembershipRole.admin &&
+      dto.role === MembershipRole.owner
+    ) {
+      throw new ForbiddenException('Admins cannot invite owners');
+    }
+
+    const existingMembership =
+      await this.membershipService.findByUserAndOrganization(
+        actorUserId,
+        organizationId,
+      );
+
+    if (!existingMembership) {
+      throw new ForbiddenException('User is not a member of this organization');
+    }
+
+    const invitedUser = await this.userService.findByEmail(dto.email);
+
+    if (invitedUser) {
+      const invitedMembership =
+        await this.membershipService.findByUserAndOrganization(
+          invitedUser.id,
+          organizationId,
+        );
+
+      if (invitedMembership) {
+        throw new ConflictException(
+          'User already belongs to this organization',
+        );
+      }
+    }
+
+    const existingPendingInvitation =
+      await this.invitationRepository.findPendingByOrganizationAndEmail(
+        organizationId,
+        dto.email,
+      );
+
+    if (existingPendingInvitation) {
+      throw new ConflictException(
+        'A pending invitation already exists for this email',
+      );
+    }
+
+    const invitation = await this.invitationRepository.create({
+      organizationId,
+      invitedByUserId: actorUserId,
+      email: dto.email,
+      role: dto.role,
+      token: this.generateToken(),
+      expiresAt: this.buildExpirationDate(),
+    });
+
+    await this.auditLogsService.create({
+      organizationId,
+      actorUserId,
+      entityType: 'organization_invitation',
+      entityId: invitation.id,
+      action: AuditLogAction.created,
+      metadata: {
+        email: invitation.email,
+        role: invitation.role,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+      },
+    });
+
+    return invitation;
+  }
+
+  async findAll(organizationId: string, query: ListInvitationsQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 20;
+
+    const { items, total } =
+      await this.invitationRepository.findManyByOrganization({
+        organizationId,
+        page,
+        pageSize,
+        email: query.email,
+        status: query.status,
+      });
+
+    return {
+      items,
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
+  }
+
+  async revoke(
+    actorUserId: string,
+    organizationId: string,
+    invitationId: string,
+  ) {
+    const actorMembership = await this.membershipService.ensureUserIsMember(
+      actorUserId,
+      organizationId,
+    );
+
+    if (
+      actorMembership.role !== MembershipRole.owner &&
+      actorMembership.role !== MembershipRole.admin
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to manage invitations',
+      );
+    }
+
+    const invitation = await this.getInvitationOrThrow(
+      invitationId,
+      organizationId,
+    );
+
+    if (invitation.status !== OrganizationInvitationStatus.pending) {
+      throw new ConflictException('Only pending invitations can be revoked');
+    }
+
+    const updatedInvitation = await this.invitationRepository.update(
+      invitation.id,
+      {
+        status: OrganizationInvitationStatus.revoked,
+        revokedAt: new Date(),
+      },
+    );
+
+    await this.auditLogsService.create({
+      organizationId,
+      actorUserId,
+      entityType: 'organization_invitation',
+      entityId: updatedInvitation.id,
+      action: AuditLogAction.updated,
+      metadata: {
+        email: updatedInvitation.email,
+        role: updatedInvitation.role,
+        status: updatedInvitation.status,
+      },
+    });
+
+    return updatedInvitation;
+  }
+
+  async accept(actorUserId: string, dto: AcceptInvitationDto) {
+    const invitation = await this.invitationRepository.findByToken(dto.token);
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (invitation.status !== OrganizationInvitationStatus.pending) {
+      throw new ConflictException('Invitation is no longer pending');
+    }
+
+    if (invitation.expiresAt.getTime() <= Date.now()) {
+      await this.invitationRepository.update(invitation.id, {
+        status: OrganizationInvitationStatus.expired,
+      });
+
+      throw new ConflictException('Invitation has expired');
+    }
+
+    const user = await this.userService.findById(actorUserId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (invitation.email.toLowerCase() !== user.email.toLowerCase()) {
+      throw new ForbiddenException(
+        'You can only accept invitations sent to your own email',
+      );
+    }
+
+    const existingMembership =
+      await this.membershipService.findByUserAndOrganization(
+        actorUserId,
+        invitation.organizationId,
+      );
+
+    if (existingMembership) {
+      throw new ConflictException('User already belongs to this organization');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.membershipService.create(
+        {
+          userId: actorUserId,
+          organizationId: invitation.organizationId,
+          role: invitation.role,
+        },
+        tx,
+      );
+
+      const acceptedInvitation = await this.invitationRepository.update(
+        invitation.id,
+        {
+          status: OrganizationInvitationStatus.accepted,
+          acceptedAt: new Date(),
+        },
+        tx,
+      );
+
+      await this.auditLogsService.create(
+        {
+          organizationId: invitation.organizationId,
+          actorUserId,
+          entityType: 'organization_invitation',
+          entityId: acceptedInvitation.id,
+          action: AuditLogAction.updated,
+          metadata: {
+            email: acceptedInvitation.email,
+            role: acceptedInvitation.role,
+            status: acceptedInvitation.status,
+          },
+        },
+        tx,
+      );
+
+      return acceptedInvitation;
+    });
+  }
+
+  private async getInvitationOrThrow(
+    invitationId: string,
+    organizationId: string,
+  ) {
+    const invitation = await this.invitationRepository.findByIdAndOrganization(
+      invitationId,
+      organizationId,
+    );
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    return invitation;
+  }
+
+  // Tokens are only used for acceptance and should not be guessable.
+  private generateToken(): string {
+    return randomBytes(24).toString('hex');
+  }
+
+  private buildExpirationDate(): Date {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    return expiresAt;
+  }
+}
