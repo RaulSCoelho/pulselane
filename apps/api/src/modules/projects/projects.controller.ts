@@ -21,13 +21,16 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { MembershipRole } from '@prisma/client';
 
 import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { OrganizationRoles } from '@/common/decorators/organization-roles.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
 import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard';
+import { OrganizationRolesGuard } from '@/modules/organization/guards/organization-roles.guard';
 
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/requests/create-project.dto';
@@ -48,15 +51,20 @@ import { ListProjectsResponseDto } from './dto/responses/list-projects-response.
   type: ErrorResponseDto,
 })
 @ApiForbiddenResponse({
-  description: 'User is not a member of this organization',
+  description: 'Forbidden',
   type: ErrorResponseDto,
 })
-@UseGuards(OrganizationContextGuard)
+@UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
 @Controller('projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+  )
   @ApiOperation({ summary: 'Create project' })
   @ApiCreatedResponse({
     description: 'Project created successfully',
@@ -75,6 +83,12 @@ export class ProjectsController {
   }
 
   @Get()
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+    MembershipRole.viewer,
+  )
   @ApiOperation({ summary: 'List projects' })
   @ApiOkResponse({
     description: 'Projects returned successfully',
@@ -85,7 +99,7 @@ export class ProjectsController {
       'Validation error, invalid query parameters, or missing x-organization-id header',
     type: ErrorResponseDto,
   })
-  async findAll(
+  findAll(
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListProjectsQueryDto,
   ): Promise<ListProjectsResponseDto> {
@@ -93,6 +107,12 @@ export class ProjectsController {
   }
 
   @Get(':id')
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+    MembershipRole.viewer,
+  )
   @ApiOperation({ summary: 'Get project by id' })
   @ApiOkResponse({
     description: 'Project returned successfully',
@@ -114,6 +134,11 @@ export class ProjectsController {
   }
 
   @Patch(':id')
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+  )
   @ApiOperation({ summary: 'Update project' })
   @ApiOkResponse({
     description: 'Project updated successfully',
@@ -142,6 +167,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
+  @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
   @ApiOperation({ summary: 'Delete project' })
   @ApiOkResponse({
     description: 'Project deleted successfully',

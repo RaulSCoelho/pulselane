@@ -21,13 +21,16 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { MembershipRole } from '@prisma/client';
 
 import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { OrganizationRoles } from '@/common/decorators/organization-roles.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
 import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard';
+import { OrganizationRolesGuard } from '@/modules/organization/guards/organization-roles.guard';
 
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/requests/create-client.dto';
@@ -48,15 +51,20 @@ import { ListClientsResponseDto } from './dto/responses/list-clients-response.dt
   type: ErrorResponseDto,
 })
 @ApiForbiddenResponse({
-  description: 'User is not a member of this organization',
+  description: 'Forbidden',
   type: ErrorResponseDto,
 })
-@UseGuards(OrganizationContextGuard)
+@UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
 @Controller('clients')
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
   @Post()
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+  )
   @ApiOperation({ summary: 'Create client' })
   @ApiCreatedResponse({
     description: 'Client created successfully',
@@ -75,6 +83,12 @@ export class ClientsController {
   }
 
   @Get()
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+    MembershipRole.viewer,
+  )
   @ApiOperation({ summary: 'List clients' })
   @ApiOkResponse({
     description: 'Clients returned successfully',
@@ -85,7 +99,7 @@ export class ClientsController {
       'Validation error, invalid query parameters, or missing x-organization-id header',
     type: ErrorResponseDto,
   })
-  async findAll(
+  findAll(
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListClientsQueryDto,
   ): Promise<ListClientsResponseDto> {
@@ -93,6 +107,12 @@ export class ClientsController {
   }
 
   @Get(':id')
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+    MembershipRole.viewer,
+  )
   @ApiOperation({ summary: 'Get client by id' })
   @ApiOkResponse({
     description: 'Client returned successfully',
@@ -114,6 +134,11 @@ export class ClientsController {
   }
 
   @Patch(':id')
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+  )
   @ApiOperation({ summary: 'Update client' })
   @ApiOkResponse({
     description: 'Client updated successfully',
@@ -142,6 +167,7 @@ export class ClientsController {
   }
 
   @Delete(':id')
+  @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
   @ApiOperation({ summary: 'Delete client' })
   @ApiOkResponse({
     description: 'Client deleted successfully',

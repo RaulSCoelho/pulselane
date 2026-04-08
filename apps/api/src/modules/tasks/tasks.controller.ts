@@ -21,13 +21,16 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { MembershipRole } from '@prisma/client';
 
 import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { OrganizationRoles } from '@/common/decorators/organization-roles.decorator';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user';
 import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard';
+import { OrganizationRolesGuard } from '@/modules/organization/guards/organization-roles.guard';
 
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/requests/create-task.dto';
@@ -48,15 +51,20 @@ import { ListTasksResponseDto } from './dto/responses/list-tasks-response.dto';
   type: ErrorResponseDto,
 })
 @ApiForbiddenResponse({
-  description: 'User is not a member of this organization',
+  description: 'Forbidden',
   type: ErrorResponseDto,
 })
-@UseGuards(OrganizationContextGuard)
+@UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+  )
   @ApiOperation({ summary: 'Create task' })
   @ApiCreatedResponse({
     description: 'Task created successfully',
@@ -75,6 +83,12 @@ export class TasksController {
   }
 
   @Get()
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+    MembershipRole.viewer,
+  )
   @ApiOperation({ summary: 'List tasks' })
   @ApiOkResponse({
     description: 'Tasks returned successfully',
@@ -85,7 +99,7 @@ export class TasksController {
       'Validation error, invalid query parameters, or missing x-organization-id header',
     type: ErrorResponseDto,
   })
-  async findAll(
+  findAll(
     @CurrentOrganization('id') organizationId: string,
     @Query() query: ListTasksQueryDto,
   ): Promise<ListTasksResponseDto> {
@@ -93,6 +107,12 @@ export class TasksController {
   }
 
   @Get(':id')
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+    MembershipRole.viewer,
+  )
   @ApiOperation({ summary: 'Get task by id' })
   @ApiOkResponse({
     description: 'Task returned successfully',
@@ -114,6 +134,11 @@ export class TasksController {
   }
 
   @Patch(':id')
+  @OrganizationRoles(
+    MembershipRole.owner,
+    MembershipRole.admin,
+    MembershipRole.member,
+  )
   @ApiOperation({ summary: 'Update task' })
   @ApiOkResponse({
     description: 'Task updated successfully',
@@ -137,6 +162,7 @@ export class TasksController {
   }
 
   @Delete(':id')
+  @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
   @ApiOperation({ summary: 'Delete task' })
   @ApiOkResponse({
     description: 'Task deleted successfully',

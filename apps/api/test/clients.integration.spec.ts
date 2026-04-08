@@ -73,4 +73,36 @@ describe('Clients integration', () => {
     expect(auditResponse.body.items[0].action).toBe('created');
     expect(auditResponse.body.meta.total).toBe(1);
   });
+
+  it('should forbid viewer from creating a client', async () => {
+    const { accessToken } = await signupAndGetAccessToken(app);
+    const me = await getCurrentUser(app, accessToken);
+    const organizationId = me.memberships[0].organization.id;
+    const userId = me.id;
+
+    await prisma.membership.update({
+      where: {
+        userId_organizationId: {
+          userId,
+          organizationId,
+        },
+      },
+      data: {
+        role: 'viewer',
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/clients')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        name: 'Blocked Client',
+      })
+      .expect(403);
+
+    expect(response.body.message).toBe(
+      'You do not have permission to perform this action',
+    );
+  });
 });

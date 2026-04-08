@@ -7,6 +7,10 @@ import {
 } from '@nestjs/common';
 import { OrganizationService } from '../organization.service';
 import { RequestWithCurrentOrganization } from '@/common/decorators/current-organization.decorator';
+import { RequestWithOrganizationMembership } from '@/common/decorators/organization-membership.decorator';
+
+type RequestWithOrganizationContext = RequestWithCurrentOrganization &
+  RequestWithOrganizationMembership;
 
 @Injectable()
 export class OrganizationContextGuard implements CanActivate {
@@ -15,7 +19,7 @@ export class OrganizationContextGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context
       .switchToHttp()
-      .getRequest<RequestWithCurrentOrganization>();
+      .getRequest<RequestWithOrganizationContext>();
 
     const userId = request.user?.sub;
     const organizationId = request.headers['x-organization-id'];
@@ -28,12 +32,14 @@ export class OrganizationContextGuard implements CanActivate {
       throw new BadRequestException('x-organization-id header is required');
     }
 
-    const organization = await this.organizationService.findCurrentByUserId(
-      userId,
-      organizationId,
-    );
+    const { organization, membership } =
+      await this.organizationService.findCurrentByUserId(
+        userId,
+        organizationId,
+      );
 
     request.currentOrganization = organization;
+    request.currentMembership = membership;
 
     return true;
   }

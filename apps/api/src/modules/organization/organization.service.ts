@@ -38,7 +38,10 @@ export class OrganizationService {
   }
 
   async findCurrentByUserId(userId: string, organizationId: string) {
-    await this.membershipService.ensureUserIsMember(userId, organizationId);
+    const membership = await this.membershipService.ensureUserIsMember(
+      userId,
+      organizationId,
+    );
 
     const organization =
       await this.organizationRepository.findById(organizationId);
@@ -47,6 +50,9 @@ export class OrganizationService {
       throw new NotFoundException('Organization not found');
     }
 
-    return organization;
+    return {
+      organization,
+      membership,
+    };
   }
 }
