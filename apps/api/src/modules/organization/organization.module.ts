@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { MembershipModule } from '@/modules/membership/membership.module';
 import { OrganizationService } from './organization.service';
@@ -8,7 +8,7 @@ import { OrganizationContextGuard } from './guards/organization-context.guard';
 import { OrganizationRolesGuard } from './guards/organization-roles.guard';
 
 @Module({
-  imports: [MembershipModule],
+  imports: [forwardRef(() => MembershipModule)],
   controllers: [OrganizationController],
   providers: [
     Reflector,

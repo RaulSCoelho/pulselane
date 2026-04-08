@@ -12,11 +12,13 @@ type FindManyByOrganizationParams = {
 };
 
 const clientInclude = {
-  select: {
-    id: true,
-    name: true,
+  client: {
+    select: {
+      id: true,
+      name: true,
+    },
   },
-} satisfies Prisma.ProjectInclude['client'];
+} satisfies Prisma.ProjectInclude;
 
 // Project responses intentionally embed only the client summary needed by the API
 // today so list/detail endpoints avoid leaking full related records by default.
@@ -34,9 +36,7 @@ export class ProjectRepository {
   ) {
     return this.getClient(tx).project.create({
       data,
-      include: {
-        client: clientInclude,
-      },
+      include: clientInclude,
     });
   }
 
@@ -61,9 +61,7 @@ export class ProjectRepository {
     const [items, total] = await Promise.all([
       this.getClient(tx).project.findMany({
         where,
-        include: {
-          client: clientInclude,
-        },
+        include: clientInclude,
         orderBy: {
           createdAt: 'desc',
         },
@@ -89,9 +87,7 @@ export class ProjectRepository {
         id,
         organizationId,
       },
-      include: {
-        client: clientInclude,
-      },
+      include: clientInclude,
     });
   }
 
@@ -105,9 +101,7 @@ export class ProjectRepository {
         id,
       },
       data,
-      include: {
-        client: clientInclude,
-      },
+      include: clientInclude,
     });
   }
 

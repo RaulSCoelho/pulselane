@@ -73,10 +73,9 @@ export class TaskRepository {
       status,
       priority,
       OR: search
-        ? [
-            { title: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
-          ]
+        ? ['title', 'description'].map((field) => ({
+            [field]: { contains: search, mode: 'insensitive' },
+          }))
         : undefined,
     };
 

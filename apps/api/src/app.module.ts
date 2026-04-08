@@ -9,6 +9,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { OrganizationModule } from './modules/organization/organization.module';
+import { MembershipModule } from './modules/membership/membership.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { OrganizationModule } from './modules/organization/organization.module';
     PrismaModule,
     AuthModule,
     OrganizationModule,
+    MembershipModule,
     ClientsModule,
     ProjectsModule,
     TasksModule,

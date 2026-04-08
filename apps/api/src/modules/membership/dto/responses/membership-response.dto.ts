@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { MembershipRole } from '@prisma/client';
+import { MembershipUserResponseDto } from './membership-user-response.dto';
+import { MembershipOrganizationResponseDto } from './membership-organization-response.dto';
 
 export class MembershipResponseDto {
   @ApiProperty({ example: 'clxmembership123' })
@@ -11,12 +13,15 @@ export class MembershipResponseDto {
   @ApiProperty({ example: 'clxorg123' })
   organizationId!: string;
 
-  @ApiProperty({ enum: MembershipRole, example: MembershipRole.owner })
+  @ApiProperty({ enum: MembershipRole, example: MembershipRole.member })
   role!: MembershipRole;
 
-  @ApiProperty({ example: '2026-04-02T18:25:43.511Z' })
+  @ApiProperty({ example: '2026-04-03T20:00:00.000Z' })
   createdAt!: Date;
 
-  @ApiProperty({ example: '2026-04-02T18:25:43.511Z' })
-  updatedAt!: Date;
+  @ApiProperty({ type: MembershipUserResponseDto })
+  user!: MembershipUserResponseDto;
+
+  @ApiProperty({ type: MembershipOrganizationResponseDto })
+  organization!: MembershipOrganizationResponseDto;
 }
