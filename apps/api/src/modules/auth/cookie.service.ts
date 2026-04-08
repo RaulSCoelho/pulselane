@@ -9,23 +9,23 @@ import { EnvConfig } from '@/config/env.config';
 
 @Injectable()
 export class CookieService {
-  constructor(private readonly configService: ConfigService<EnvConfig>) {}
+  constructor(private readonly configService: ConfigService<EnvConfig, true>) {}
 
   private get cookieSecure(): boolean {
-    return this.configService.getOrThrow<boolean>('cookieSecure');
+    return this.configService.getOrThrow('cookieSecure', { infer: true });
   }
 
   private get cookieSameSite(): 'lax' | 'none' {
-    return this.configService.getOrThrow<'lax' | 'none'>('cookieSameSite');
+    return this.configService.getOrThrow('cookieSameSite', { infer: true });
   }
 
   private get cookieDomain(): string | undefined {
-    return this.configService.get<string>('cookieDomain') || undefined;
+    return this.configService.get('cookieDomain', { infer: true });
   }
 
   private get refreshMaxAgeSeconds(): number {
     return (
-      this.configService.getOrThrow<number>('refreshTokenTtlDays') *
+      this.configService.getOrThrow('refreshTokenTtlDays', { infer: true }) *
       24 *
       60 *
       60

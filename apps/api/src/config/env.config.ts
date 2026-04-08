@@ -13,17 +13,20 @@ export function configuration() {
         )
       : [],
     // cookie
-    cookieSecret: process.env.COOKIE_SECRET ?? '',
-    cookieSecure:
-      process.env.COOKIE_SECURE != null
-        ? process.env.COOKIE_SECURE === 'true'
-        : nodeEnv === 'production',
+    cookieSecret: process.env.COOKIE_SECRET!,
+    cookieSecure: process.env.COOKIE_SECURE === 'true',
     cookieSameSite: process.env.COOKIE_SAME_SITE ?? 'lax',
     cookieDomain: process.env.COOKIE_DOMAIN?.trim() || undefined,
     // auth
-    jwtAccessSecret: process.env.JWT_ACCESS_SECRET ?? '',
-    jwtRefreshSecret: process.env.JWT_REFRESH_SECRET ?? '',
-    accessTokenTtlSeconds: Number(process.env.ACCESS_TOKEN_TTL_SECONDS ?? 900), // 15 minutes
-    refreshTokenTtlDays: Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30),
+    jwtAccessSecret: process.env.JWT_ACCESS_SECRET!,
+    jwtRefreshSecret: process.env.JWT_REFRESH_SECRET!,
+    accessTokenTtlSeconds: Number(process.env.ACCESS_TOKEN_TTL_SECONDS),
+    refreshTokenTtlDays: Number(process.env.REFRESH_TOKEN_TTL_DAYS),
+    // web
+    appWebUrl: process.env.APP_WEB_URL,
+    // email
+    emailFromName: process.env.EMAIL_FROM_NAME,
+    emailFromAddress: process.env.EMAIL_FROM_ADDRESS,
+    emailTransport: process.env.EMAIL_TRANSPORT as 'logger',
   };
 }

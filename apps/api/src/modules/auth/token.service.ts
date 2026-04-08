@@ -11,23 +11,27 @@ import { EnvConfig } from '@/config/env.config';
 export class TokenService {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService<EnvConfig>,
+    private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
 
   private get jwtAccessSecret() {
-    return this.configService.getOrThrow<string>('jwtAccessSecret');
+    return this.configService.getOrThrow('jwtAccessSecret', { infer: true });
   }
 
   private get jwtRefreshSecret() {
-    return this.configService.getOrThrow<string>('jwtRefreshSecret');
+    return this.configService.getOrThrow('jwtRefreshSecret', { infer: true });
   }
 
   private get accessTokenTtlSeconds() {
-    return this.configService.getOrThrow<number>('accessTokenTtlSeconds');
+    return this.configService.getOrThrow('accessTokenTtlSeconds', {
+      infer: true,
+    });
   }
 
   private get refreshTokenTtlDays() {
-    return this.configService.getOrThrow<number>('refreshTokenTtlDays');
+    return this.configService.getOrThrow('refreshTokenTtlDays', {
+      infer: true,
+    });
   }
 
   async signAccessToken(payload: { userId: string; sessionId: string }) {

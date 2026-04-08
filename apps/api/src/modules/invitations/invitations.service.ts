@@ -14,10 +14,13 @@ import { PrismaService } from '@/infra/prisma/prisma.service';
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service';
 import { MembershipService } from '@/modules/membership/membership.service';
 import { UserService } from '@/modules/user/user.service';
+import { EmailService } from '@/modules/email/email.service';
 import { CreateInvitationDto } from './dto/requests/create-invitation.dto';
 import { ListInvitationsQueryDto } from './dto/requests/list-invitations-query.dto';
 import { AcceptInvitationDto } from './dto/requests/accept-invitation.dto';
 import { InvitationRepository } from './invitation.repository';
+import { InvitationLinksService } from './infra/invitation-links.service';
+import { buildInvitationEmail } from './infra/invitation-email.factory';
 
 @Injectable()
 export class InvitationsService {
@@ -27,6 +30,8 @@ export class InvitationsService {
     private readonly membershipService: MembershipService,
     private readonly auditLogsService: AuditLogsService,
     private readonly userService: UserService,
+    private readonly emailService: EmailService,
+    private readonly invitationLinksService: InvitationLinksService,
   ) {}
 
   async create(
@@ -53,16 +58,6 @@ export class InvitationsService {
       dto.role === MembershipRole.owner
     ) {
       throw new ForbiddenException('Admins cannot invite owners');
-    }
-
-    const existingMembership =
-      await this.membershipService.findByUserAndOrganization(
-        actorUserId,
-        organizationId,
-      );
-
-    if (!existingMembership) {
-      throw new ForbiddenException('User is not a member of this organization');
     }
 
     const invitedUser = await this.userService.findByEmail(dto.email);
@@ -114,6 +109,24 @@ export class InvitationsService {
         status: invitation.status,
         expiresAt: invitation.expiresAt,
       },
+    });
+
+    const acceptUrl = this.invitationLinksService.buildAcceptInvitationUrl(
+      invitation.token,
+    );
+
+    const emailContent = buildInvitationEmail({
+      invitation,
+      invitedByName: invitation.invitedBy.name,
+      organizationName: invitation.organization.name,
+      acceptUrl,
+    });
+
+    this.emailService.send({
+      to: invitation.email,
+      subject: emailContent.subject,
+      text: emailContent.text,
+      html: emailContent.html,
     });
 
     return invitation;

@@ -15,12 +15,12 @@ export class AccessTokenStrategy extends PassportStrategy(
   ACCESS_TOKEN_STRATEGY,
 ) {
   constructor(
-    configService: ConfigService<EnvConfig>,
+    configService: ConfigService<EnvConfig, true>,
     private readonly sessionService: SessionService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: configService.getOrThrow('jwtAccessSecret'),
+      secretOrKey: configService.getOrThrow('jwtAccessSecret', { infer: true }),
       ignoreExpiration: false,
     });
   }

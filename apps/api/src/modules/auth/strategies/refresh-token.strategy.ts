@@ -22,10 +22,12 @@ export class RefreshTokenStrategy extends PassportStrategy(
   Strategy,
   REFRESH_TOKEN_STRATEGY,
 ) {
-  constructor(configService: ConfigService<EnvConfig>) {
+  constructor(configService: ConfigService<EnvConfig, true>) {
     super({
       jwtFromRequest: extractRefreshToken,
-      secretOrKey: configService.getOrThrow('jwtRefreshSecret'),
+      secretOrKey: configService.getOrThrow('jwtRefreshSecret', {
+        infer: true,
+      }),
       ignoreExpiration: false,
       passReqToCallback: true,
     });

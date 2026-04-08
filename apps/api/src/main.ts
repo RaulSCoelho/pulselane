@@ -25,12 +25,15 @@ async function bootstrap() {
     { rawBody: true },
   );
 
-  const configService = app.get(ConfigService<EnvConfig>);
-  const port = configService.getOrThrow<number>('port');
-  const nodeEnv = configService.getOrThrow<string>('nodeEnv');
-  const allowedCorsOrigins =
-    configService.getOrThrow<string[]>('allowedCorsOrigins');
-  const cookieSecret = configService.getOrThrow<string>('cookieSecret');
+  const configService = app.get(ConfigService<EnvConfig, true>);
+  const port = configService.getOrThrow('port', { infer: true });
+  const nodeEnv = configService.getOrThrow('nodeEnv', { infer: true });
+  const allowedCorsOrigins = configService.getOrThrow('allowedCorsOrigins', {
+    infer: true,
+  });
+  const cookieSecret = configService.getOrThrow('cookieSecret', {
+    infer: true,
+  });
 
   await app.register(fastifyCookie, {
     secret: cookieSecret,
