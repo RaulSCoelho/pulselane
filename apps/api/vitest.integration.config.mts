@@ -6,7 +6,7 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['test/**/*.integration.spec.ts'],
-    setupFiles: [],
+    reporters: [['verbose', { summary: true }]],
   },
   resolve: {
     alias: {
