@@ -31,6 +31,8 @@ export class MembershipService {
     organizationId: string,
     options?: EnsureUserIsMemberOptions,
   ) {
+    // Some callers need "missing assignee" semantics while others need
+    // authorization semantics, so the exception shape is selectable here.
     const membership =
       await this.membershipRepository.findByUserAndOrganization(
         userId,

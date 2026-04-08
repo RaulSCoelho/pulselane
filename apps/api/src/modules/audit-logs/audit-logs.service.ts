@@ -17,6 +17,8 @@ export class AuditLogsService {
   constructor(private readonly auditLogRepository: AuditLogRepository) {}
 
   async create(input: RegisterAuditLogInput) {
+    // Audit writes are intentionally lightweight and fire from business services
+    // after the main mutation succeeds.
     return this.auditLogRepository.create({
       organizationId: input.organizationId,
       actorUserId: input.actorUserId,

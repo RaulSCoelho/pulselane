@@ -31,6 +31,8 @@ export class TokenService {
   }
 
   async signAccessToken(payload: { userId: string; sessionId: string }) {
+    // Access tokens carry only the minimum session identity needed to re-check
+    // server-side session state on every protected request.
     const jwtPayload: AccessTokenPayload = {
       sub: payload.userId,
       sid: payload.sessionId,
@@ -64,6 +66,8 @@ export class TokenService {
     sessionId: string;
     deviceId: string;
   }) {
+    // Refresh tokens bind a session to a device ID so cookie theft across
+    // browsers can be detected during rotation.
     return this.jwtService.signAsync(
       {
         sub: payload.userId,

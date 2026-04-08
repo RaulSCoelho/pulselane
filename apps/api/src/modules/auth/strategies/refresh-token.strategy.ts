@@ -58,6 +58,8 @@ export class RefreshTokenStrategy extends PassportStrategy(
       throw new UnauthorizedException('Device ID mismatch');
     }
 
+    // The raw refresh token is preserved on request.user so AuthService can
+    // compare it against the stored hash during rotation.
     return {
       ...payload,
       refreshToken,

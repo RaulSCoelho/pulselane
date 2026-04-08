@@ -17,6 +17,8 @@ import {
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
+  // The API runs on Fastify so cookie handling and Swagger are configured here
+  // instead of relying on the default Express bootstrap path from Nest starters.
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
@@ -70,6 +72,8 @@ async function bootstrap() {
   });
 
   const prismaService = app.get(PrismaService);
+  // Prisma does not automatically integrate with Nest shutdown, so we wire the
+  // database client into the app lifecycle during bootstrap.
   await prismaService.enableShutdownHooks(app);
 
   await app.listen(port, '0.0.0.0');

@@ -38,6 +38,8 @@ export class OrganizationContextGuard implements CanActivate {
         organizationId,
       );
 
+    // Downstream decorators and role guards depend on these request-scoped values
+    // instead of reloading organization context in every controller/service.
     request.currentOrganization = organization;
     request.currentMembership = membership;
 

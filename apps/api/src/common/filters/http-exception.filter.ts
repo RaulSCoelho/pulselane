@@ -43,6 +43,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
               message: response.message ?? exception.message,
             };
 
+      // Normalizing here keeps validation, guard, and controller exceptions in a
+      // single envelope without requiring every caller to shape its own payload.
       reply.status(statusCode).send({
         ...normalizedResponse,
         path: request.url,
@@ -83,6 +85,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     error: string;
     message: string | string[];
   } {
+    // Only the Prisma errors that are intentionally surfaced today are mapped.
+    // Everything else is treated as an internal database failure and logged.
     switch (exception.code) {
       case 'P2002':
         return {

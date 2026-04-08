@@ -40,6 +40,8 @@ export async function setupTestDatabase() {
 
   process.env.DATABASE_URL = url;
 
+  // Integration tests rely on real migrations instead of `db push` so the
+  // schema under test matches production DDL as closely as possible.
   execFileSync('pnpm', ['prisma', 'migrate', 'deploy'], {
     stdio: 'inherit',
     env: process.env,
@@ -62,6 +64,8 @@ export async function teardownTestDatabase(prisma: PrismaClient) {
   try {
     await client.$connect();
 
+    // PostgreSQL will refuse to drop a database with active connections, so test
+    // teardown terminates worker sessions before dropping the database.
     await client.$executeRawUnsafe(`
       SELECT pg_terminate_backend(pid)
       FROM pg_stat_activity

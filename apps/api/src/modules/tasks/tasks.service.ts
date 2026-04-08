@@ -25,6 +25,8 @@ export class TasksService {
     await this.projectsService.findOne(organizationId, dto.projectId);
 
     if (dto.assigneeUserId) {
+      // Assignees are validated against membership, not only user existence,
+      // because tasks cannot cross organization boundaries.
       await this.membershipService.ensureUserIsMember(
         dto.assigneeUserId,
         organizationId,
@@ -135,6 +137,8 @@ export class TasksService {
 
     const task = await this.taskRepository.update(taskId, {
       ...dto,
+      // `undefined` means "leave due date as-is"; an empty value from the DTO is
+      // converted to `null` so callers can explicitly clear the persisted date.
       dueDate:
         dto.dueDate === undefined
           ? undefined

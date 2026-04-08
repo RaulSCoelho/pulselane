@@ -26,6 +26,8 @@ export class AccessTokenStrategy extends PassportStrategy(
   }
 
   async validate(payload: AccessTokenPayload): Promise<AccessRequestUser> {
+    // A valid JWT is not enough on its own; the backing session must still be
+    // active so logout and compromise flags take effect immediately.
     await this.sessionService.validateSession(payload.sub, payload.sid);
     return payload;
   }

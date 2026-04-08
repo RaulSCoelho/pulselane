@@ -29,6 +29,8 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
     secret: process.env.COOKIE_SECRET ?? 'test-cookie-secret',
   });
 
+  // Tests mirror the runtime prefix and validation behavior so controller and
+  // DTO assertions exercise the same request pipeline as the real app.
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({

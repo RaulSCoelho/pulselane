@@ -16,6 +16,8 @@ import { CryptoService } from '@/infra/crypto/crypto.service';
 import { UserModule } from '../user/user.module';
 import { MembershipModule } from '../membership/membership.module';
 
+// The access-token guard is registered as an app guard here so every route is
+// private by default and opt-outs stay explicit at the controller level.
 @Module({
   imports: [
     PassportModule,

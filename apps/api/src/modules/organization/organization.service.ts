@@ -25,6 +25,8 @@ export class OrganizationService {
 
       const exists = await this.organizationRepository.findBySlug(slug, tx);
 
+      // Slug collisions are resolved deterministically in userland so signup can
+      // keep the generated slug human-readable without leaking DB errors upward.
       if (!exists) break;
 
       attempt++;
@@ -38,6 +40,8 @@ export class OrganizationService {
   }
 
   async findCurrentByUserId(userId: string, organizationId: string) {
+    // Membership is checked before organization lookup so callers consistently
+    // get membership-related errors for inaccessible organizations.
     const membership = await this.membershipService.ensureUserIsMember(
       userId,
       organizationId,

@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Roles are enforced in organization-scoped guards and determine which
+// controllers can mutate tenant data.
 enum MembershipRole {
   owner
   admin
@@ -79,6 +81,8 @@ model AuthSession {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // One active session row is maintained per user/device pair and rotated as
+  // refresh tokens change over time.
   @@unique([userId, deviceId])
   @@index([userId])
   @@index([deviceId])
@@ -112,6 +116,7 @@ model Membership {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  // Membership is the source of truth for tenant access and role resolution.
   @@unique([userId, organizationId])
   @@index([organizationId])
   @@index([userId])
@@ -194,6 +199,8 @@ model AuditLog {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   actorUser    User         @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
 
+  // Audit reads are organization-scoped first, then optionally narrowed by actor
+  // or entity identity.
   @@index([organizationId])
   @@index([actorUserId])
   @@index([entityType, entityId])

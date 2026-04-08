@@ -37,6 +37,7 @@ export class CookieService {
       httpOnly: true,
       secure: this.cookieSecure,
       sameSite: this.cookieSameSite,
+      // Keeping the refresh cookie under /api/auth narrows where browsers send it.
       path: '/api/auth',
       domain: this.cookieDomain,
       maxAge: this.refreshMaxAgeSeconds,
@@ -55,6 +56,8 @@ export class CookieService {
       httpOnly: true,
       secure: this.cookieSecure,
       sameSite: this.cookieSameSite,
+      // The device cookie must be visible to all routes because refresh and
+      // access-protected flows both rely on the same device binding.
       path: '/',
       domain: this.cookieDomain,
       maxAge: this.refreshMaxAgeSeconds,

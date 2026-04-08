@@ -29,6 +29,8 @@ export class SessionRepository {
         expiresAt: input.expiresAt,
         userAgent: input.userAgent,
         ipAddress: input.ipAddress,
+        // Reusing a device should reactivate the session with the newest token
+        // and request metadata rather than leaving stale compromise flags behind.
         lastUsedAt: new Date(),
         revokedAt: null,
         compromisedAt: null,

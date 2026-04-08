@@ -27,6 +27,8 @@ export class OrganizationRolesGuard implements CanActivate {
       .switchToHttp()
       .getRequest<RequestWithOrganizationMembership>();
 
+    // OrganizationContextGuard is expected to run first and attach the current
+    // membership that role checks are based on.
     const role = request.currentMembership?.role;
 
     if (!role || !requiredRoles.includes(role)) {

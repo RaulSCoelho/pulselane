@@ -32,6 +32,8 @@ export class SessionService {
   ) {}
 
   async upsert(params: CreateSessionParams) {
+    // Sessions are keyed by user + device. Reusing the same device ID lets the
+    // API rotate credentials without multiplying session rows for one browser.
     const deviceId = params.deviceId ?? this.tokenService.generateDeviceId();
     const refreshTokenHash = await this.cryptoService.hash(params.refreshToken);
     const expiresAt = this.tokenService.getRefreshExpiresAt();
@@ -120,6 +122,8 @@ export class SessionService {
     }
 
     if (options?.deviceId && session.deviceId !== options.deviceId) {
+      // A mismatched device ID means the refresh token escaped its original
+      // browser/device context, so the session is treated as compromised.
       await this.sessionRepository.updateById(session.id, {
         revokedAt: new Date(),
         compromisedAt: new Date(),
@@ -135,6 +139,8 @@ export class SessionService {
       );
 
       if (!isValid) {
+        // Refresh-token replay or tampering revokes the session instead of just
+        // rejecting the request so subsequent access checks also fail fast.
         await this.sessionRepository.updateById(session.id, {
           revokedAt: new Date(),
           compromisedAt: new Date(),

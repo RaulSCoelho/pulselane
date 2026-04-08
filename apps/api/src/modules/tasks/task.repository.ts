@@ -29,6 +29,8 @@ const taskInclude = {
   },
 } satisfies Prisma.TaskInclude;
 
+// Task payloads expose compact related objects so clients can render task lists
+// without issuing extra lookups for project or assignee labels.
 @Injectable()
 export class TaskRepository {
   constructor(private readonly prisma: PrismaService) {}

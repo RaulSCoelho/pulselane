@@ -20,6 +20,8 @@ export class AccessTokenGuard extends AuthGuard(ACCESS_TOKEN_STRATEGY) {
   canActivate(context: ExecutionContext) {
     const authOptions = this.getAuthOptions(context);
 
+    // Public routes bypass Passport entirely; optional routes still execute the
+    // strategy so request.user can be populated when credentials are present.
     if (authOptions.mode === 'public') {
       return true;
     }

@@ -29,6 +29,8 @@ export function buildWorkerDatabaseUrl() {
   const url = new URL(process.env.DATABASE_URL!);
   const name = buildTestDbName(url.pathname, workerId);
 
+  // Each Vitest worker gets its own database name so tests can run in parallel
+  // without sharing transactional state.
   url.pathname = `/${name}`;
   url.search = '';
 

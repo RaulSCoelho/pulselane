@@ -44,6 +44,8 @@ export class AuthService {
   ) {}
 
   async signup(dto: SignupDto, params: SessionParams) {
+    // Signup creates the initial tenant boundary as part of the same transaction:
+    // user, organization, and owner membership must either all exist or all fail.
     await this.prisma.$transaction(async (tx) => {
       const user = await this.userService.create(dto, tx);
       const organization = await this.organizationService.create(
@@ -97,6 +99,8 @@ export class AuthService {
       ipAddress: params.ipAddress,
     });
 
+    // Session persistence stores a hash of the refresh token, so we need the
+    // initial upsert first to get a stable session ID for signing the real token.
     const refreshToken = await this.tokenService.signRefreshToken({
       userId: user.id,
       sessionId: session.id,
@@ -156,6 +160,8 @@ export class AuthService {
   }
 
   async rotate(params: RotateParams) {
+    // Refresh rotation always replaces the stored hash, which makes refresh
+    // tokens effectively single-use from the server's point of view.
     const newRefreshToken = await this.tokenService.signRefreshToken({
       userId: params.userId,
       sessionId: params.sessionId,
@@ -206,6 +212,8 @@ export class AuthService {
       revokedAt: session.revokedAt,
       compromisedAt: session.compromisedAt,
       isCurrent: session.id === currentSessionId,
+      // "active" is derived at read time so expired or revoked sessions still
+      // remain visible in session history.
       isActive:
         !session.revokedAt &&
         !session.compromisedAt &&

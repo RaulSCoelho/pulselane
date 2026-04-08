@@ -18,6 +18,8 @@ const clientInclude = {
   },
 } satisfies Prisma.ProjectInclude['client'];
 
+// Project responses intentionally embed only the client summary needed by the API
+// today so list/detail endpoints avoid leaking full related records by default.
 @Injectable()
 export class ProjectRepository {
   constructor(private readonly prisma: PrismaService) {}

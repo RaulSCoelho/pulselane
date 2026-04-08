@@ -20,6 +20,7 @@ export class ProjectsService {
     organizationId: string,
     dto: CreateProjectDto,
   ) {
+    // Projects are always anchored to a client in the same organization.
     await this.clientsService.findOne(organizationId, dto.clientId);
 
     const project = await this.projectRepository.create({
@@ -45,6 +46,8 @@ export class ProjectsService {
     const pageSize = query.pageSize ?? 20;
 
     if (query.clientId) {
+      // Filter validation intentionally reuses the same lookup path as writes so
+      // callers get a consistent "client not found" response shape.
       await this.clientsService.findOne(organizationId, query.clientId);
     }
 

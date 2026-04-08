@@ -13,6 +13,9 @@ import {
 const prisma = new PrismaClient();
 const defaultPassword = '123456';
 
+// The seed dataset mirrors the core tenant hierarchy used by the API:
+// organization -> clients -> projects -> tasks, plus sessions and audit history.
+
 const users = [
   {
     id: 'seed_user_raul',
