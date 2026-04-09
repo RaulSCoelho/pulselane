@@ -7,6 +7,7 @@ import {
 import {
   AuditLogAction,
   MembershipRole,
+  OrganizationInvitation,
   OrganizationInvitationStatus,
 } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
@@ -44,14 +45,7 @@ export class InvitationsService {
       organizationId,
     );
 
-    if (
-      actorMembership.role !== MembershipRole.owner &&
-      actorMembership.role !== MembershipRole.admin
-    ) {
-      throw new ForbiddenException(
-        'You do not have permission to manage invitations',
-      );
-    }
+    this.assertCanManageInvitations(actorMembership.role);
 
     if (
       actorMembership.role === MembershipRole.admin &&
@@ -111,30 +105,7 @@ export class InvitationsService {
       },
     });
 
-    const acceptUrl = this.invitationLinksService.buildAcceptInvitationUrl(
-      invitation.token,
-    );
-
-    const emailContent = buildInvitationEmail({
-      invitation,
-      invitedByName: invitation.invitedBy.name,
-      organizationName: invitation.organization.name,
-      acceptUrl,
-    });
-
-    await this.emailService.send({
-      organizationId: invitation.organizationId,
-      sentBy: actorUserId,
-      to: invitation.email,
-      subject: emailContent.subject,
-      text: emailContent.text,
-      html: emailContent.html,
-      metadata: {
-        type: 'organization_invitation',
-        organizationId: invitation.organizationId,
-        invitationId: invitation.id,
-      },
-    });
+    await this.sendInvitationEmail(invitation, actorUserId);
 
     return invitation;
   }
@@ -173,19 +144,19 @@ export class InvitationsService {
       organizationId,
     );
 
-    if (
-      actorMembership.role !== MembershipRole.owner &&
-      actorMembership.role !== MembershipRole.admin
-    ) {
-      throw new ForbiddenException(
-        'You do not have permission to manage invitations',
-      );
-    }
+    this.assertCanManageInvitations(actorMembership.role);
 
     const invitation = await this.getInvitationOrThrow(
       invitationId,
       organizationId,
     );
+
+    if (
+      actorMembership.role === MembershipRole.admin &&
+      invitation.role === MembershipRole.owner
+    ) {
+      throw new ForbiddenException('Admins cannot manage owner invitations');
+    }
 
     if (invitation.status !== OrganizationInvitationStatus.pending) {
       throw new ConflictException('Only pending invitations can be revoked');
@@ -213,6 +184,72 @@ export class InvitationsService {
     });
 
     return updatedInvitation;
+  }
+
+  async resend(
+    actorUserId: string,
+    organizationId: string,
+    invitationId: string,
+  ) {
+    const actorMembership = await this.membershipService.ensureUserIsMember(
+      actorUserId,
+      organizationId,
+    );
+
+    this.assertCanManageInvitations(actorMembership.role);
+
+    const invitation = await this.getInvitationOrThrow(
+      invitationId,
+      organizationId,
+    );
+
+    if (
+      actorMembership.role === MembershipRole.admin &&
+      invitation.role === MembershipRole.owner
+    ) {
+      throw new ForbiddenException('Admins cannot manage owner invitations');
+    }
+
+    if (
+      invitation.status !== OrganizationInvitationStatus.pending &&
+      invitation.status !== OrganizationInvitationStatus.expired
+    ) {
+      throw new ConflictException(
+        'Only pending or expired invitations can be resent',
+      );
+    }
+
+    // Resend rotates the token and expiration window so previously leaked or
+    // stale links stop being valid after a new invitation email is issued.
+    const resentInvitation = await this.invitationRepository.update(
+      invitation.id,
+      {
+        token: this.generateToken(),
+        expiresAt: this.buildExpirationDate(),
+        status: OrganizationInvitationStatus.pending,
+        revokedAt: null,
+        acceptedAt: null,
+      },
+    );
+
+    await this.auditLogsService.create({
+      organizationId,
+      actorUserId,
+      entityType: 'organization_invitation',
+      entityId: resentInvitation.id,
+      action: AuditLogAction.updated,
+      metadata: {
+        email: resentInvitation.email,
+        role: resentInvitation.role,
+        status: resentInvitation.status,
+        expiresAt: resentInvitation.expiresAt,
+        reason: 'resent',
+      },
+    });
+
+    await this.sendInvitationEmail(resentInvitation, actorUserId);
+
+    return resentInvitation;
   }
 
   async accept(actorUserId: string, dto: AcceptInvitationDto) {
@@ -309,6 +346,55 @@ export class InvitationsService {
     }
 
     return invitation;
+  }
+
+  private assertCanManageInvitations(role: MembershipRole) {
+    if (role !== MembershipRole.owner && role !== MembershipRole.admin) {
+      throw new ForbiddenException(
+        'You do not have permission to manage invitations',
+      );
+    }
+  }
+
+  private async sendInvitationEmail(
+    invitation: OrganizationInvitation & {
+      invitedBy: {
+        id: string;
+        name: string;
+        email: string;
+      };
+      organization: {
+        id: string;
+        name: string;
+        slug: string;
+      };
+    },
+    actorUserId: string,
+  ) {
+    const acceptUrl = this.invitationLinksService.buildAcceptInvitationUrl(
+      invitation.token,
+    );
+
+    const emailContent = buildInvitationEmail({
+      invitation,
+      invitedByName: invitation.invitedBy.name,
+      organizationName: invitation.organization.name,
+      acceptUrl,
+    });
+
+    await this.emailService.send({
+      organizationId: invitation.organizationId,
+      sentBy: actorUserId,
+      to: invitation.email,
+      subject: emailContent.subject,
+      text: emailContent.text,
+      html: emailContent.html,
+      metadata: {
+        type: 'organization_invitation',
+        organizationId: invitation.organizationId,
+        invitationId: invitation.id,
+      },
+    });
   }
 
   // Tokens are only used for acceptance and should not be guessable.

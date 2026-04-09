@@ -103,4 +103,51 @@ describe('Invitations integration', () => {
     const inviteeMe = await getCurrentUser(app, invitee.accessToken);
     expect(inviteeMe.memberships).toHaveLength(2);
   });
+
+  it('should resend a pending invitation and create another email delivery', async () => {
+    const owner = await signupAndGetAccessToken(app, {
+      email: 'owner-resend@example.com',
+      organizationName: 'Pulselane Resend Workspace',
+    });
+
+    const ownerMe = await getCurrentUser(app, owner.accessToken);
+    const organizationId = ownerMe.memberships[0].organization.id;
+
+    const createInvitationResponse = await request(app.getHttpServer())
+      .post('/api/invitations')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        email: 'invitee-resend@example.com',
+        role: 'member',
+      })
+      .expect(201);
+
+    const originalToken = createInvitationResponse.body.token;
+
+    const resendResponse = await request(app.getHttpServer())
+      .post(`/api/invitations/${createInvitationResponse.body.id}/resend`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(201);
+
+    expect(resendResponse.body.status).toBe('pending');
+    expect(resendResponse.body.token).toBeDefined();
+    expect(resendResponse.body.token).not.toBe(originalToken);
+
+    const emailDeliveriesResponse = await request(app.getHttpServer())
+      .get('/api/email-deliveries')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .query({ page: 1, pageSize: 10 })
+      .expect(200);
+
+    expect(emailDeliveriesResponse.body.items).toHaveLength(2);
+    expect(emailDeliveriesResponse.body.items[0].to).toBe(
+      'invitee-resend@example.com',
+    );
+    expect(emailDeliveriesResponse.body.items[1].to).toBe(
+      'invitee-resend@example.com',
+    );
+  });
 });

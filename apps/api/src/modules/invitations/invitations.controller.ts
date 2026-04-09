@@ -139,6 +139,39 @@ export class InvitationsController {
     );
   }
 
+  @Post(':id/resend')
+  @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
+  @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
+  @ApiHeader({
+    name: 'x-organization-id',
+    required: true,
+    description: 'Current organization context',
+  })
+  @ApiOperation({ summary: 'Resend pending or expired invitation' })
+  @ApiOkResponse({
+    description: 'Invitation resent successfully',
+    type: InvitationResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Invitation not found',
+    type: ErrorResponseDto,
+  })
+  @ApiConflictResponse({
+    description: 'Invitation cannot be resent',
+    type: ErrorResponseDto,
+  })
+  resend(
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
+    @CurrentOrganization('id') organizationId: string,
+    @Param('id') invitationId: string,
+  ): Promise<InvitationResponseDto> {
+    return this.invitationsService.resend(
+      actorUserId,
+      organizationId,
+      invitationId,
+    );
+  }
+
   @Post('accept')
   @ApiOperation({ summary: 'Accept invitation using token' })
   @ApiOkResponse({
