@@ -7,15 +7,26 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "db:seed": "prisma db seed",
+
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+
+    "typecheck": "tsc --noEmit",
+
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+
+    "db:seed": "prisma db seed",
+    "db:generate": "prisma generate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.mts"
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@fastify/cookie": "11.0.2",
