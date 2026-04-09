@@ -1,3 +1,4 @@
+export type EmailTransport = 'logger' | 'smtp';
 export type EnvConfig = ReturnType<typeof configuration>;
 
 export function configuration() {
@@ -25,8 +26,13 @@ export function configuration() {
     // web
     appWebUrl: process.env.APP_WEB_URL,
     // email
-    emailFromName: process.env.EMAIL_FROM_NAME,
-    emailFromAddress: process.env.EMAIL_FROM_ADDRESS,
-    emailTransport: process.env.EMAIL_TRANSPORT as 'logger',
+    emailFromName: process.env.EMAIL_FROM_NAME!,
+    emailFromAddress: process.env.EMAIL_FROM_ADDRESS!,
+    emailTransport: process.env.EMAIL_TRANSPORT as EmailTransport,
+    emailSmtpHost: process.env.EMAIL_SMTP_HOST,
+    emailSmtpPort: Number(process.env.EMAIL_SMTP_PORT ?? 587),
+    emailSmtpSecure: process.env.EMAIL_SMTP_SECURE === 'true',
+    emailSmtpUser: process.env.EMAIL_SMTP_USER,
+    emailSmtpPassword: process.env.EMAIL_SMTP_PASSWORD,
   };
 }

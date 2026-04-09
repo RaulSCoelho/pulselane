@@ -22,9 +22,28 @@ export const envValidationSchema = Joi.object({
 
   APP_WEB_URL: Joi.string().uri().required(),
 
-  // Email delivery starts with a logger transport so the feature works before a
-  // real provider such as Resend or SES is plugged in.
   EMAIL_FROM_NAME: Joi.string().required(),
   EMAIL_FROM_ADDRESS: Joi.string().email().required(),
-  EMAIL_TRANSPORT: Joi.string().valid('logger').default('logger'),
+  EMAIL_TRANSPORT: Joi.string().valid('logger', 'smtp').default('logger'),
+  EMAIL_SMTP_HOST: Joi.when('EMAIL_TRANSPORT', {
+    is: 'smtp',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional(),
+  }),
+  EMAIL_SMTP_PORT: Joi.when('EMAIL_TRANSPORT', {
+    is: 'smtp',
+    then: Joi.number().integer().positive().required(),
+    otherwise: Joi.number().integer().positive().optional(),
+  }),
+  EMAIL_SMTP_SECURE: Joi.boolean().default(false),
+  EMAIL_SMTP_USER: Joi.when('EMAIL_TRANSPORT', {
+    is: 'smtp',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional(),
+  }),
+  EMAIL_SMTP_PASSWORD: Joi.when('EMAIL_TRANSPORT', {
+    is: 'smtp',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional(),
+  }),
 });
