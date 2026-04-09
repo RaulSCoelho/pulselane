@@ -6,6 +6,13 @@
     "dev:web": "pnpm --dir apps/web dev",
     "dev:api": "pnpm --dir apps/api start:dev",
     "build:web": "pnpm --dir apps/web build",
-    "build:api": "pnpm --dir apps/api build"
+    "build:api": "pnpm --dir apps/api build",
+    "lint:web": "pnpm --dir apps/web lint",
+    "lint:api": "pnpm --dir apps/api lint",
+    "test:api": "pnpm --dir apps/api test",
+    "test:api:integration": "pnpm --dir apps/api test:integration",
+    "db:seed": "pnpm --dir apps/api db:seed",
+    "db:migrate": "pnpm --dir apps/api prisma migrate deploy",
+    "setup:dev": "pnpm install && docker compose up -d"
   }
 }
