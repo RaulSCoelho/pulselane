@@ -19,6 +19,8 @@ import { EmailService } from '@/modules/email/email.service';
 import { CreateInvitationDto } from './dto/requests/create-invitation.dto';
 import { ListInvitationsQueryDto } from './dto/requests/list-invitations-query.dto';
 import { AcceptInvitationDto } from './dto/requests/accept-invitation.dto';
+import { PreviewInvitationQueryDto } from './dto/requests/preview-invitation-query.dto';
+import { PreviewInvitationResponseDto } from './dto/responses/preview-invitation-response.dto';
 import { InvitationRepository } from './invitation.repository';
 import { InvitationLinksService } from './infra/invitation-links.service';
 import { buildInvitationEmail } from './infra/invitation-email.factory';
@@ -134,6 +136,35 @@ export class InvitationsService {
     };
   }
 
+  async preview(
+    query: PreviewInvitationQueryDto,
+  ): Promise<PreviewInvitationResponseDto> {
+    const invitation = await this.invitationRepository.findByToken(query.token);
+
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    const isExpired = invitation.expiresAt.getTime() <= Date.now();
+
+    // Preview does not mutate state. It only tells the frontend what the user
+    // is looking at so the accept screen can render deterministically.
+    return {
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      status: invitation.status,
+      organizationName: invitation.organization.name,
+      organizationSlug: invitation.organization.slug,
+      invitedByName: invitation.invitedBy.name,
+      expiresAt: invitation.expiresAt,
+      isExpired,
+      canAccept:
+        invitation.status === OrganizationInvitationStatus.pending &&
+        !isExpired,
+    };
+  }
+
   async revoke(
     actorUserId: string,
     organizationId: string,
@@ -219,8 +250,8 @@ export class InvitationsService {
       );
     }
 
-    // Resend rotates the token and expiration window so previously leaked or
-    // stale links stop being valid after a new invitation email is issued.
+    // Resend rotates the token and expiration window so stale links stop being
+    // valid after a fresh invitation email is emitted.
     const resentInvitation = await this.invitationRepository.update(
       invitation.id,
       {

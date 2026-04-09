@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { MembershipRole } from '@prisma/client';
 
+import { Auth } from '@/common/decorators/auth.decorator';
 import { CurrentOrganization } from '@/common/decorators/current-organization.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { OrganizationRoles } from '@/common/decorators/organization-roles.decorator';
@@ -34,22 +35,24 @@ import { InvitationsService } from './invitations.service';
 import { CreateInvitationDto } from './dto/requests/create-invitation.dto';
 import { ListInvitationsQueryDto } from './dto/requests/list-invitations-query.dto';
 import { AcceptInvitationDto } from './dto/requests/accept-invitation.dto';
+import { PreviewInvitationQueryDto } from './dto/requests/preview-invitation-query.dto';
 import { InvitationResponseDto } from './dto/responses/invitation-response.dto';
 import { ListInvitationsResponseDto } from './dto/responses/list-invitations-response.dto';
+import { PreviewInvitationResponseDto } from './dto/responses/preview-invitation-response.dto';
 
 @ApiTags('Invitations')
-@ApiBearerAuth()
-@ApiUnauthorizedResponse({
-  description: 'Unauthorized',
-  type: ErrorResponseDto,
-})
 @Controller('invitations')
 export class InvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
 
   @Post()
+  @ApiBearerAuth()
   @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
   @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+    type: ErrorResponseDto,
+  })
   @ApiHeader({
     name: 'x-organization-id',
     required: true,
@@ -77,6 +80,7 @@ export class InvitationsController {
   }
 
   @Get()
+  @ApiBearerAuth()
   @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
   @OrganizationRoles(
     MembershipRole.owner,
@@ -84,6 +88,10 @@ export class InvitationsController {
     MembershipRole.member,
     MembershipRole.viewer,
   )
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+    type: ErrorResponseDto,
+  })
   @ApiHeader({
     name: 'x-organization-id',
     required: true,
@@ -106,9 +114,35 @@ export class InvitationsController {
     return this.invitationsService.findAll(organizationId, query);
   }
 
+  @Get('preview')
+  @Auth({ mode: 'public' })
+  @ApiOperation({ summary: 'Preview invitation by token' })
+  @ApiOkResponse({
+    description: 'Invitation preview returned successfully',
+    type: PreviewInvitationResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error',
+    type: ErrorResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Invitation not found',
+    type: ErrorResponseDto,
+  })
+  preview(
+    @Query() query: PreviewInvitationQueryDto,
+  ): Promise<PreviewInvitationResponseDto> {
+    return this.invitationsService.preview(query);
+  }
+
   @Patch(':id/revoke')
+  @ApiBearerAuth()
   @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
   @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+    type: ErrorResponseDto,
+  })
   @ApiHeader({
     name: 'x-organization-id',
     required: true,
@@ -140,8 +174,13 @@ export class InvitationsController {
   }
 
   @Post(':id/resend')
+  @ApiBearerAuth()
   @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
   @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+    type: ErrorResponseDto,
+  })
   @ApiHeader({
     name: 'x-organization-id',
     required: true,
@@ -173,10 +212,15 @@ export class InvitationsController {
   }
 
   @Post('accept')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Accept invitation using token' })
   @ApiOkResponse({
     description: 'Invitation accepted successfully',
     type: InvitationResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+    type: ErrorResponseDto,
   })
   @ApiNotFoundResponse({
     description: 'Invitation not found',
