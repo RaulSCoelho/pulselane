@@ -56,6 +56,12 @@ enum OrganizationInvitationStatus {
   expired
 }
 
+enum EmailDeliveryStatus {
+  pending
+  sent
+  failed
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -69,6 +75,7 @@ model User {
   tasks                   Task[]
   auditLogs               AuditLog[]
   organizationInvitations OrganizationInvitation[] @relation("OrganizationInvitationInvitedByUser")
+  emailDeliveries         EmailDelivery[]          @relation("EmailDeliverySentByUser")
 
   @@map("users")
 }
@@ -111,6 +118,7 @@ model Organization {
   tasks                   Task[]
   auditLogs               AuditLog[]
   organizationInvitations OrganizationInvitation[]
+  emailDeliveries         EmailDelivery[]
 
   @@map("organizations")
 }
@@ -240,4 +248,29 @@ model OrganizationInvitation {
   @@index([organizationId, status])
   @@index([organizationId, email])
   @@map("organization_invitations")
+}
+
+model EmailDelivery {
+  id             String              @id @default(cuid())
+  organizationId String              @map("organization_id")
+  sentBy         String?             @map("sent_by")
+  to             String              @db.Citext
+  subject        String
+  transport      String
+  status         EmailDeliveryStatus @default(pending)
+  error          String?
+  metadata       Json?               @map("metadata")
+  sentAt         DateTime?           @map("sent_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sender       User?        @relation("EmailDeliverySentByUser", fields: [sentBy], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@index([sentBy])
+  @@index([to])
+  @@map("email_deliveries")
 }

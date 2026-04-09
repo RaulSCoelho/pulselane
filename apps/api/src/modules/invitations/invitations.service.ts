@@ -122,11 +122,18 @@ export class InvitationsService {
       acceptUrl,
     });
 
-    this.emailService.send({
+    await this.emailService.send({
+      organizationId: invitation.organizationId,
+      sentBy: actorUserId,
       to: invitation.email,
       subject: emailContent.subject,
       text: emailContent.text,
       html: emailContent.html,
+      metadata: {
+        type: 'organization_invitation',
+        organizationId: invitation.organizationId,
+        invitationId: invitation.id,
+      },
     });
 
     return invitation;

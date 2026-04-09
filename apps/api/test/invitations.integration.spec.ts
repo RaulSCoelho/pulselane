@@ -52,6 +52,29 @@ describe('Invitations integration', () => {
     expect(createInvitationResponse.body.status).toBe('pending');
     expect(createInvitationResponse.body.token).toBeDefined();
 
+    const emailDeliveriesResponse = await request(app.getHttpServer())
+      .get('/api/email-deliveries')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .query({ page: 1, pageSize: 10 })
+      .expect(200);
+
+    expect(emailDeliveriesResponse.body.items).toHaveLength(1);
+    expect(emailDeliveriesResponse.body.items[0].organizationId).toBe(
+      organizationId,
+    );
+    expect(emailDeliveriesResponse.body.items[0].sentBy).toBe(ownerMe.id);
+    expect(emailDeliveriesResponse.body.items[0].sender.email).toBe(
+      'owner@example.com',
+    );
+    expect(emailDeliveriesResponse.body.items[0].to).toBe(
+      'invitee@example.com',
+    );
+    expect(emailDeliveriesResponse.body.items[0].status).toBe('sent');
+    expect(emailDeliveriesResponse.body.items[0].metadata.type).toBe(
+      'organization_invitation',
+    );
+
     const listResponse = await request(app.getHttpServer())
       .get('/api/invitations')
       .set('Authorization', `Bearer ${owner.accessToken}`)
