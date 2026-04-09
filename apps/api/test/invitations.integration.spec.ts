@@ -29,7 +29,7 @@ describe('Invitations integration', () => {
     await teardownTestDatabase(prisma);
   });
 
-  it('should create, list and accept an invitation', async () => {
+  it('should create, preview, list and accept an invitation', async () => {
     const owner = await signupAndGetAccessToken(app, {
       email: 'owner@example.com',
       organizationName: 'Pulselane Labs',
@@ -51,6 +51,18 @@ describe('Invitations integration', () => {
     expect(createInvitationResponse.body.email).toBe('invitee@example.com');
     expect(createInvitationResponse.body.status).toBe('pending');
     expect(createInvitationResponse.body.token).toBeDefined();
+
+    const previewResponse = await request(app.getHttpServer())
+      .get('/api/invitations/preview')
+      .query({
+        token: createInvitationResponse.body.token,
+      })
+      .expect(200);
+
+    expect(previewResponse.body.email).toBe('invitee@example.com');
+    expect(previewResponse.body.status).toBe('pending');
+    expect(previewResponse.body.canAccept).toBe(true);
+    expect(previewResponse.body.organizationName).toBe('Pulselane Labs');
 
     const emailDeliveriesResponse = await request(app.getHttpServer())
       .get('/api/email-deliveries')
@@ -102,6 +114,96 @@ describe('Invitations integration', () => {
 
     const inviteeMe = await getCurrentUser(app, invitee.accessToken);
     expect(inviteeMe.memberships).toHaveLength(2);
+  });
+
+  it('should reject invitation acceptance when authenticated user email does not match invitation email', async () => {
+    const owner = await signupAndGetAccessToken(app, {
+      email: 'owner-mismatch@example.com',
+      organizationName: 'Mismatch Workspace',
+    });
+
+    const ownerMe = await getCurrentUser(app, owner.accessToken);
+    const organizationId = ownerMe.memberships[0].organization.id;
+
+    const createInvitationResponse = await request(app.getHttpServer())
+      .post('/api/invitations')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        email: 'expected-invitee@example.com',
+        role: 'member',
+      })
+      .expect(201);
+
+    const otherUser = await signupAndGetAccessToken(app, {
+      email: 'different-user@example.com',
+      organizationName: 'Different Workspace',
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/invitations/accept')
+      .set('Authorization', `Bearer ${otherUser.accessToken}`)
+      .send({
+        token: createInvitationResponse.body.token,
+      })
+      .expect(403);
+
+    expect(response.body.message).toBe(
+      'You can only accept invitations sent to your own email',
+    );
+  });
+
+  it('should revoke a pending invitation and block acceptance afterwards', async () => {
+    const owner = await signupAndGetAccessToken(app, {
+      email: 'owner-revoke@example.com',
+      organizationName: 'Revoke Workspace',
+    });
+
+    const ownerMe = await getCurrentUser(app, owner.accessToken);
+    const organizationId = ownerMe.memberships[0].organization.id;
+
+    const createInvitationResponse = await request(app.getHttpServer())
+      .post('/api/invitations')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        email: 'invitee-revoke@example.com',
+        role: 'member',
+      })
+      .expect(201);
+
+    const revokeResponse = await request(app.getHttpServer())
+      .patch(`/api/invitations/${createInvitationResponse.body.id}/revoke`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(revokeResponse.body.status).toBe('revoked');
+
+    const previewResponse = await request(app.getHttpServer())
+      .get('/api/invitations/preview')
+      .query({
+        token: createInvitationResponse.body.token,
+      })
+      .expect(200);
+
+    expect(previewResponse.body.status).toBe('revoked');
+    expect(previewResponse.body.canAccept).toBe(false);
+
+    const invitee = await signupAndGetAccessToken(app, {
+      email: 'invitee-revoke@example.com',
+      organizationName: 'Invitee Revoke Workspace',
+    });
+
+    const acceptResponse = await request(app.getHttpServer())
+      .post('/api/invitations/accept')
+      .set('Authorization', `Bearer ${invitee.accessToken}`)
+      .send({
+        token: createInvitationResponse.body.token,
+      })
+      .expect(409);
+
+    expect(acceptResponse.body.message).toBe('Invitation is no longer pending');
   });
 
   it('should resend a pending invitation and create another email delivery', async () => {
