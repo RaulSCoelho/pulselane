@@ -16,6 +16,18 @@ function extractCookies(setCookie: string | string[] | undefined): string[] {
   return cookies.map((cookie) => cookie.split(';')[0]);
 }
 
+function replaceCookie(
+  cookies: string[],
+  cookieName: string,
+  cookieValue: string,
+): string[] {
+  const targetPrefix = `${cookieName}=`;
+
+  return cookies.map((cookie) =>
+    cookie.startsWith(targetPrefix) ? `${cookieName}=${cookieValue}` : cookie,
+  );
+}
+
 describe('Auth integration', () => {
   let app: NestFastifyApplication;
   let prisma: Awaited<ReturnType<typeof setupTestDatabase>>;
@@ -117,6 +129,102 @@ describe('Auth integration', () => {
     expect(user).not.toBeNull();
     expect(user?.authSessions).toHaveLength(1);
     expect(user?.authSessions[0].revokedAt).not.toBeNull();
+  });
+
+  it('should create multiple sessions and revoke all of them with logout-all', async () => {
+    await request(app.getHttpServer())
+      .post('/api/auth/signup')
+      .send({
+        name: 'Multi Session User',
+        email: 'multi-session@example.com',
+        password: '123456',
+        organizationName: 'Multi Session Workspace',
+      })
+      .expect(201);
+
+    const firstLogin = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({
+        email: 'multi-session@example.com',
+        password: '123456',
+      })
+      .expect(200);
+
+    const secondLogin = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({
+        email: 'multi-session@example.com',
+        password: '123456',
+      })
+      .expect(200);
+
+    const firstAccessToken = firstLogin.body.accessToken as string;
+    const secondAccessToken = secondLogin.body.accessToken as string;
+
+    const sessionsBeforeLogoutAll = await request(app.getHttpServer())
+      .get('/api/auth/sessions')
+      .set('Authorization', `Bearer ${firstAccessToken}`)
+      .expect(200);
+
+    expect(sessionsBeforeLogoutAll.body).toHaveLength(3);
+
+    await request(app.getHttpServer())
+      .post('/api/auth/logout-all')
+      .set('Authorization', `Bearer ${firstAccessToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${firstAccessToken}`)
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${secondAccessToken}`)
+      .expect(401);
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: 'multi-session@example.com',
+      },
+      include: {
+        authSessions: true,
+      },
+    });
+
+    expect(user).not.toBeNull();
+    expect(user?.authSessions).toHaveLength(3);
+    expect(
+      user?.authSessions.every((session) => session.revokedAt !== null),
+    ).toBe(true);
+  });
+
+  it('should reject refresh when device cookie does not match refresh token payload', async () => {
+    const signupResponse = await request(app.getHttpServer())
+      .post('/api/auth/signup')
+      .send({
+        name: 'Device Mismatch User',
+        email: 'device-mismatch@example.com',
+        password: '123456',
+        organizationName: 'Device Mismatch Workspace',
+      })
+      .expect(201);
+
+    const cookies = extractCookies(signupResponse.headers['set-cookie']);
+    const tamperedCookies = replaceCookie(
+      cookies,
+      'device_id',
+      'tampered-device',
+    );
+
+    const response = await request(app.getHttpServer())
+      .post('/api/auth/refresh')
+      .set('Cookie', tamperedCookies)
+      .expect(401);
+
+    expect(response.body.statusCode).toBe(401);
+    expect(response.body.error).toBe('Unauthorized');
+    expect(response.body.message).toBe('Device ID mismatch');
   });
 
   it('should reject refresh without cookies', async () => {
