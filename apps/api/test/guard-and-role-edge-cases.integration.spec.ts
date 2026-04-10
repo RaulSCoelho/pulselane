@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import './helpers/test-env';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -13,7 +14,7 @@ import {
 import {
   getCurrentUser,
   signupAndGetAccessToken,
-} from './helpers/auth-helpers';
+} from './helpers/auth-test-utils';
 
 describe('Guard and role edge cases integration', () => {
   let app: NestFastifyApplication;
@@ -111,11 +112,12 @@ describe('Guard and role edge cases integration', () => {
       .get('/api/tasks')
       .set('Authorization', `Bearer ${accessToken}`)
       .set('x-organization-id', organizationId)
-      .query({ page: 1, pageSize: 10 })
+      .query({ limit: 10 })
       .expect(200);
 
     expect(listResponse.body.items).toHaveLength(1);
     expect(listResponse.body.items[0].id).toBe(taskResponse.body.id);
+    expect(listResponse.body.meta.limit).toBe(10);
 
     const deleteResponse = await request(app.getHttpServer())
       .delete(`/api/tasks/${taskResponse.body.id}`)
@@ -170,8 +172,7 @@ describe('Guard and role edge cases integration', () => {
       .set('x-organization-id', organizationId)
       .query({
         assigneeUserId: outsiderMe.id,
-        page: 1,
-        pageSize: 10,
+        limit: 10,
       })
       .expect(404);
 
@@ -211,8 +212,7 @@ describe('Guard and role edge cases integration', () => {
       .set('x-organization-id', organizationAId)
       .query({
         clientId: foreignClientResponse.body.id,
-        page: 1,
-        pageSize: 10,
+        limit: 10,
       })
       .expect(404);
 

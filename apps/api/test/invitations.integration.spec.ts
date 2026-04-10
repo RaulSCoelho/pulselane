@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import './helpers/test-env';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -13,7 +14,7 @@ import {
 import {
   getCurrentUser,
   signupAndGetAccessToken,
-} from './helpers/auth-helpers';
+} from './helpers/auth-test-utils';
 
 describe('Invitations integration', () => {
   let app: NestFastifyApplication;
@@ -29,7 +30,7 @@ describe('Invitations integration', () => {
     await teardownTestDatabase(prisma);
   });
 
-  it('should create, preview, list and accept an invitation', async () => {
+  it('should create, preview, paginate and accept invitations with cursor-based responses', async () => {
     const owner = await signupAndGetAccessToken(app, {
       email: 'owner@example.com',
       organizationName: 'Pulselane Labs',
@@ -38,7 +39,7 @@ describe('Invitations integration', () => {
     const ownerMe = await getCurrentUser(app, owner.accessToken);
     const organizationId = ownerMe.memberships[0].organization.id;
 
-    const createInvitationResponse = await request(app.getHttpServer())
+    const firstInvitationResponse = await request(app.getHttpServer())
       .post('/api/invitations')
       .set('Authorization', `Bearer ${owner.accessToken}`)
       .set('x-organization-id', organizationId)
@@ -48,14 +49,24 @@ describe('Invitations integration', () => {
       })
       .expect(201);
 
-    expect(createInvitationResponse.body.email).toBe('invitee@example.com');
-    expect(createInvitationResponse.body.status).toBe('pending');
-    expect(createInvitationResponse.body.token).toBeDefined();
+    expect(firstInvitationResponse.body.email).toBe('invitee@example.com');
+    expect(firstInvitationResponse.body.status).toBe('pending');
+    expect(firstInvitationResponse.body.token).toBeDefined();
+
+    const secondInvitationResponse = await request(app.getHttpServer())
+      .post('/api/invitations')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        email: 'second-invitee@example.com',
+        role: 'viewer',
+      })
+      .expect(201);
 
     const previewResponse = await request(app.getHttpServer())
       .get('/api/invitations/preview')
       .query({
-        token: createInvitationResponse.body.token,
+        token: firstInvitationResponse.body.token,
       })
       .expect(200);
 
@@ -64,38 +75,84 @@ describe('Invitations integration', () => {
     expect(previewResponse.body.canAccept).toBe(true);
     expect(previewResponse.body.organizationName).toBe('Pulselane Labs');
 
-    const emailDeliveriesResponse = await request(app.getHttpServer())
+    const emailDeliveriesFirstPage = await request(app.getHttpServer())
       .get('/api/email-deliveries')
       .set('Authorization', `Bearer ${owner.accessToken}`)
       .set('x-organization-id', organizationId)
-      .query({ page: 1, pageSize: 10 })
+      .query({ limit: 1 })
       .expect(200);
 
-    expect(emailDeliveriesResponse.body.items).toHaveLength(1);
-    expect(emailDeliveriesResponse.body.items[0].organizationId).toBe(
+    expect(emailDeliveriesFirstPage.body.items).toHaveLength(1);
+    expect(emailDeliveriesFirstPage.body.meta.limit).toBe(1);
+    expect(emailDeliveriesFirstPage.body.meta.hasNextPage).toBe(true);
+    expect(emailDeliveriesFirstPage.body.meta.nextCursor).toBeTypeOf('string');
+    expect(emailDeliveriesFirstPage.body.items[0].organizationId).toBe(
       organizationId,
     );
-    expect(emailDeliveriesResponse.body.items[0].sentBy).toBe(ownerMe.id);
-    expect(emailDeliveriesResponse.body.items[0].sender.email).toBe(
+    expect(emailDeliveriesFirstPage.body.items[0].sentBy).toBe(ownerMe.id);
+    expect(emailDeliveriesFirstPage.body.items[0].sender.email).toBe(
       'owner@example.com',
     );
-    expect(emailDeliveriesResponse.body.items[0].to).toBe(
-      'invitee@example.com',
-    );
-    expect(emailDeliveriesResponse.body.items[0].status).toBe('sent');
-    expect(emailDeliveriesResponse.body.items[0].metadata.type).toBe(
+    expect(emailDeliveriesFirstPage.body.items[0].status).toBe('sent');
+    expect(emailDeliveriesFirstPage.body.items[0].metadata.type).toBe(
       'organization_invitation',
     );
 
-    const listResponse = await request(app.getHttpServer())
+    const emailDeliveriesSecondPage = await request(app.getHttpServer())
+      .get('/api/email-deliveries')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .query({
+        limit: 1,
+        cursor: emailDeliveriesFirstPage.body.meta.nextCursor as string,
+      })
+      .expect(200);
+
+    expect(emailDeliveriesSecondPage.body.items).toHaveLength(1);
+    expect(emailDeliveriesSecondPage.body.meta.hasNextPage).toBe(false);
+    expect(emailDeliveriesSecondPage.body.meta.nextCursor).toBeNull();
+
+    const invitationsFirstPage = await request(app.getHttpServer())
       .get('/api/invitations')
       .set('Authorization', `Bearer ${owner.accessToken}`)
       .set('x-organization-id', organizationId)
-      .query({ page: 1, pageSize: 10 })
+      .query({ limit: 1 })
       .expect(200);
 
-    expect(listResponse.body.items).toHaveLength(1);
-    expect(listResponse.body.meta.total).toBe(1);
+    expect(invitationsFirstPage.body.items).toHaveLength(1);
+    expect(invitationsFirstPage.body.meta.limit).toBe(1);
+    expect(invitationsFirstPage.body.meta.hasNextPage).toBe(true);
+    expect(invitationsFirstPage.body.meta.nextCursor).toBeTypeOf('string');
+
+    const invitationsSecondPage = await request(app.getHttpServer())
+      .get('/api/invitations')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .query({
+        limit: 1,
+        cursor: invitationsFirstPage.body.meta.nextCursor as string,
+      })
+      .expect(200);
+
+    expect(invitationsSecondPage.body.items).toHaveLength(1);
+    expect(invitationsSecondPage.body.meta.hasNextPage).toBe(false);
+    expect(invitationsSecondPage.body.meta.nextCursor).toBeNull();
+
+    const filteredInvitations = await request(app.getHttpServer())
+      .get('/api/invitations')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .query({
+        limit: 10,
+        email: 'invitee@example.com',
+        status: 'pending',
+      })
+      .expect(200);
+
+    expect(filteredInvitations.body.items).toHaveLength(2);
+    expect(filteredInvitations.body.items[0].email).toBe(
+      'second-invitee@example.com',
+    );
 
     const invitee = await signupAndGetAccessToken(app, {
       email: 'invitee@example.com',
@@ -106,7 +163,7 @@ describe('Invitations integration', () => {
       .post('/api/invitations/accept')
       .set('Authorization', `Bearer ${invitee.accessToken}`)
       .send({
-        token: createInvitationResponse.body.token,
+        token: firstInvitationResponse.body.token,
       })
       .expect(201);
 
@@ -114,6 +171,10 @@ describe('Invitations integration', () => {
 
     const inviteeMe = await getCurrentUser(app, invitee.accessToken);
     expect(inviteeMe.memberships).toHaveLength(2);
+
+    expect(secondInvitationResponse.body.email).toBe(
+      'second-invitee@example.com',
+    );
   });
 
   it('should reject invitation acceptance when authenticated user email does not match invitation email', async () => {
@@ -241,10 +302,13 @@ describe('Invitations integration', () => {
       .get('/api/email-deliveries')
       .set('Authorization', `Bearer ${owner.accessToken}`)
       .set('x-organization-id', organizationId)
-      .query({ page: 1, pageSize: 10 })
+      .query({ limit: 10 })
       .expect(200);
 
     expect(emailDeliveriesResponse.body.items).toHaveLength(2);
+    expect(emailDeliveriesResponse.body.meta.limit).toBe(10);
+    expect(emailDeliveriesResponse.body.meta.hasNextPage).toBe(false);
+    expect(emailDeliveriesResponse.body.meta.nextCursor).toBeNull();
     expect(emailDeliveriesResponse.body.items[0].to).toBe(
       'invitee-resend@example.com',
     );

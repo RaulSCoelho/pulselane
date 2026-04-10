@@ -29,7 +29,7 @@ describe('Tasks integration', () => {
     await teardownTestDatabase(prisma);
   });
 
-  it('should create, paginate with cursor, archive tasks, and block creation for archived project', async () => {
+  it('should create, paginate with cursor, filter, archive tasks, and block creation for archived project', async () => {
     const { accessToken, organizationId } = await signupAndGetContext({
       app,
       prisma,
@@ -78,6 +78,7 @@ describe('Tasks integration', () => {
         projectId,
         title: 'Blocked task',
         status: 'blocked',
+        priority: 'high',
       })
       .expect(201);
 
@@ -101,6 +102,7 @@ describe('Tasks integration', () => {
       .expect(200);
 
     expect(firstPage.body.items).toHaveLength(2);
+    expect(firstPage.body.meta.limit).toBe(2);
     expect(firstPage.body.meta.hasNextPage).toBe(true);
     expect(firstPage.body.meta.nextCursor).toBeTypeOf('string');
 
@@ -113,7 +115,31 @@ describe('Tasks integration', () => {
       .expect(200);
 
     expect(secondPage.body.items).toHaveLength(1);
+    expect(secondPage.body.meta.hasNextPage).toBe(false);
+    expect(secondPage.body.meta.nextCursor).toBeNull();
     expect(secondPage.body.items[0].id).toBe(firstTaskId);
+
+    const filteredBySearch = await request(app.getHttpServer())
+      .get(`/api/tasks?projectId=${projectId}&limit=10&search=blocked`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(filteredBySearch.body.items).toHaveLength(1);
+    expect(filteredBySearch.body.items[0].title).toBe('Blocked task');
+
+    const filteredByStatusAndPriority = await request(app.getHttpServer())
+      .get(
+        `/api/tasks?projectId=${projectId}&limit=10&status=blocked&priority=high`,
+      )
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(filteredByStatusAndPriority.body.items).toHaveLength(1);
+    expect(filteredByStatusAndPriority.body.items[0].title).toBe(
+      'Blocked task',
+    );
 
     await request(app.getHttpServer())
       .delete(`/api/tasks/${thirdTaskId}`)

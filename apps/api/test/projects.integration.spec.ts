@@ -29,7 +29,7 @@ describe('Projects integration', () => {
     await teardownTestDatabase(prisma);
   });
 
-  it('should create, paginate with cursor, archive projects, and block creation for archived client', async () => {
+  it('should create, paginate with cursor, filter, archive projects, and block creation for archived client', async () => {
     const { accessToken, organizationId } = await signupAndGetContext({
       app,
       prisma,
@@ -65,6 +65,7 @@ describe('Projects integration', () => {
       .send({
         clientId,
         name: 'Project Two',
+        status: 'on_hold',
       })
       .expect(201);
 
@@ -88,6 +89,7 @@ describe('Projects integration', () => {
       .expect(200);
 
     expect(firstPage.body.items).toHaveLength(2);
+    expect(firstPage.body.meta.limit).toBe(2);
     expect(firstPage.body.meta.hasNextPage).toBe(true);
     expect(firstPage.body.meta.nextCursor).toBeTypeOf('string');
 
@@ -100,7 +102,28 @@ describe('Projects integration', () => {
       .expect(200);
 
     expect(secondPage.body.items).toHaveLength(1);
+    expect(secondPage.body.meta.hasNextPage).toBe(false);
+    expect(secondPage.body.meta.nextCursor).toBeNull();
     expect(secondPage.body.items[0].id).toBe(firstProjectId);
+
+    const filteredBySearch = await request(app.getHttpServer())
+      .get(`/api/projects?clientId=${clientId}&limit=10&search=two`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(filteredBySearch.body.items).toHaveLength(1);
+    expect(filteredBySearch.body.items[0].name).toBe('Project Two');
+
+    const filteredByStatus = await request(app.getHttpServer())
+      .get(`/api/projects?clientId=${clientId}&limit=10&status=on_hold`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(filteredByStatus.body.items).toHaveLength(1);
+    expect(filteredByStatus.body.items[0].name).toBe('Project Two');
+    expect(filteredByStatus.body.items[0].status).toBe('on_hold');
 
     await request(app.getHttpServer())
       .delete(`/api/projects/${thirdProjectId}`)

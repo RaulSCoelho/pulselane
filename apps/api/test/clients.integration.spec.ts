@@ -29,7 +29,7 @@ describe('Clients integration', () => {
     await teardownTestDatabase(prisma);
   });
 
-  it('should create, paginate with cursor, and archive clients', async () => {
+  it('should create, paginate with cursor, filter, and archive clients', async () => {
     const { accessToken, organizationId } = await signupAndGetContext({
       app,
       prisma,
@@ -56,6 +56,7 @@ describe('Clients integration', () => {
       .send({
         name: 'Beta',
         email: 'beta@example.com',
+        status: 'inactive',
       })
       .expect(201);
 
@@ -92,7 +93,26 @@ describe('Clients integration', () => {
 
     expect(secondPage.body.items).toHaveLength(1);
     expect(secondPage.body.meta.hasNextPage).toBe(false);
+    expect(secondPage.body.meta.nextCursor).toBeNull();
     expect(secondPage.body.items[0].id).toBe(firstClientId);
+
+    const filteredBySearch = await request(app.getHttpServer())
+      .get('/api/clients?limit=10&search=acm')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(filteredBySearch.body.items).toHaveLength(1);
+    expect(filteredBySearch.body.items[0].name).toBe('Acme');
+
+    const filteredByStatus = await request(app.getHttpServer())
+      .get('/api/clients?limit=10&status=inactive')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(filteredByStatus.body.items).toHaveLength(1);
+    expect(filteredByStatus.body.items[0].name).toBe('Beta');
 
     await request(app.getHttpServer())
       .delete(`/api/clients/${thirdClientId}`)

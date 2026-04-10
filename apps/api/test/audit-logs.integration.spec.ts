@@ -74,6 +74,7 @@ describe('Audit logs integration', () => {
     expect(firstPage.body.items).toHaveLength(1);
     expect(firstPage.body.items[0].action).toBe('archived');
     expect(firstPage.body.items[0].entityType).toBe('client');
+    expect(firstPage.body.meta.limit).toBe(1);
     expect(firstPage.body.meta.hasNextPage).toBe(true);
     expect(firstPage.body.meta.nextCursor).toBeTypeOf('string');
 
@@ -89,5 +90,6 @@ describe('Audit logs integration', () => {
     expect(secondPage.body.items[0].action).toBe('archived');
     expect(secondPage.body.items[0].entityType).toBe('client');
     expect(secondPage.body.meta.hasNextPage).toBe(false);
+    expect(secondPage.body.meta.nextCursor).toBeNull();
   });
 });

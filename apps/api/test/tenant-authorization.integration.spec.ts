@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import './helpers/test-env';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -13,7 +14,7 @@ import {
 import {
   getCurrentUser,
   signupAndGetAccessToken,
-} from './helpers/auth-helpers';
+} from './helpers/auth-test-utils';
 
 describe('Tenant scoping and authorization integration', () => {
   let app: NestFastifyApplication;
