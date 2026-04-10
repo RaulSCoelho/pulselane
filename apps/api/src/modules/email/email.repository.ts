@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { EmailDeliveryStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
 
 type FindManyParams = {
   organizationId: string;
-  page: number;
-  pageSize: number;
+  cursor?: string;
+  limit: number;
   to?: string;
   status?: EmailDeliveryStatus;
 };
@@ -40,31 +42,58 @@ export class EmailRepository {
   }
 
   async findMany(params: FindManyParams) {
-    const { organizationId, page, pageSize, to, status } = params;
-    const skip = (page - 1) * pageSize;
+    const { organizationId, cursor, limit, to, status } = params;
 
-    const where: Prisma.EmailDeliveryWhereInput = {
-      organizationId,
-      status,
-      to: to ? { contains: to, mode: 'insensitive' } : undefined,
-    };
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
 
-    const [items, total] = await Promise.all([
-      this.prisma.emailDelivery.findMany({
-        where,
-        include: emailDeliveryInclude,
-        orderBy: {
+    const andFilters: Prisma.EmailDeliveryWhereInput[] = [{ organizationId }];
+
+    if (status) {
+      andFilters.push({ status });
+    }
+
+    if (to) {
+      andFilters.push({
+        to: {
+          contains: to,
+          mode: 'insensitive',
+        },
+      });
+    }
+
+    if (cursorWhere) {
+      andFilters.push(cursorWhere);
+    }
+
+    const items = await this.prisma.emailDelivery.findMany({
+      where: {
+        AND: andFilters,
+      },
+      include: emailDeliveryInclude,
+      orderBy: [
+        {
           createdAt: 'desc',
         },
-        skip,
-        take: pageSize,
+        {
+          id: 'desc',
+        },
+      ],
+      take: limit + 1,
+    });
+
+    const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
+      items,
+      limit,
+      getCursorPayload: (item) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
       }),
-      this.prisma.emailDelivery.count({ where }),
-    ]);
+    });
 
     return {
-      items,
-      total,
+      items: normalizedItems,
+      hasNextPage,
+      nextCursor,
     };
   }
 }

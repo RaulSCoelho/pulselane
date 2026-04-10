@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { OrganizationInvitationStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
 
 type FindManyByOrganizationParams = {
   organizationId: string;
-  page: number;
-  pageSize: number;
+  cursor?: string;
+  limit: number;
   email?: string;
   status?: OrganizationInvitationStatus;
 };
@@ -88,36 +90,60 @@ export class InvitationRepository {
     params: FindManyByOrganizationParams,
     tx?: Prisma.TransactionClient,
   ) {
-    const { organizationId, page, pageSize, email, status } = params;
-    const skip = (page - 1) * pageSize;
+    const { organizationId, cursor, limit, email, status } = params;
 
-    const where: Prisma.OrganizationInvitationWhereInput = {
-      organizationId,
-      status,
-      email: email
-        ? {
-            contains: email,
-            mode: 'insensitive',
-          }
-        : undefined,
-    };
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
 
-    const [items, total] = await Promise.all([
-      this.getClient(tx).organizationInvitation.findMany({
-        where,
-        include: invitationInclude,
-        orderBy: {
+    const andFilters: Prisma.OrganizationInvitationWhereInput[] = [
+      { organizationId },
+    ];
+
+    if (status) {
+      andFilters.push({ status });
+    }
+
+    if (email) {
+      andFilters.push({
+        email: {
+          contains: email,
+          mode: 'insensitive',
+        },
+      });
+    }
+
+    if (cursorWhere) {
+      andFilters.push(cursorWhere);
+    }
+
+    const items = await this.getClient(tx).organizationInvitation.findMany({
+      where: {
+        AND: andFilters,
+      },
+      include: invitationInclude,
+      orderBy: [
+        {
           createdAt: 'desc',
         },
-        skip,
-        take: pageSize,
+        {
+          id: 'desc',
+        },
+      ],
+      take: limit + 1,
+    });
+
+    const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
+      items,
+      limit,
+      getCursorPayload: (item) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
       }),
-      this.getClient(tx).organizationInvitation.count({ where }),
-    ]);
+    });
 
     return {
-      items,
-      total,
+      items: normalizedItems,
+      hasNextPage,
+      nextCursor,
     };
   }
 

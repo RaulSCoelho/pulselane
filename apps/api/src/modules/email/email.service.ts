@@ -76,24 +76,22 @@ export class EmailService {
   }
 
   async findAll(organizationId: string, query: ListEmailDeliveriesQueryDto) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const limit = query.limit ?? 20;
 
-    const { items, total } = await this.emailRepository.findMany({
+    const result = await this.emailRepository.findMany({
       organizationId,
-      page,
-      pageSize,
+      cursor: query.cursor,
+      limit,
       to: query.to,
       status: query.status,
     });
 
     return {
-      items,
+      items: result.items,
       meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        hasNextPage: result.hasNextPage,
+        nextCursor: result.nextCursor,
       },
     };
   }

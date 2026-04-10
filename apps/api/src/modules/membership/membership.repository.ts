@@ -1,10 +1,13 @@
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { MembershipRole, Prisma } from '@prisma/client';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
 
 type FindManyByOrganizationParams = {
-  page: number;
-  pageSize: number;
+  organizationId: string;
+  cursor?: string;
+  limit: number;
   search?: string;
   role?: MembershipRole | undefined;
 };
@@ -69,41 +72,65 @@ export class MembershipRepository {
   }
 
   async findManyByOrganization(
-    organizationId: string,
-    params?: FindManyByOrganizationParams,
+    params: FindManyByOrganizationParams,
+    tx?: Prisma.TransactionClient,
   ) {
-    const page = params?.page ?? 1;
-    const pageSize = params?.pageSize ?? 20;
-    const skip = (page - 1) * pageSize;
+    const { organizationId, cursor, limit, search, role } = params;
 
-    const where: Prisma.MembershipWhereInput = {
-      organizationId,
-      role: params?.role,
-      OR: params?.search
-        ? ['name', 'email'].map((field) => ({
-            user: {
-              [field]: { contains: params.search, mode: 'insensitive' },
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
+
+    const andFilters: Prisma.MembershipWhereInput[] = [{ organizationId }];
+
+    if (role) {
+      andFilters.push({ role });
+    }
+
+    if (search) {
+      andFilters.push({
+        OR: ['name', 'email'].map((field) => ({
+          user: {
+            [field]: {
+              contains: search,
+              mode: 'insensitive',
             },
-          }))
-        : undefined,
-    };
+          },
+        })),
+      });
+    }
 
-    const [items, total] = await Promise.all([
-      this.prisma.membership.findMany({
-        where,
-        include: membershipInclude,
-        orderBy: {
-          createdAt: 'asc',
+    if (cursorWhere) {
+      andFilters.push(cursorWhere);
+    }
+
+    const items = await this.getClient(tx).membership.findMany({
+      where: {
+        AND: andFilters,
+      },
+      include: membershipInclude,
+      orderBy: [
+        {
+          createdAt: 'desc',
         },
-        skip,
-        take: pageSize,
+        {
+          id: 'desc',
+        },
+      ],
+      take: limit + 1,
+    });
+
+    const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
+      items,
+      limit,
+      getCursorPayload: (item) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
       }),
-      this.prisma.membership.count({ where }),
-    ]);
+    });
 
     return {
-      items,
-      total,
+      items: normalizedItems,
+      hasNextPage,
+      nextCursor,
     };
   }
 

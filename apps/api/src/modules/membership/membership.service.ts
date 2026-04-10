@@ -45,8 +45,6 @@ export class MembershipService {
     organizationId: string,
     options?: EnsureUserIsMemberOptions,
   ) {
-    // Some callers need "missing assignee" semantics while others need
-    // authorization semantics, so the exception shape is selectable here.
     const membership =
       await this.membershipRepository.findByUserAndOrganization(
         userId,
@@ -72,24 +70,22 @@ export class MembershipService {
     organizationId: string,
     query: ListMembershipsQueryDto,
   ) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const limit = query.limit ?? 20;
 
-    const { items, total } =
-      await this.membershipRepository.findManyByOrganization(organizationId, {
-        page,
-        pageSize,
-        search: query.search,
-        role: query.role,
-      });
+    const result = await this.membershipRepository.findManyByOrganization({
+      organizationId,
+      cursor: query.cursor,
+      limit,
+      search: query.search,
+      role: query.role,
+    });
 
     return {
-      items,
+      items: result.items,
       meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        hasNextPage: result.hasNextPage,
+        nextCursor: result.nextCursor,
       },
     };
   }

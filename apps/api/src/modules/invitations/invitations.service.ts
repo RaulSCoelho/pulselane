@@ -113,25 +113,22 @@ export class InvitationsService {
   }
 
   async findAll(organizationId: string, query: ListInvitationsQueryDto) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const limit = query.limit ?? 20;
 
-    const { items, total } =
-      await this.invitationRepository.findManyByOrganization({
-        organizationId,
-        page,
-        pageSize,
-        email: query.email,
-        status: query.status,
-      });
+    const result = await this.invitationRepository.findManyByOrganization({
+      organizationId,
+      cursor: query.cursor,
+      limit,
+      email: query.email,
+      status: query.status,
+    });
 
     return {
-      items,
+      items: result.items,
       meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        hasNextPage: result.hasNextPage,
+        nextCursor: result.nextCursor,
       },
     };
   }
