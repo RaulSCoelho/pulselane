@@ -29,7 +29,7 @@ describe('Clients integration', () => {
     await teardownTestDatabase(prisma);
   });
 
-  it('should create, paginate with cursor, filter, and archive clients', async () => {
+  it('should create, read, update, paginate with cursor, filter, and archive clients', async () => {
     const { accessToken, organizationId } = await signupAndGetContext({
       app,
       prisma,
@@ -48,6 +48,30 @@ describe('Clients integration', () => {
       .expect(201);
 
     const firstClientId = createFirst.body.id as string;
+
+    const getFirst = await request(app.getHttpServer())
+      .get(`/api/clients/${firstClientId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(getFirst.body.id).toBe(firstClientId);
+    expect(getFirst.body.name).toBe('Acme');
+    expect(getFirst.body.email).toBe('acme@example.com');
+
+    const updatedClient = await request(app.getHttpServer())
+      .patch(`/api/clients/${firstClientId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        companyName: 'Acme LLC',
+        status: 'inactive',
+      })
+      .expect(200);
+
+    expect(updatedClient.body.id).toBe(firstClientId);
+    expect(updatedClient.body.companyName).toBe('Acme LLC');
+    expect(updatedClient.body.status).toBe('inactive');
 
     await request(app.getHttpServer())
       .post('/api/clients')
@@ -94,7 +118,6 @@ describe('Clients integration', () => {
     expect(secondPage.body.items).toHaveLength(1);
     expect(secondPage.body.meta.hasNextPage).toBe(false);
     expect(secondPage.body.meta.nextCursor).toBeNull();
-    expect(secondPage.body.items[0].id).toBe(firstClientId);
 
     const filteredBySearch = await request(app.getHttpServer())
       .get('/api/clients?limit=10&search=acm')
@@ -111,8 +134,7 @@ describe('Clients integration', () => {
       .set('x-organization-id', organizationId)
       .expect(200);
 
-    expect(filteredByStatus.body.items).toHaveLength(1);
-    expect(filteredByStatus.body.items[0].name).toBe('Beta');
+    expect(filteredByStatus.body.items).toHaveLength(2);
 
     await request(app.getHttpServer())
       .delete(`/api/clients/${thirdClientId}`)

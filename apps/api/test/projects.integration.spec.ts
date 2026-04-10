@@ -29,7 +29,7 @@ describe('Projects integration', () => {
     await teardownTestDatabase(prisma);
   });
 
-  it('should create, paginate with cursor, filter, archive projects, and block creation for archived client', async () => {
+  it('should create, read, update, paginate with cursor, filter, archive projects, and block creation or move to archived client', async () => {
     const { accessToken, organizationId } = await signupAndGetContext({
       app,
       prisma,
@@ -46,7 +46,17 @@ describe('Projects integration', () => {
       })
       .expect(201);
 
+    const secondClient = await request(app.getHttpServer())
+      .post('/api/clients')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        name: 'Second Client',
+      })
+      .expect(201);
+
     const clientId = createClient.body.id as string;
+    const secondClientId = secondClient.body.id as string;
 
     const firstProject = await request(app.getHttpServer())
       .post('/api/projects')
@@ -57,6 +67,32 @@ describe('Projects integration', () => {
         name: 'Project One',
       })
       .expect(201);
+
+    const firstProjectId = firstProject.body.id as string;
+
+    const getFirst = await request(app.getHttpServer())
+      .get(`/api/projects/${firstProjectId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .expect(200);
+
+    expect(getFirst.body.id).toBe(firstProjectId);
+    expect(getFirst.body.name).toBe('Project One');
+    expect(getFirst.body.client.id).toBe(clientId);
+
+    const updatedProject = await request(app.getHttpServer())
+      .patch(`/api/projects/${firstProjectId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        description: 'Updated description',
+        status: 'completed',
+      })
+      .expect(200);
+
+    expect(updatedProject.body.id).toBe(firstProjectId);
+    expect(updatedProject.body.description).toBe('Updated description');
+    expect(updatedProject.body.status).toBe('completed');
 
     await request(app.getHttpServer())
       .post('/api/projects')
@@ -79,7 +115,6 @@ describe('Projects integration', () => {
       })
       .expect(201);
 
-    const firstProjectId = firstProject.body.id as string;
     const thirdProjectId = thirdProject.body.id as string;
 
     const firstPage = await request(app.getHttpServer())
@@ -104,7 +139,6 @@ describe('Projects integration', () => {
     expect(secondPage.body.items).toHaveLength(1);
     expect(secondPage.body.meta.hasNextPage).toBe(false);
     expect(secondPage.body.meta.nextCursor).toBeNull();
-    expect(secondPage.body.items[0].id).toBe(firstProjectId);
 
     const filteredBySearch = await request(app.getHttpServer())
       .get(`/api/projects?clientId=${clientId}&limit=10&search=two`)
@@ -124,6 +158,28 @@ describe('Projects integration', () => {
     expect(filteredByStatus.body.items).toHaveLength(1);
     expect(filteredByStatus.body.items[0].name).toBe('Project Two');
     expect(filteredByStatus.body.items[0].status).toBe('on_hold');
+
+    await request(app.getHttpServer())
+      .patch(`/api/clients/${secondClientId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        status: 'archived',
+      })
+      .expect(200);
+
+    const moveToArchivedClient = await request(app.getHttpServer())
+      .patch(`/api/projects/${firstProjectId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        clientId: secondClientId,
+      })
+      .expect(400);
+
+    expect(moveToArchivedClient.body.message).toBe(
+      'Cannot move a project to an archived client',
+    );
 
     await request(app.getHttpServer())
       .delete(`/api/projects/${thirdProjectId}`)

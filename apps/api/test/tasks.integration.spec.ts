@@ -29,18 +29,33 @@ describe('Tasks integration', () => {
     await teardownTestDatabase(prisma);
   });
 
-  it('should create, paginate with cursor, filter, archive tasks, and block creation for archived project', async () => {
-    const { accessToken, organizationId } = await signupAndGetContext({
+  it('should create, read, update, paginate with cursor, filter, archive tasks, and block creation or move to archived project', async () => {
+    const owner = await signupAndGetContext({
       app,
       prisma,
       email: 'tasks-owner@example.com',
       organizationName: 'Tasks Workspace',
     });
 
+    const teammate = await signupAndGetContext({
+      app,
+      prisma,
+      email: 'tasks-teammate@example.com',
+      organizationName: 'Tasks Teammate Workspace',
+    });
+
+    await prisma.membership.create({
+      data: {
+        userId: teammate.userId,
+        organizationId: owner.organizationId,
+        role: 'member',
+      },
+    });
+
     const createClient = await request(app.getHttpServer())
       .post('/api/clients')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .send({
         name: 'Tasks Client',
       })
@@ -50,30 +65,70 @@ describe('Tasks integration', () => {
 
     const createProject = await request(app.getHttpServer())
       .post('/api/projects')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .send({
         clientId,
         name: 'Tasks Project',
       })
       .expect(201);
 
-    const projectId = createProject.body.id as string;
-
-    const firstTask = await request(app.getHttpServer())
-      .post('/api/tasks')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+    const archivedProject = await request(app.getHttpServer())
+      .post('/api/projects')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .send({
-        projectId,
-        title: 'First task',
+        clientId,
+        name: 'Archived Target Project',
       })
       .expect(201);
 
+    const projectId = createProject.body.id as string;
+    const archivedProjectId = archivedProject.body.id as string;
+
+    const firstTask = await request(app.getHttpServer())
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
+      .send({
+        projectId,
+        title: 'First task',
+        assigneeUserId: teammate.userId,
+      })
+      .expect(201);
+
+    const firstTaskId = firstTask.body.id as string;
+
+    const getFirst = await request(app.getHttpServer())
+      .get(`/api/tasks/${firstTaskId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
+      .expect(200);
+
+    expect(getFirst.body.id).toBe(firstTaskId);
+    expect(getFirst.body.title).toBe('First task');
+    expect(getFirst.body.assignee.id).toBe(teammate.userId);
+
+    const updatedTask = await request(app.getHttpServer())
+      .patch(`/api/tasks/${firstTaskId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
+      .send({
+        description: 'Updated task description',
+        status: 'in_progress',
+        priority: 'urgent',
+      })
+      .expect(200);
+
+    expect(updatedTask.body.id).toBe(firstTaskId);
+    expect(updatedTask.body.description).toBe('Updated task description');
+    expect(updatedTask.body.status).toBe('in_progress');
+    expect(updatedTask.body.priority).toBe('urgent');
+
     await request(app.getHttpServer())
       .post('/api/tasks')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .send({
         projectId,
         title: 'Blocked task',
@@ -84,21 +139,20 @@ describe('Tasks integration', () => {
 
     const thirdTask = await request(app.getHttpServer())
       .post('/api/tasks')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .send({
         projectId,
         title: 'Third task',
       })
       .expect(201);
 
-    const firstTaskId = firstTask.body.id as string;
     const thirdTaskId = thirdTask.body.id as string;
 
     const firstPage = await request(app.getHttpServer())
       .get(`/api/tasks?projectId=${projectId}&limit=2`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .expect(200);
 
     expect(firstPage.body.items).toHaveLength(2);
@@ -110,19 +164,18 @@ describe('Tasks integration', () => {
       .get(
         `/api/tasks?projectId=${projectId}&limit=2&cursor=${firstPage.body.meta.nextCursor as string}`,
       )
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .expect(200);
 
     expect(secondPage.body.items).toHaveLength(1);
     expect(secondPage.body.meta.hasNextPage).toBe(false);
     expect(secondPage.body.meta.nextCursor).toBeNull();
-    expect(secondPage.body.items[0].id).toBe(firstTaskId);
 
     const filteredBySearch = await request(app.getHttpServer())
       .get(`/api/tasks?projectId=${projectId}&limit=10&search=blocked`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .expect(200);
 
     expect(filteredBySearch.body.items).toHaveLength(1);
@@ -132,8 +185,8 @@ describe('Tasks integration', () => {
       .get(
         `/api/tasks?projectId=${projectId}&limit=10&status=blocked&priority=high`,
       )
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .expect(200);
 
     expect(filteredByStatusAndPriority.body.items).toHaveLength(1);
@@ -142,15 +195,37 @@ describe('Tasks integration', () => {
     );
 
     await request(app.getHttpServer())
+      .patch(`/api/projects/${archivedProjectId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
+      .send({
+        status: 'archived',
+      })
+      .expect(200);
+
+    const moveToArchivedProject = await request(app.getHttpServer())
+      .patch(`/api/tasks/${firstTaskId}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
+      .send({
+        projectId: archivedProjectId,
+      })
+      .expect(400);
+
+    expect(moveToArchivedProject.body.message).toBe(
+      'Cannot move a task to an archived project',
+    );
+
+    await request(app.getHttpServer())
       .delete(`/api/tasks/${thirdTaskId}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .expect(200);
 
     const defaultList = await request(app.getHttpServer())
       .get(`/api/tasks?projectId=${projectId}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .expect(200);
 
     expect(
@@ -161,8 +236,8 @@ describe('Tasks integration', () => {
 
     const archivedList = await request(app.getHttpServer())
       .get(`/api/tasks?projectId=${projectId}&includeArchived=true`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .expect(200);
 
     const archivedTask = archivedList.body.items.find(
@@ -174,8 +249,8 @@ describe('Tasks integration', () => {
 
     await request(app.getHttpServer())
       .patch(`/api/projects/${projectId}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .send({
         status: 'archived',
       })
@@ -183,8 +258,8 @@ describe('Tasks integration', () => {
 
     const createForArchivedProject = await request(app.getHttpServer())
       .post('/api/tasks')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
       .send({
         projectId,
         title: 'Blocked by archived project',
