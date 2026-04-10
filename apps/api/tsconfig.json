@@ -3,30 +3,36 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "ES2023",
-
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
-
     "declaration": true,
     "removeComments": true,
     "sourceMap": true,
-
     "rootDir": "./",
     "outDir": "./dist",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
-
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-
     "incremental": true,
     "skipLibCheck": true,
-
     "strict": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "*.ts", "prisma/seed.ts","vitest.integration.config.mts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "*.ts",
+    "prisma/seed.ts",
+    "vitest.config.mts",
+    "vitest.integration.config.mts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }
