@@ -27,10 +27,7 @@ import { LoginDto } from './dto/requests/login.dto';
 import { SessionResponseDto } from './dto/responses/session-response.dto';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { AuthService } from './auth.service';
-import {
-  DEVICE_COOKIE_NAME,
-  REFRESH_COOKIE_NAME,
-} from './infra/auth.constants';
+import { DEVICE_COOKIE_NAME, REFRESH_COOKIE_NAME } from './auth.constants';
 import { SignupDto } from './dto/requests/signup.dto';
 import { SuccessResponseDto } from '@/common/dto/success-response.dto';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';

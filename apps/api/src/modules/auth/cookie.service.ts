@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FastifyReply } from 'fastify';
-import {
-  DEVICE_COOKIE_NAME,
-  REFRESH_COOKIE_NAME,
-} from './infra/auth.constants';
+import { DEVICE_COOKIE_NAME, REFRESH_COOKIE_NAME } from './auth.constants';
 import { EnvConfig } from '@/config/env.config';
 
 @Injectable()

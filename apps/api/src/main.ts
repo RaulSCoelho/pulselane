@@ -13,7 +13,7 @@ import { EnvConfig } from './config/env.config';
 import {
   DEVICE_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
-} from './modules/auth/infra/auth.constants';
+} from './modules/auth/auth.constants';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {

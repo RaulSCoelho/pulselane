@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthSession } from '@prisma/client';
 
-import { SessionRepository } from './domain/session.repository';
+import { SessionRepository } from './session.repository';
 import { TokenService } from './token.service';
 import { CryptoService } from '@/infra/crypto/crypto.service';
 

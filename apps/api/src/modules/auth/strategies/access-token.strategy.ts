@@ -5,7 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { AccessTokenPayload } from '../contracts/access-token-payload';
 import { SessionService } from '../session.service';
-import { ACCESS_TOKEN_STRATEGY } from '../infra/auth.constants';
+import { ACCESS_TOKEN_STRATEGY } from '../auth.constants';
 import { EnvConfig } from '@/config/env.config';
 import { AccessRequestUser } from '../contracts/access-request-user';
 

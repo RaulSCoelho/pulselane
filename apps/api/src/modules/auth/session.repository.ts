@@ -1,5 +1,5 @@
 import { PrismaService } from '@/infra/prisma/prisma.service';
-import { removeUndefinedFields } from '@/lib/object/remove-undefined';
+import { removeUndefinedFields } from '@/common/utils/remove-undefined';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 

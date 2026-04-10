@@ -7,7 +7,7 @@ import {
   DEVICE_COOKIE_NAME,
   REFRESH_COOKIE_NAME,
   REFRESH_TOKEN_STRATEGY,
-} from '../infra/auth.constants';
+} from '../auth.constants';
 import { ConfigService } from '@nestjs/config';
 import { RefreshTokenPayload } from '../contracts/refresh-token-payload';
 import { EnvConfig } from '@/config/env.config';

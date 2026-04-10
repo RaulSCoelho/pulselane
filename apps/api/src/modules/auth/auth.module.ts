@@ -8,7 +8,7 @@ import { AccessTokenStrategy } from './strategies/access-token.strategy';
 import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
 import { SessionService } from './session.service';
 import { TokenService } from './token.service';
-import { SessionRepository } from './domain/session.repository';
+import { SessionRepository } from './session.repository';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { CookieService } from './cookie.service';
 import { OrganizationModule } from '../organization/organization.module';

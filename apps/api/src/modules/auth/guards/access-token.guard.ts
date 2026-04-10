@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { ACCESS_TOKEN_STRATEGY } from '../infra/auth.constants';
+import { ACCESS_TOKEN_STRATEGY } from '../auth.constants';
 
 @Injectable()
 export class AccessTokenGuard extends AuthGuard(ACCESS_TOKEN_STRATEGY) {
