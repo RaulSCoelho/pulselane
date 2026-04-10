@@ -20,6 +20,9 @@ export class ClientResponseDto {
   @ApiProperty({ enum: ClientStatus, example: ClientStatus.active })
   status!: ClientStatus;
 
+  @ApiProperty({ example: '2026-04-09T20:00:00.000Z', nullable: true })
+  archivedAt!: Date | null;
+
   @ApiProperty({ example: '2026-03-28T20:00:00.000Z' })
   createdAt!: Date;
 

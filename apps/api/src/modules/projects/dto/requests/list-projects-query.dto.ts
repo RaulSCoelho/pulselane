@@ -1,9 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { ProjectStatus } from '@prisma/client';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { CursorPaginationQueryDto } from '@/common/pagination/dto/cursor-pagination-query.dto';
+import { toBoolean } from '@/common/utils/to-boolean.util';
 
-export class ListProjectsQueryDto extends PaginationQueryDto {
+export class ListProjectsQueryDto extends CursorPaginationQueryDto {
   @ApiPropertyOptional({ example: 'website' })
   @IsOptional()
   @IsString()
@@ -18,4 +20,14 @@ export class ListProjectsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(ProjectStatus)
   status?: ProjectStatus;
+
+  @ApiPropertyOptional({
+    example: false,
+    default: false,
+    description: 'Include archived projects in results',
+  })
+  @IsOptional()
+  @Transform(({ value }) => toBoolean(value))
+  @IsBoolean()
+  includeArchived?: boolean = false;
 }

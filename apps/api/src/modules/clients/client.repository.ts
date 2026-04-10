@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, ClientStatus } from '@prisma/client';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 type FindManyByOrganizationParams = {
   organizationId: string;
   search?: string;
   status?: ClientStatus;
-  page: number;
-  pageSize: number;
+  includeArchived?: boolean;
+  cursor?: string;
+  limit: number;
 };
 
 @Injectable()
@@ -31,34 +34,66 @@ export class ClientRepository {
     params: FindManyByOrganizationParams,
     tx?: Prisma.TransactionClient,
   ) {
-    const { organizationId, search, status, page, pageSize } = params;
-    const skip = (page - 1) * pageSize;
+    const { organizationId, search, status, includeArchived, cursor, limit } =
+      params;
 
-    const where: Prisma.ClientWhereInput = {
-      organizationId,
-      status,
-      OR: search
-        ? ['name', 'email', 'companyName'].map((field) => ({
-            [field]: { contains: search, mode: 'insensitive' },
-          }))
-        : undefined,
-    };
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
 
-    const [items, total] = await Promise.all([
-      this.getClient(tx).client.findMany({
-        where,
-        orderBy: {
+    const andFilters: Prisma.ClientWhereInput[] = [{ organizationId }];
+
+    if (status) {
+      andFilters.push({ status });
+    } else if (!includeArchived) {
+      andFilters.push({
+        status: {
+          not: ClientStatus.archived,
+        },
+      });
+    }
+
+    if (search) {
+      andFilters.push({
+        OR: ['name', 'email', 'companyName'].map((field) => ({
+          [field]: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        })),
+      });
+    }
+
+    if (cursorWhere) {
+      andFilters.push(cursorWhere);
+    }
+
+    const items = await this.getClient(tx).client.findMany({
+      where: {
+        AND: andFilters,
+      },
+      orderBy: [
+        {
           createdAt: 'desc',
         },
-        skip,
-        take: pageSize,
+        {
+          id: 'desc',
+        },
+      ],
+      take: limit + 1,
+    });
+
+    const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
+      items,
+      limit,
+      getCursorPayload: (item) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
       }),
-      this.getClient(tx).client.count({ where }),
-    ]);
+    });
 
     return {
-      items,
-      total,
+      items: normalizedItems,
+      hasNextPage,
+      nextCursor,
     };
   }
 
@@ -88,10 +123,14 @@ export class ClientRepository {
     });
   }
 
-  async delete(id: string, tx?: Prisma.TransactionClient) {
-    return this.getClient(tx).client.delete({
+  async archive(id: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).client.update({
       where: {
         id,
+      },
+      data: {
+        status: ClientStatus.archived,
+        archivedAt: new Date(),
       },
     });
   }

@@ -163,9 +163,9 @@ export class TasksController {
 
   @Delete(':id')
   @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
-  @ApiOperation({ summary: 'Delete task' })
+  @ApiOperation({ summary: 'Archive task' })
   @ApiOkResponse({
-    description: 'Task deleted successfully',
+    description: 'Task archived successfully',
     type: SuccessResponseDto,
   })
   @ApiNotFoundResponse({

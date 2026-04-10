@@ -24,6 +24,9 @@ export class ProjectResponseDto {
   @ApiProperty({ enum: ProjectStatus, example: ProjectStatus.active })
   status!: ProjectStatus;
 
+  @ApiProperty({ example: '2026-04-09T20:00:00.000Z', nullable: true })
+  archivedAt!: Date | null;
+
   @ApiProperty({ type: ProjectClientResponseDto })
   client!: ProjectClientResponseDto;
 

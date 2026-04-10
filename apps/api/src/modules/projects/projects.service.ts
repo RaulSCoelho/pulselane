@@ -1,5 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { AuditLogAction, Project, ProjectStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  AuditLogAction,
+  ClientStatus,
+  Project,
+  ProjectStatus,
+} from '@prisma/client';
 import { ClientsService } from '@/modules/clients/clients.service';
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service';
 import { CreateProjectDto } from './dto/requests/create-project.dto';
@@ -20,15 +29,26 @@ export class ProjectsService {
     organizationId: string,
     dto: CreateProjectDto,
   ) {
-    // Projects are always anchored to a client in the same organization.
-    await this.clientsService.findOne(organizationId, dto.clientId);
+    const client = await this.clientsService.findOne(
+      organizationId,
+      dto.clientId,
+    );
+
+    if (client.status === ClientStatus.archived) {
+      throw new BadRequestException(
+        'Cannot create a project for an archived client',
+      );
+    }
+
+    const status = dto.status ?? ProjectStatus.active;
 
     const project = await this.projectRepository.create({
       organizationId,
       clientId: dto.clientId,
       name: dto.name,
       description: dto.description,
-      status: dto.status ?? ProjectStatus.active,
+      status,
+      archivedAt: status === ProjectStatus.archived ? new Date() : null,
     });
 
     await this.auditLog(
@@ -42,32 +62,29 @@ export class ProjectsService {
   }
 
   async findAll(organizationId: string, query: ListProjectsQueryDto) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const limit = query.limit ?? 20;
 
     if (query.clientId) {
-      // Filter validation intentionally reuses the same lookup path as writes so
-      // callers get a consistent "client not found" response shape.
       await this.clientsService.findOne(organizationId, query.clientId);
     }
 
-    const { items, total } =
+    const { items, nextCursor, hasNextPage } =
       await this.projectRepository.findManyByOrganization({
         organizationId,
         clientId: query.clientId,
         search: query.search,
         status: query.status,
-        page,
-        pageSize,
+        includeArchived: query.includeArchived,
+        cursor: query.cursor,
+        limit,
       });
 
     return {
       items,
       meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        nextCursor,
+        hasNextPage,
       },
     };
   }
@@ -94,10 +111,27 @@ export class ProjectsService {
     await this.ensureProjectExists(projectId, organizationId);
 
     if (dto.clientId) {
-      await this.clientsService.findOne(organizationId, dto.clientId);
+      const client = await this.clientsService.findOne(
+        organizationId,
+        dto.clientId,
+      );
+
+      if (client.status === ClientStatus.archived) {
+        throw new BadRequestException(
+          'Cannot move a project to an archived client',
+        );
+      }
     }
 
-    const project = await this.projectRepository.update(projectId, dto);
+    const project = await this.projectRepository.update(projectId, {
+      ...dto,
+      archivedAt:
+        dto.status === undefined
+          ? undefined
+          : dto.status === ProjectStatus.archived
+            ? new Date()
+            : null,
+    });
 
     await this.auditLog(
       project,
@@ -110,15 +144,15 @@ export class ProjectsService {
   }
 
   async remove(actorUserId: string, organizationId: string, projectId: string) {
-    const project = await this.getProjectOrThrow(projectId, organizationId);
+    await this.getProjectOrThrow(projectId, organizationId);
 
-    await this.projectRepository.delete(projectId);
+    const project = await this.projectRepository.archive(projectId);
 
     await this.auditLog(
       project,
       actorUserId,
       organizationId,
-      AuditLogAction.deleted,
+      AuditLogAction.archived,
     );
 
     return {
@@ -163,6 +197,7 @@ export class ProjectsService {
         name: project.name,
         description: project.description,
         status: project.status,
+        archivedAt: project.archivedAt,
       },
     });
   }

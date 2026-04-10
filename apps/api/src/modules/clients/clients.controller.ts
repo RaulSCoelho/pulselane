@@ -168,9 +168,9 @@ export class ClientsController {
 
   @Delete(':id')
   @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
-  @ApiOperation({ summary: 'Delete client' })
+  @ApiOperation({ summary: 'Archive client' })
   @ApiOkResponse({
-    description: 'Client deleted successfully',
+    description: 'Client archived successfully',
     type: SuccessResponseDto,
   })
   @ApiNotFoundResponse({

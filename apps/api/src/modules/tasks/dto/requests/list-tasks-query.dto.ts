@@ -1,9 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { TaskPriority, TaskStatus } from '@prisma/client';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { PaginationQueryDto } from '@/common/dto/pagination-query.dto';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { CursorPaginationQueryDto } from '@/common/pagination/dto/cursor-pagination-query.dto';
+import { toBoolean } from '@/common/utils/to-boolean.util';
 
-export class ListTasksQueryDto extends PaginationQueryDto {
+export class ListTasksQueryDto extends CursorPaginationQueryDto {
   @ApiPropertyOptional({ example: 'proposal' })
   @IsOptional()
   @IsString()
@@ -28,4 +30,14 @@ export class ListTasksQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(TaskPriority)
   priority?: TaskPriority;
+
+  @ApiPropertyOptional({
+    example: false,
+    default: false,
+    description: 'Include archived tasks in results',
+  })
+  @IsOptional()
+  @Transform(({ value }) => toBoolean(value))
+  @IsBoolean()
+  includeArchived?: boolean = false;
 }

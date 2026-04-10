@@ -17,8 +17,6 @@ export class AuditLogsService {
   constructor(private readonly auditLogRepository: AuditLogRepository) {}
 
   async create(input: RegisterAuditLogInput, tx?: Prisma.TransactionClient) {
-    // Audit writes are intentionally lightweight and fire from business services
-    // after the main mutation succeeds.
     return this.auditLogRepository.create(
       {
         organizationId: input.organizationId,
@@ -37,10 +35,9 @@ export class AuditLogsService {
     query: ListAuditLogsQueryDto,
     tx?: Prisma.TransactionClient,
   ) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const limit = query.limit ?? 20;
 
-    const { items, total } =
+    const { items, nextCursor, hasNextPage } =
       await this.auditLogRepository.findManyByOrganization(
         {
           organizationId,
@@ -48,8 +45,8 @@ export class AuditLogsService {
           entityId: query.entityId,
           actorUserId: query.actorUserId,
           action: query.action,
-          page,
-          pageSize,
+          cursor: query.cursor,
+          limit,
         },
         tx,
       );
@@ -57,10 +54,9 @@ export class AuditLogsService {
     return {
       items,
       meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        nextCursor,
+        hasNextPage,
       },
     };
   }

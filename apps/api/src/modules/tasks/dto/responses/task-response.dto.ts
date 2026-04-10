@@ -34,6 +34,9 @@ export class TaskResponseDto {
   @ApiProperty({ example: '2026-04-10T18:00:00.000Z', nullable: true })
   dueDate!: Date | null;
 
+  @ApiProperty({ example: '2026-04-09T20:00:00.000Z', nullable: true })
+  archivedAt!: Date | null;
+
   @ApiProperty({ type: TaskProjectResponseDto })
   project!: TaskProjectResponseDto;
 

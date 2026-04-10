@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { CursorPageMetaResponseDto } from '@/common/pagination/dto/cursor-page-meta-response.dto';
 import { ProjectResponseDto } from './project-response.dto';
-import { PaginationMetaResponseDto } from '@/common/dto/pagination-meta-response.dto';
 
 export class ListProjectsResponseDto {
   @ApiProperty({ type: [ProjectResponseDto] })
   items!: ProjectResponseDto[];
 
-  @ApiProperty({ type: PaginationMetaResponseDto })
-  meta!: PaginationMetaResponseDto;
+  @ApiProperty({ type: CursorPageMetaResponseDto })
+  meta!: CursorPageMetaResponseDto;
 }

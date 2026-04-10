@@ -168,9 +168,9 @@ export class ProjectsController {
 
   @Delete(':id')
   @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
-  @ApiOperation({ summary: 'Delete project' })
+  @ApiOperation({ summary: 'Archive project' })
   @ApiOkResponse({
-    description: 'Project deleted successfully',
+    description: 'Project archived successfully',
     type: SuccessResponseDto,
   })
   @ApiNotFoundResponse({

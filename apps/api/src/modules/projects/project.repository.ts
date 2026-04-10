@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, ProjectStatus } from '@prisma/client';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 type FindManyByOrganizationParams = {
@@ -7,8 +9,9 @@ type FindManyByOrganizationParams = {
   clientId?: string;
   search?: string;
   status?: ProjectStatus;
-  page: number;
-  pageSize: number;
+  includeArchived?: boolean;
+  cursor?: string;
+  limit: number;
 };
 
 const clientInclude = {
@@ -20,8 +23,6 @@ const clientInclude = {
   },
 } satisfies Prisma.ProjectInclude;
 
-// Project responses intentionally embed only the client summary needed by the API
-// today so list/detail endpoints avoid leaking full related records by default.
 @Injectable()
 export class ProjectRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -44,36 +45,78 @@ export class ProjectRepository {
     params: FindManyByOrganizationParams,
     tx?: Prisma.TransactionClient,
   ) {
-    const { organizationId, clientId, search, status, page, pageSize } = params;
-    const skip = (page - 1) * pageSize;
-
-    const where: Prisma.ProjectWhereInput = {
+    const {
       organizationId,
       clientId,
+      search,
       status,
-      OR: search
-        ? ['name', 'description'].map((field) => ({
-            [field]: { contains: search, mode: 'insensitive' },
-          }))
-        : undefined,
-    };
+      includeArchived,
+      cursor,
+      limit,
+    } = params;
 
-    const [items, total] = await Promise.all([
-      this.getClient(tx).project.findMany({
-        where,
-        include: clientInclude,
-        orderBy: {
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
+
+    const andFilters: Prisma.ProjectWhereInput[] = [{ organizationId }];
+
+    if (clientId) {
+      andFilters.push({ clientId });
+    }
+
+    if (status) {
+      andFilters.push({ status });
+    } else if (!includeArchived) {
+      andFilters.push({
+        status: {
+          not: ProjectStatus.archived,
+        },
+      });
+    }
+
+    if (search) {
+      andFilters.push({
+        OR: ['name', 'description'].map((field) => ({
+          [field]: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        })),
+      });
+    }
+
+    if (cursorWhere) {
+      andFilters.push(cursorWhere);
+    }
+
+    const items = await this.getClient(tx).project.findMany({
+      where: {
+        AND: andFilters,
+      },
+      include: clientInclude,
+      orderBy: [
+        {
           createdAt: 'desc',
         },
-        skip,
-        take: pageSize,
+        {
+          id: 'desc',
+        },
+      ],
+      take: limit + 1,
+    });
+
+    const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
+      items,
+      limit,
+      getCursorPayload: (item) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
       }),
-      this.getClient(tx).project.count({ where }),
-    ]);
+    });
 
     return {
-      items,
-      total,
+      items: normalizedItems,
+      hasNextPage,
+      nextCursor,
     };
   }
 
@@ -105,11 +148,16 @@ export class ProjectRepository {
     });
   }
 
-  async delete(id: string, tx?: Prisma.TransactionClient) {
-    return this.getClient(tx).project.delete({
+  async archive(id: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).project.update({
       where: {
         id,
       },
+      data: {
+        status: ProjectStatus.archived,
+        archivedAt: new Date(),
+      },
+      include: clientInclude,
     });
   }
 }

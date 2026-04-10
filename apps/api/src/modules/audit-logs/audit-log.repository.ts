@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuditLogAction, Prisma } from '@prisma/client';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 type FindManyByOrganizationParams = {
@@ -8,8 +10,8 @@ type FindManyByOrganizationParams = {
   entityId?: string;
   actorUserId?: string;
   action?: AuditLogAction;
-  page: number;
-  pageSize: number;
+  cursor?: string;
+  limit: number;
 };
 
 const auditLogInclude = {
@@ -50,36 +52,63 @@ export class AuditLogRepository {
       entityId,
       actorUserId,
       action,
-      page,
-      pageSize,
+      cursor,
+      limit,
     } = params;
 
-    const skip = (page - 1) * pageSize;
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
 
-    const where: Prisma.AuditLogWhereInput = {
-      organizationId,
-      entityType,
-      entityId,
-      actorUserId,
-      action,
-    };
+    const andFilters: Prisma.AuditLogWhereInput[] = [{ organizationId }];
 
-    const [items, total] = await Promise.all([
-      this.getClient(tx).auditLog.findMany({
-        where,
-        include: auditLogInclude,
-        orderBy: {
+    if (entityType) {
+      andFilters.push({ entityType });
+    }
+
+    if (entityId) {
+      andFilters.push({ entityId });
+    }
+
+    if (actorUserId) {
+      andFilters.push({ actorUserId });
+    }
+
+    if (action) {
+      andFilters.push({ action });
+    }
+
+    if (cursorWhere) {
+      andFilters.push(cursorWhere);
+    }
+
+    const items = await this.getClient(tx).auditLog.findMany({
+      where: {
+        AND: andFilters,
+      },
+      include: auditLogInclude,
+      orderBy: [
+        {
           createdAt: 'desc',
         },
-        skip,
-        take: pageSize,
+        {
+          id: 'desc',
+        },
+      ],
+      take: limit + 1,
+    });
+
+    const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
+      items,
+      limit,
+      getCursorPayload: (item) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
       }),
-      this.getClient(tx).auditLog.count({ where }),
-    ]);
+    });
 
     return {
-      items,
-      total,
+      items: normalizedItems,
+      hasNextPage,
+      nextCursor,
     };
   }
 }

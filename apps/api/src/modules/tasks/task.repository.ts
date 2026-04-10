@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, TaskPriority, TaskStatus } from '@prisma/client';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 type FindManyByOrganizationParams = {
@@ -9,8 +11,9 @@ type FindManyByOrganizationParams = {
   search?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
-  page: number;
-  pageSize: number;
+  includeArchived?: boolean;
+  cursor?: string;
+  limit: number;
 };
 
 const taskInclude = {
@@ -29,8 +32,6 @@ const taskInclude = {
   },
 } satisfies Prisma.TaskInclude;
 
-// Task payloads expose compact related objects so clients can render task lists
-// without issuing extra lookups for project or assignee labels.
 @Injectable()
 export class TaskRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -60,41 +61,81 @@ export class TaskRepository {
       search,
       status,
       priority,
-      page,
-      pageSize,
+      includeArchived,
+      cursor,
+      limit,
     } = params;
 
-    const skip = (page - 1) * pageSize;
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
 
-    const where: Prisma.TaskWhereInput = {
-      organizationId,
-      projectId,
-      assigneeUserId,
-      status,
-      priority,
-      OR: search
-        ? ['title', 'description'].map((field) => ({
-            [field]: { contains: search, mode: 'insensitive' },
-          }))
-        : undefined,
-    };
+    const andFilters: Prisma.TaskWhereInput[] = [{ organizationId }];
 
-    const [items, total] = await Promise.all([
-      this.getClient(tx).task.findMany({
-        where,
-        include: taskInclude,
-        orderBy: {
+    if (projectId) {
+      andFilters.push({ projectId });
+    }
+
+    if (assigneeUserId) {
+      andFilters.push({ assigneeUserId });
+    }
+
+    if (status) {
+      andFilters.push({ status });
+    } else if (!includeArchived) {
+      andFilters.push({
+        status: {
+          not: TaskStatus.archived,
+        },
+      });
+    }
+
+    if (priority) {
+      andFilters.push({ priority });
+    }
+
+    if (search) {
+      andFilters.push({
+        OR: ['title', 'description'].map((field) => ({
+          [field]: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        })),
+      });
+    }
+
+    if (cursorWhere) {
+      andFilters.push(cursorWhere);
+    }
+
+    const items = await this.getClient(tx).task.findMany({
+      where: {
+        AND: andFilters,
+      },
+      include: taskInclude,
+      orderBy: [
+        {
           createdAt: 'desc',
         },
-        skip,
-        take: pageSize,
+        {
+          id: 'desc',
+        },
+      ],
+      take: limit + 1,
+    });
+
+    const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
+      items,
+      limit,
+      getCursorPayload: (item) => ({
+        id: item.id,
+        createdAt: item.createdAt.toISOString(),
       }),
-      this.getClient(tx).task.count({ where }),
-    ]);
+    });
 
     return {
-      items,
-      total,
+      items: normalizedItems,
+      hasNextPage,
+      nextCursor,
     };
   }
 
@@ -126,11 +167,16 @@ export class TaskRepository {
     });
   }
 
-  async delete(id: string, tx?: Prisma.TransactionClient) {
-    return this.getClient(tx).task.delete({
+  async archive(id: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).task.update({
       where: {
         id,
       },
+      data: {
+        status: TaskStatus.archived,
+        archivedAt: new Date(),
+      },
+      include: taskInclude,
     });
   }
 }

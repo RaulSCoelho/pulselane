@@ -1,5 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { AuditLogAction, Task, TaskPriority, TaskStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  AuditLogAction,
+  ProjectStatus,
+  Task,
+  TaskPriority,
+  TaskStatus,
+} from '@prisma/client';
 import { MembershipService } from '@/modules/membership/membership.service';
 import { ProjectsService } from '@/modules/projects/projects.service';
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service';
@@ -22,11 +32,18 @@ export class TasksService {
     organizationId: string,
     dto: CreateTaskDto,
   ) {
-    await this.projectsService.findOne(organizationId, dto.projectId);
+    const project = await this.projectsService.findOne(
+      organizationId,
+      dto.projectId,
+    );
+
+    if (project.status === ProjectStatus.archived) {
+      throw new BadRequestException(
+        'Cannot create a task for an archived project',
+      );
+    }
 
     if (dto.assigneeUserId) {
-      // Assignees are validated against membership, not only user existence,
-      // because tasks cannot cross organization boundaries.
       await this.membershipService.ensureUserIsMember(
         dto.assigneeUserId,
         organizationId,
@@ -37,15 +54,18 @@ export class TasksService {
       );
     }
 
+    const status = dto.status ?? TaskStatus.todo;
+
     const task = await this.taskRepository.create({
       organizationId,
       projectId: dto.projectId,
       assigneeUserId: dto.assigneeUserId,
       title: dto.title,
       description: dto.description,
-      status: dto.status ?? TaskStatus.todo,
+      status,
       priority: dto.priority ?? TaskPriority.medium,
       dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+      archivedAt: status === TaskStatus.archived ? new Date() : null,
     });
 
     await this.auditLog(
@@ -59,8 +79,7 @@ export class TasksService {
   }
 
   async findAll(organizationId: string, query: ListTasksQueryDto) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const limit = query.limit ?? 20;
 
     if (query.projectId) {
       await this.projectsService.findOne(organizationId, query.projectId);
@@ -77,24 +96,25 @@ export class TasksService {
       );
     }
 
-    const { items, total } = await this.taskRepository.findManyByOrganization({
-      organizationId,
-      projectId: query.projectId,
-      assigneeUserId: query.assigneeUserId,
-      search: query.search,
-      status: query.status,
-      priority: query.priority,
-      page,
-      pageSize,
-    });
+    const { items, nextCursor, hasNextPage } =
+      await this.taskRepository.findManyByOrganization({
+        organizationId,
+        projectId: query.projectId,
+        assigneeUserId: query.assigneeUserId,
+        search: query.search,
+        status: query.status,
+        priority: query.priority,
+        includeArchived: query.includeArchived,
+        cursor: query.cursor,
+        limit,
+      });
 
     return {
       items,
       meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        nextCursor,
+        hasNextPage,
       },
     };
   }
@@ -121,7 +141,16 @@ export class TasksService {
     await this.ensureTaskExists(taskId, organizationId);
 
     if (dto.projectId) {
-      await this.projectsService.findOne(organizationId, dto.projectId);
+      const project = await this.projectsService.findOne(
+        organizationId,
+        dto.projectId,
+      );
+
+      if (project.status === ProjectStatus.archived) {
+        throw new BadRequestException(
+          'Cannot move a task to an archived project',
+        );
+      }
     }
 
     if (dto.assigneeUserId) {
@@ -137,13 +166,17 @@ export class TasksService {
 
     const task = await this.taskRepository.update(taskId, {
       ...dto,
-      // `undefined` means "leave due date as-is"; an empty value from the DTO is
-      // converted to `null` so callers can explicitly clear the persisted date.
       dueDate:
         dto.dueDate === undefined
           ? undefined
           : dto.dueDate
             ? new Date(dto.dueDate)
+            : null,
+      archivedAt:
+        dto.status === undefined
+          ? undefined
+          : dto.status === TaskStatus.archived
+            ? new Date()
             : null,
     });
 
@@ -158,15 +191,15 @@ export class TasksService {
   }
 
   async remove(actorUserId: string, organizationId: string, taskId: string) {
-    const task = await this.getTaskOrThrow(taskId, organizationId);
+    await this.getTaskOrThrow(taskId, organizationId);
 
-    await this.taskRepository.delete(taskId);
+    const task = await this.taskRepository.archive(taskId);
 
     await this.auditLog(
       task,
       actorUserId,
       organizationId,
-      AuditLogAction.deleted,
+      AuditLogAction.archived,
     );
 
     return {
@@ -213,6 +246,7 @@ export class TasksService {
         status: task.status,
         priority: task.priority,
         dueDate: task.dueDate,
+        archivedAt: task.archivedAt,
       },
     });
   }

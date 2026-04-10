@@ -32,6 +32,7 @@ enum ProjectStatus {
 enum TaskStatus {
   todo
   in_progress
+  blocked
   done
   archived
 }
@@ -46,6 +47,7 @@ enum TaskPriority {
 enum AuditLogAction {
   created
   updated
+  archived
   deleted
 }
 
@@ -96,8 +98,6 @@ model AuthSession {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // One active session row is maintained per user/device pair and rotated as
-  // refresh tokens change over time.
   @@unique([userId, deviceId])
   @@index([userId])
   @@index([deviceId])
@@ -133,7 +133,6 @@ model Membership {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  // Membership is the source of truth for tenant access and role resolution.
   @@unique([userId, organizationId])
   @@index([organizationId])
   @@index([userId])
@@ -147,6 +146,7 @@ model Client {
   email          String?      @db.Citext
   companyName    String?      @map("company_name")
   status         ClientStatus @default(active)
+  archivedAt     DateTime?    @map("archived_at")
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
@@ -155,6 +155,8 @@ model Client {
 
   @@index([organizationId])
   @@index([organizationId, status])
+  @@index([organizationId, archivedAt])
+  @@index([organizationId, createdAt])
   @@map("clients")
 }
 
@@ -165,6 +167,7 @@ model Project {
   name           String
   description    String?
   status         ProjectStatus @default(active)
+  archivedAt     DateTime?     @map("archived_at")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
@@ -175,6 +178,8 @@ model Project {
   @@index([organizationId])
   @@index([clientId])
   @@index([organizationId, status])
+  @@index([organizationId, archivedAt])
+  @@index([organizationId, createdAt])
   @@map("projects")
 }
 
@@ -188,6 +193,7 @@ model Task {
   status         TaskStatus   @default(todo)
   priority       TaskPriority @default(medium)
   dueDate        DateTime?    @map("due_date")
+  archivedAt     DateTime?    @map("archived_at")
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
@@ -200,6 +206,8 @@ model Task {
   @@index([assigneeUserId])
   @@index([organizationId, status])
   @@index([organizationId, priority])
+  @@index([organizationId, archivedAt])
+  @@index([organizationId, createdAt])
   @@map("tasks")
 }
 
@@ -216,8 +224,6 @@ model AuditLog {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   actorUser    User         @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
 
-  // Audit reads are organization-scoped first, then optionally narrowed by actor
-  // or entity identity.
   @@index([organizationId])
   @@index([actorUserId])
   @@index([entityType, entityId])

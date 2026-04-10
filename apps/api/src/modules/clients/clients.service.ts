@@ -18,12 +18,15 @@ export class ClientsService {
     organizationId: string,
     dto: CreateClientDto,
   ) {
+    const status = dto.status ?? ClientStatus.active;
+
     const client = await this.clientRepository.create({
       organizationId,
       name: dto.name,
       email: dto.email,
       companyName: dto.companyName,
-      status: dto.status ?? ClientStatus.active,
+      status,
+      archivedAt: status === ClientStatus.archived ? new Date() : null,
     });
 
     await this.auditLog(
@@ -37,26 +40,24 @@ export class ClientsService {
   }
 
   async findAll(organizationId: string, query: ListClientsQueryDto) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
+    const limit = query.limit ?? 20;
 
-    const { items, total } = await this.clientRepository.findManyByOrganization(
-      {
+    const { items, nextCursor, hasNextPage } =
+      await this.clientRepository.findManyByOrganization({
         organizationId,
         search: query.search,
         status: query.status,
-        page,
-        pageSize,
-      },
-    );
+        includeArchived: query.includeArchived,
+        cursor: query.cursor,
+        limit,
+      });
 
     return {
       items,
       meta: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize),
+        limit,
+        nextCursor,
+        hasNextPage,
       },
     };
   }
@@ -82,7 +83,15 @@ export class ClientsService {
   ) {
     await this.ensureClientExists(clientId, organizationId);
 
-    const client = await this.clientRepository.update(clientId, dto);
+    const client = await this.clientRepository.update(clientId, {
+      ...dto,
+      archivedAt:
+        dto.status === undefined
+          ? undefined
+          : dto.status === ClientStatus.archived
+            ? new Date()
+            : null,
+    });
 
     await this.auditLog(
       client,
@@ -95,15 +104,15 @@ export class ClientsService {
   }
 
   async remove(actorUserId: string, organizationId: string, clientId: string) {
-    const client = await this.getClientOrThrow(clientId, organizationId);
+    await this.getClientOrThrow(clientId, organizationId);
 
-    await this.clientRepository.delete(clientId);
+    const client = await this.clientRepository.archive(clientId);
 
     await this.auditLog(
       client,
       actorUserId,
       organizationId,
-      AuditLogAction.deleted,
+      AuditLogAction.archived,
     );
 
     return {
@@ -148,6 +157,7 @@ export class ClientsService {
         email: client.email,
         companyName: client.companyName,
         status: client.status,
+        archivedAt: client.archivedAt,
       },
     });
   }
