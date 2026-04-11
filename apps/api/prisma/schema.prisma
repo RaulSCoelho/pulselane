@@ -64,6 +64,21 @@ enum EmailDeliveryStatus {
   failed
 }
 
+enum BillingPlan {
+  free
+  starter
+  growth
+}
+
+enum BillingSubscriptionStatus {
+  free
+  active
+  trialing
+  past_due
+  canceled
+  incomplete
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -119,8 +134,47 @@ model Organization {
   auditLogs               AuditLog[]
   organizationInvitations OrganizationInvitation[]
   emailDeliveries         EmailDelivery[]
+  billing                 OrganizationBilling?
+  billingWebhookEvents    BillingWebhookEvent[]
 
   @@map("organizations")
+}
+
+model OrganizationBilling {
+  id                   String                    @id @default(cuid())
+  organizationId       String                    @unique @map("organization_id")
+  plan                 BillingPlan               @default(free)
+  status               BillingSubscriptionStatus @default(free)
+  stripeCustomerId     String?                   @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?                   @unique @map("stripe_subscription_id")
+  currentPeriodEnd     DateTime?                 @map("current_period_end")
+  cancelAtPeriodEnd    Boolean                   @default(false) @map("cancel_at_period_end")
+  createdAt            DateTime                  @default(now()) @map("created_at")
+  updatedAt            DateTime                  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([plan])
+  @@index([status])
+  @@map("organization_billing")
+}
+
+model BillingWebhookEvent {
+  id                String    @id @default(cuid())
+  organizationId    String?   @map("organization_id")
+  providerEventId   String    @unique @map("provider_event_id")
+  eventType         String    @map("event_type")
+  providerCreatedAt DateTime? @map("provider_created_at")
+  payload           Json?
+  processedAt       DateTime? @map("processed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("billing_webhook_events")
 }
 
 model Membership {

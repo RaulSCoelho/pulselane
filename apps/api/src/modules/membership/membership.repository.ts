@@ -61,8 +61,12 @@ export class MembershipRepository {
     });
   }
 
-  async findByIdAndOrganization(id: string, organizationId: string) {
-    return this.prisma.membership.findFirst({
+  async findByIdAndOrganization(
+    id: string,
+    organizationId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.getClient(tx).membership.findFirst({
       where: {
         id,
         organizationId,
@@ -134,8 +138,12 @@ export class MembershipRepository {
     };
   }
 
-  async updateRole(id: string, role: Prisma.MembershipUpdateInput['role']) {
-    return this.prisma.membership.update({
+  async updateRole(
+    id: string,
+    role: Prisma.MembershipUpdateInput['role'],
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.getClient(tx).membership.update({
       where: { id },
       data: { role },
       include: membershipInclude,

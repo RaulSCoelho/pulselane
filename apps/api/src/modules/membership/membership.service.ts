@@ -1,12 +1,15 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MembershipRepository } from './membership.repository';
 import { MembershipRole, Prisma } from '@prisma/client';
+import { UsagePolicyService } from '@/modules/billing/usage-policy.service';
+import { MembershipRepository } from './membership.repository';
 import { ListMembershipsQueryDto } from './dto/requests/list-memberships-query.dto';
 import { UpdateMembershipRoleDto } from './dto/requests/update-membership-role.dto';
+import { PrismaService } from '@/infra/prisma/prisma.service';
 
 type CreateMembershipInput = {
   userId: string;
@@ -22,10 +25,40 @@ type EnsureUserIsMemberOptions = {
 
 @Injectable()
 export class MembershipService {
-  constructor(private readonly membershipRepository: MembershipRepository) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly membershipRepository: MembershipRepository,
+    private readonly usagePolicyService: UsagePolicyService,
+  ) {}
 
   async create(data: CreateMembershipInput, tx?: Prisma.TransactionClient) {
-    return this.membershipRepository.create(data, tx);
+    const createMembership = async (trx: Prisma.TransactionClient) => {
+      await this.usagePolicyService.assertCanCreateMembership(
+        data.organizationId,
+        trx,
+      );
+
+      try {
+        return await this.membershipRepository.create(data, trx);
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new ConflictException(
+            'User already belongs to this organization',
+          );
+        }
+
+        throw error;
+      }
+    };
+
+    if (tx) {
+      return createMembership(tx);
+    }
+
+    return this.prisma.$transaction((trx) => createMembership(trx));
   }
 
   async findByUserAndOrganization(
@@ -69,16 +102,20 @@ export class MembershipService {
   async findAllByOrganization(
     organizationId: string,
     query: ListMembershipsQueryDto,
+    tx?: Prisma.TransactionClient,
   ) {
     const limit = query.limit ?? 20;
 
-    const result = await this.membershipRepository.findManyByOrganization({
-      organizationId,
-      cursor: query.cursor,
-      limit,
-      search: query.search,
-      role: query.role,
-    });
+    const result = await this.membershipRepository.findManyByOrganization(
+      {
+        organizationId,
+        cursor: query.cursor,
+        limit,
+        search: query.search,
+        role: query.role,
+      },
+      tx,
+    );
 
     return {
       items: result.items,
@@ -90,10 +127,15 @@ export class MembershipService {
     };
   }
 
-  async findOneByOrganization(organizationId: string, membershipId: string) {
+  async findOneByOrganization(
+    organizationId: string,
+    membershipId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
     const membership = await this.membershipRepository.findByIdAndOrganization(
       membershipId,
       organizationId,
+      tx,
     );
 
     if (!membership) {
@@ -108,10 +150,12 @@ export class MembershipService {
     organizationId: string,
     membershipId: string,
     dto: UpdateMembershipRoleDto,
+    tx?: Prisma.TransactionClient,
   ) {
     const actorMembership = await this.ensureUserIsMember(
       actorUserId,
       organizationId,
+      { tx },
     );
 
     if (
@@ -126,6 +170,7 @@ export class MembershipService {
     const targetMembership = await this.findOneByOrganization(
       organizationId,
       membershipId,
+      tx,
     );
 
     if (
@@ -143,6 +188,6 @@ export class MembershipService {
       throw new ForbiddenException('Owner cannot remove own owner role');
     }
 
-    return this.membershipRepository.updateRole(membershipId, dto.role);
+    return this.membershipRepository.updateRole(membershipId, dto.role, tx);
   }
 }

@@ -9,6 +9,7 @@ import {
   MembershipRole,
   OrganizationInvitation,
   OrganizationInvitationStatus,
+  Prisma,
 } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '@/infra/prisma/prisma.service';
@@ -41,10 +42,12 @@ export class InvitationsService {
     actorUserId: string,
     organizationId: string,
     dto: CreateInvitationDto,
+    tx?: Prisma.TransactionClient,
   ) {
     const actorMembership = await this.membershipService.ensureUserIsMember(
       actorUserId,
       organizationId,
+      { tx },
     );
 
     this.assertCanManageInvitations(actorMembership.role);
@@ -56,13 +59,14 @@ export class InvitationsService {
       throw new ForbiddenException('Admins cannot invite owners');
     }
 
-    const invitedUser = await this.userService.findByEmail(dto.email);
+    const invitedUser = await this.userService.findByEmail(dto.email, tx);
 
     if (invitedUser) {
       const invitedMembership =
         await this.membershipService.findByUserAndOrganization(
           invitedUser.id,
           organizationId,
+          tx,
         );
 
       if (invitedMembership) {
@@ -76,6 +80,7 @@ export class InvitationsService {
       await this.invitationRepository.findPendingByOrganizationAndEmail(
         organizationId,
         dto.email,
+        tx,
       );
 
     if (existingPendingInvitation) {
@@ -84,44 +89,57 @@ export class InvitationsService {
       );
     }
 
-    const invitation = await this.invitationRepository.create({
-      organizationId,
-      invitedByUserId: actorUserId,
-      email: dto.email,
-      role: dto.role,
-      token: this.generateToken(),
-      expiresAt: this.buildExpirationDate(),
-    });
-
-    await this.auditLogsService.create({
-      organizationId,
-      actorUserId,
-      entityType: 'organization_invitation',
-      entityId: invitation.id,
-      action: AuditLogAction.created,
-      metadata: {
-        email: invitation.email,
-        role: invitation.role,
-        status: invitation.status,
-        expiresAt: invitation.expiresAt,
+    const invitation = await this.invitationRepository.create(
+      {
+        organizationId,
+        invitedByUserId: actorUserId,
+        email: dto.email,
+        role: dto.role,
+        token: this.generateToken(),
+        expiresAt: this.buildExpirationDate(),
       },
-    });
+      tx,
+    );
 
-    await this.sendInvitationEmail(invitation, actorUserId);
+    await this.auditLogsService.create(
+      {
+        organizationId,
+        actorUserId,
+        entityType: 'organization_invitation',
+        entityId: invitation.id,
+        action: AuditLogAction.created,
+        metadata: {
+          email: invitation.email,
+          role: invitation.role,
+          status: invitation.status,
+          expiresAt: invitation.expiresAt,
+        },
+      },
+      tx,
+    );
+
+    await this.sendInvitationEmail(invitation, actorUserId, tx);
 
     return invitation;
   }
 
-  async findAll(organizationId: string, query: ListInvitationsQueryDto) {
+  async findAll(
+    organizationId: string,
+    query: ListInvitationsQueryDto,
+    tx?: Prisma.TransactionClient,
+  ) {
     const limit = query.limit ?? 20;
 
-    const result = await this.invitationRepository.findManyByOrganization({
-      organizationId,
-      cursor: query.cursor,
-      limit,
-      email: query.email,
-      status: query.status,
-    });
+    const result = await this.invitationRepository.findManyByOrganization(
+      {
+        organizationId,
+        cursor: query.cursor,
+        limit,
+        email: query.email,
+        status: query.status,
+      },
+      tx,
+    );
 
     return {
       items: result.items,
@@ -135,8 +153,12 @@ export class InvitationsService {
 
   async preview(
     query: PreviewInvitationQueryDto,
+    tx?: Prisma.TransactionClient,
   ): Promise<PreviewInvitationResponseDto> {
-    const invitation = await this.invitationRepository.findByToken(query.token);
+    const invitation = await this.invitationRepository.findByToken(
+      query.token,
+      tx,
+    );
 
     if (!invitation) {
       throw new NotFoundException('Invitation not found');
@@ -166,10 +188,12 @@ export class InvitationsService {
     actorUserId: string,
     organizationId: string,
     invitationId: string,
+    tx?: Prisma.TransactionClient,
   ) {
     const actorMembership = await this.membershipService.ensureUserIsMember(
       actorUserId,
       organizationId,
+      { tx },
     );
 
     this.assertCanManageInvitations(actorMembership.role);
@@ -177,6 +201,7 @@ export class InvitationsService {
     const invitation = await this.getInvitationOrThrow(
       invitationId,
       organizationId,
+      tx,
     );
 
     if (
@@ -196,20 +221,24 @@ export class InvitationsService {
         status: OrganizationInvitationStatus.revoked,
         revokedAt: new Date(),
       },
+      tx,
     );
 
-    await this.auditLogsService.create({
-      organizationId,
-      actorUserId,
-      entityType: 'organization_invitation',
-      entityId: updatedInvitation.id,
-      action: AuditLogAction.updated,
-      metadata: {
-        email: updatedInvitation.email,
-        role: updatedInvitation.role,
-        status: updatedInvitation.status,
+    await this.auditLogsService.create(
+      {
+        organizationId,
+        actorUserId,
+        entityType: 'organization_invitation',
+        entityId: updatedInvitation.id,
+        action: AuditLogAction.updated,
+        metadata: {
+          email: updatedInvitation.email,
+          role: updatedInvitation.role,
+          status: updatedInvitation.status,
+        },
       },
-    });
+      tx,
+    );
 
     return updatedInvitation;
   }
@@ -218,10 +247,12 @@ export class InvitationsService {
     actorUserId: string,
     organizationId: string,
     invitationId: string,
+    tx?: Prisma.TransactionClient,
   ) {
     const actorMembership = await this.membershipService.ensureUserIsMember(
       actorUserId,
       organizationId,
+      { tx },
     );
 
     this.assertCanManageInvitations(actorMembership.role);
@@ -229,6 +260,7 @@ export class InvitationsService {
     const invitation = await this.getInvitationOrThrow(
       invitationId,
       organizationId,
+      tx,
     );
 
     if (
@@ -258,30 +290,41 @@ export class InvitationsService {
         revokedAt: null,
         acceptedAt: null,
       },
+      tx,
     );
 
-    await this.auditLogsService.create({
-      organizationId,
-      actorUserId,
-      entityType: 'organization_invitation',
-      entityId: resentInvitation.id,
-      action: AuditLogAction.updated,
-      metadata: {
-        email: resentInvitation.email,
-        role: resentInvitation.role,
-        status: resentInvitation.status,
-        expiresAt: resentInvitation.expiresAt,
-        reason: 'resent',
+    await this.auditLogsService.create(
+      {
+        organizationId,
+        actorUserId,
+        entityType: 'organization_invitation',
+        entityId: resentInvitation.id,
+        action: AuditLogAction.updated,
+        metadata: {
+          email: resentInvitation.email,
+          role: resentInvitation.role,
+          status: resentInvitation.status,
+          expiresAt: resentInvitation.expiresAt,
+          reason: 'resent',
+        },
       },
-    });
+      tx,
+    );
 
-    await this.sendInvitationEmail(resentInvitation, actorUserId);
+    await this.sendInvitationEmail(resentInvitation, actorUserId, tx);
 
     return resentInvitation;
   }
 
-  async accept(actorUserId: string, dto: AcceptInvitationDto) {
-    const invitation = await this.invitationRepository.findByToken(dto.token);
+  async accept(
+    actorUserId: string,
+    dto: AcceptInvitationDto,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const invitation = await this.invitationRepository.findByToken(
+      dto.token,
+      tx,
+    );
 
     if (!invitation) {
       throw new NotFoundException('Invitation not found');
@@ -299,7 +342,7 @@ export class InvitationsService {
       throw new ConflictException('Invitation has expired');
     }
 
-    const user = await this.userService.findById(actorUserId);
+    const user = await this.userService.findById(actorUserId, tx);
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -315,20 +358,21 @@ export class InvitationsService {
       await this.membershipService.findByUserAndOrganization(
         actorUserId,
         invitation.organizationId,
+        tx,
       );
 
     if (existingMembership) {
       throw new ConflictException('User already belongs to this organization');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const acceptInvitation = async (trx: Prisma.TransactionClient) => {
       await this.membershipService.create(
         {
           userId: actorUserId,
           organizationId: invitation.organizationId,
           role: invitation.role,
         },
-        tx,
+        trx,
       );
 
       const acceptedInvitation = await this.invitationRepository.update(
@@ -337,7 +381,7 @@ export class InvitationsService {
           status: OrganizationInvitationStatus.accepted,
           acceptedAt: new Date(),
         },
-        tx,
+        trx,
       );
 
       await this.auditLogsService.create(
@@ -353,20 +397,28 @@ export class InvitationsService {
             status: acceptedInvitation.status,
           },
         },
-        tx,
+        trx,
       );
 
       return acceptedInvitation;
-    });
+    };
+
+    if (tx) {
+      return acceptInvitation(tx);
+    }
+
+    return this.prisma.$transaction((trx) => acceptInvitation(trx));
   }
 
   private async getInvitationOrThrow(
     invitationId: string,
     organizationId: string,
+    tx?: Prisma.TransactionClient,
   ) {
     const invitation = await this.invitationRepository.findByIdAndOrganization(
       invitationId,
       organizationId,
+      tx,
     );
 
     if (!invitation) {
@@ -398,6 +450,7 @@ export class InvitationsService {
       };
     },
     actorUserId: string,
+    tx?: Prisma.TransactionClient,
   ) {
     const acceptUrl = this.invitationLinksService.buildAcceptInvitationUrl(
       invitation.token,
@@ -410,19 +463,22 @@ export class InvitationsService {
       acceptUrl,
     });
 
-    await this.emailService.send({
-      organizationId: invitation.organizationId,
-      sentBy: actorUserId,
-      to: invitation.email,
-      subject: emailContent.subject,
-      text: emailContent.text,
-      html: emailContent.html,
-      metadata: {
-        type: 'organization_invitation',
+    await this.emailService.send(
+      {
         organizationId: invitation.organizationId,
-        invitationId: invitation.id,
+        sentBy: actorUserId,
+        to: invitation.email,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html,
+        metadata: {
+          type: 'organization_invitation',
+          organizationId: invitation.organizationId,
+          invitationId: invitation.id,
+        },
       },
-    });
+      tx,
+    );
   }
 
   // Tokens are only used for acceptance and should not be guessable.

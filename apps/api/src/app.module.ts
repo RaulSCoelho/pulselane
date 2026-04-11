@@ -11,6 +11,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { MembershipModule } from './modules/membership/membership.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
       validationSchema: envValidationSchema,
     }),
     PrismaModule,
+    BillingModule,
     AuthModule,
     OrganizationModule,
     MembershipModule,

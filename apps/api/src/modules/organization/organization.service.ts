@@ -1,54 +1,79 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { MembershipService } from '@/modules/membership/membership.service';
+import { BillingService } from '@/modules/billing/billing.service';
 import { OrganizationRepository } from './organization.repository';
 import {
   slugifyOrganizationName,
   uniqueOrganizationSlug,
 } from './organization.utils';
-import { Prisma } from '@prisma/client';
-import { MembershipService } from '@/modules/membership/membership.service';
+import { PrismaService } from '@/infra/prisma/prisma.service';
 
 @Injectable()
 export class OrganizationService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly organizationRepository: OrganizationRepository,
     private readonly membershipService: MembershipService,
+    private readonly billingService: BillingService,
   ) {}
 
   async create(name: string, tx?: Prisma.TransactionClient) {
-    const baseSlug = slugifyOrganizationName(name);
+    const createOrganization = async (trx: Prisma.TransactionClient) => {
+      const baseSlug = slugifyOrganizationName(name);
 
-    let attempt = 0;
-    let slug: string;
+      let attempt = 0;
+      let slug: string;
 
-    while (true) {
-      slug = uniqueOrganizationSlug(baseSlug, attempt);
+      while (true) {
+        slug = uniqueOrganizationSlug(baseSlug, attempt);
 
-      const exists = await this.organizationRepository.findBySlug(slug, tx);
+        const exists = await this.organizationRepository.findBySlug(slug, trx);
 
-      // Slug collisions are resolved deterministically in userland so signup can
-      // keep the generated slug human-readable without leaking DB errors upward.
-      if (!exists) break;
+        if (!exists) break;
 
-      attempt++;
+        attempt++;
+      }
+
+      const organization = await this.organizationRepository.create(
+        { name, slug },
+        trx,
+      );
+
+      await this.billingService.initializeOrganizationBilling(
+        organization.id,
+        trx,
+      );
+
+      return organization;
+    };
+
+    if (tx) {
+      return createOrganization(tx);
     }
 
-    return this.organizationRepository.create({ name, slug }, tx);
+    return this.prisma.$transaction((trx) => createOrganization(trx));
   }
 
-  async findAllByUserId(userId: string) {
-    return this.organizationRepository.findManyByUserId(userId);
+  async findAllByUserId(userId: string, tx?: Prisma.TransactionClient) {
+    return this.organizationRepository.findManyByUserId(userId, tx);
   }
 
-  async findCurrentByUserId(userId: string, organizationId: string) {
-    // Membership is checked before organization lookup so callers consistently
-    // get membership-related errors for inaccessible organizations.
+  async findCurrentByUserId(
+    userId: string,
+    organizationId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
     const membership = await this.membershipService.ensureUserIsMember(
       userId,
       organizationId,
+      { tx },
     );
 
-    const organization =
-      await this.organizationRepository.findById(organizationId);
+    const organization = await this.organizationRepository.findById(
+      organizationId,
+      tx,
+    );
 
     if (!organization) {
       throw new NotFoundException('Organization not found');

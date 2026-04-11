@@ -26,22 +26,33 @@ const emailDeliveryInclude = {
 export class EmailRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.EmailDeliveryCreateArgs['data']) {
-    return this.prisma.emailDelivery.create({
+  private getClient(tx?: Prisma.TransactionClient) {
+    return tx ?? this.prisma;
+  }
+
+  async create(
+    data: Prisma.EmailDeliveryCreateArgs['data'],
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.getClient(tx).emailDelivery.create({
       data,
       include: emailDeliveryInclude,
     });
   }
 
-  async update(id: string, data: Prisma.EmailDeliveryUpdateArgs['data']) {
-    return this.prisma.emailDelivery.update({
+  async update(
+    id: string,
+    data: Prisma.EmailDeliveryUpdateArgs['data'],
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.getClient(tx).emailDelivery.update({
       where: { id },
       data,
       include: emailDeliveryInclude,
     });
   }
 
-  async findMany(params: FindManyParams) {
+  async findMany(params: FindManyParams, tx?: Prisma.TransactionClient) {
     const { organizationId, cursor, limit, to, status } = params;
 
     const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
@@ -65,7 +76,7 @@ export class EmailRepository {
       andFilters.push(cursorWhere);
     }
 
-    const items = await this.prisma.emailDelivery.findMany({
+    const items = await this.getClient(tx).emailDelivery.findMany({
       where: {
         AND: andFilters,
       },
