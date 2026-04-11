@@ -7,6 +7,14 @@ export const envValidationSchema = Joi.object({
 
   DATABASE_URL: Joi.string().uri().required(),
 
+  LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('debug'),
+  SLOW_REQUEST_THRESHOLD_MS: Joi.number().integer().positive().default(1000),
+
+  RATE_LIMIT_TTL_MS: Joi.number().integer().positive().default(60_000),
+  RATE_LIMIT_LIMIT: Joi.number().integer().positive().default(120),
+  AUTH_RATE_LIMIT_TTL_MS: Joi.number().integer().positive().default(60_000),
+  AUTH_RATE_LIMIT_LIMIT: Joi.number().integer().positive().default(5),
+
   COOKIE_SECRET: Joi.string().required(),
   COOKIE_SECURE: Joi.boolean().required(),
   COOKIE_SAME_SITE: Joi.string().valid('lax', 'none').default('lax'),
@@ -15,7 +23,7 @@ export const envValidationSchema = Joi.object({
   JWT_ACCESS_SECRET: Joi.string().required(),
   JWT_REFRESH_SECRET: Joi.string().required(),
 
-  ACCESS_TOKEN_TTL_SECONDS: Joi.number().integer().positive().default(900), // 15 minutes
+  ACCESS_TOKEN_TTL_SECONDS: Joi.number().integer().positive().default(900),
   REFRESH_TOKEN_TTL_DAYS: Joi.number().integer().positive().default(30),
 
   APP_WEB_URL: Joi.string().uri().required(),

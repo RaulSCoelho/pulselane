@@ -11,8 +11,10 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse
 } from '@nestjs/swagger'
+import { Throttle } from '@nestjs/throttler'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 
 import { DEVICE_COOKIE_NAME, REFRESH_COOKIE_NAME } from './auth.constants'
@@ -27,6 +29,20 @@ import { MeResponseDto } from './dto/responses/me-response.dto'
 import { SessionResponseDto } from './dto/responses/session-response.dto'
 import { RefreshTokenGuard } from './guards/refresh-token.guard'
 
+const signupThrottle = {
+  auth: {
+    limit: 3,
+    ttl: 5 * 60_000
+  }
+}
+
+const authThrottle = {
+  auth: {
+    limit: 5,
+    ttl: 60_000
+  }
+}
+
 @ApiTags('Auth')
 @ApiCookieAuth(REFRESH_COOKIE_NAME)
 @ApiCookieAuth(DEVICE_COOKIE_NAME)
@@ -37,6 +53,7 @@ export class AuthController {
     private readonly cookieService: CookieService
   ) {}
 
+  @Throttle(signupThrottle)
   @Auth({ mode: 'public' })
   @Post('signup')
   @HttpCode(201)
@@ -51,6 +68,10 @@ export class AuthController {
   @ApiConflictResponse({
     type: ErrorResponseDto,
     description: 'Email already in use'
+  })
+  @ApiTooManyRequestsResponse({
+    type: ErrorResponseDto,
+    description: 'Too many signup attempts'
   })
   async signup(
     @Body() dto: SignupDto,
@@ -73,6 +94,7 @@ export class AuthController {
     }
   }
 
+  @Throttle(authThrottle)
   @Auth({ mode: 'public' })
   @Post('login')
   @HttpCode(200)
@@ -87,6 +109,10 @@ export class AuthController {
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
     description: 'Invalid credentials'
+  })
+  @ApiTooManyRequestsResponse({
+    type: ErrorResponseDto,
+    description: 'Too many login attempts'
   })
   async login(
     @Body() dto: LoginDto,
@@ -127,6 +153,7 @@ export class AuthController {
     return this.authService.me(user.sub)
   }
 
+  @Throttle(authThrottle)
   @Auth({ mode: 'public' })
   @UseGuards(RefreshTokenGuard)
   @Post('refresh')
@@ -142,6 +169,10 @@ export class AuthController {
   @ApiUnauthorizedResponse({
     type: ErrorResponseDto,
     description: 'Invalid or expired refresh token'
+  })
+  @ApiTooManyRequestsResponse({
+    type: ErrorResponseDto,
+    description: 'Too many refresh attempts'
   })
   async refresh(
     @CurrentUser() user: RefreshRequestUser,

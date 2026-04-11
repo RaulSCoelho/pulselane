@@ -1,6 +1,7 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common'
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import type { FastifyReply, FastifyRequest } from 'fastify'
+import { PinoLogger } from 'nestjs-pino'
 
 type HttpExceptionResponse =
   | string
@@ -10,9 +11,12 @@ type HttpExceptionResponse =
       statusCode?: number
     }
 
+@Injectable()
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name)
+  constructor(private readonly logger: PinoLogger) {
+    this.logger.setContext(HttpExceptionFilter.name)
+  }
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const context = host.switchToHttp()
@@ -36,8 +40,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
               message: response.message ?? exception.message
             }
 
-      // Normalizing here keeps validation, guard, and controller exceptions in a
-      // single envelope without requiring every caller to shape its own payload.
+      if (statusCode >= 500) {
+        this.logger.error({
+          message: 'Unhandled HTTP exception',
+          module: 'http',
+          method: request.method,
+          path: request.url,
+          request_id: request.id,
+          status_code: statusCode,
+          stack: exception.stack
+        })
+      }
+
       reply.status(statusCode).send({
         ...normalizedResponse,
         path: request.url,
@@ -59,10 +73,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return
     }
 
-    this.logger.error(
-      `Unhandled exception on ${request.method} ${request.url}`,
-      exception instanceof Error ? exception.stack : undefined
-    )
+    this.logger.error({
+      message: 'Unhandled exception',
+      module: 'http',
+      method: request.method,
+      path: request.url,
+      request_id: request.id,
+      stack: exception instanceof Error ? exception.stack : undefined
+    })
 
     reply.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -78,8 +96,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     error: string
     message: string | string[]
   } {
-    // Only the Prisma errors that are intentionally surfaced today are mapped.
-    // Everything else is treated as an internal database failure and logged.
     switch (exception.code) {
       case 'P2002':
         return {
@@ -96,7 +112,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         }
 
       default:
-        this.logger.error(`Unhandled Prisma error: ${exception.code}`, exception.stack)
+        this.logger.error({
+          message: 'Unhandled Prisma error',
+          module: 'database',
+          prisma_code: exception.code,
+          stack: exception.stack
+        })
 
         return {
           statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -114,6 +135,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       404: 'Not Found',
       409: 'Conflict',
       422: 'Unprocessable Entity',
+      429: 'Too Many Requests',
       500: 'Internal Server Error'
     }
 
