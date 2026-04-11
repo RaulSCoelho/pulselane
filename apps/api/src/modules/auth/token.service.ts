@@ -73,6 +73,7 @@ export class TokenService {
         sub: payload.userId,
         sid: payload.sessionId,
         did: payload.deviceId,
+        jti: randomUUID(),
         typ: 'refresh'
       } satisfies RefreshTokenPayload,
       {

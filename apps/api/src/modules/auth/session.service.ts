@@ -1,7 +1,8 @@
-import { CryptoService } from '@/infra/crypto/crypto.service'
+import { PrismaService } from '@/infra/prisma/prisma.service'
 import { Injectable, UnauthorizedException } from '@nestjs/common'
-import { AuthSession } from '@prisma/client'
+import { AuthSession, Prisma } from '@prisma/client'
 
+import { CryptoService } from '../../infra/crypto/crypto.service'
 import { SessionRepository } from './session.repository'
 import { TokenService } from './token.service'
 
@@ -26,16 +27,15 @@ type RotateSessionParams = {
 @Injectable()
 export class SessionService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly sessionRepository: SessionRepository,
     private readonly tokenService: TokenService,
     private readonly cryptoService: CryptoService
   ) {}
 
   async upsert(params: CreateSessionParams) {
-    // Sessions are keyed by user + device. Reusing the same device ID lets the
-    // API rotate credentials without multiplying session rows for one browser.
     const deviceId = params.deviceId ?? this.tokenService.generateDeviceId()
-    const refreshTokenHash = await this.cryptoService.hash(params.refreshToken)
+    const refreshTokenHash = this.cryptoService.hashToken(params.refreshToken)
     const expiresAt = this.tokenService.getRefreshExpiresAt()
 
     return this.sessionRepository.upsert({
@@ -49,18 +49,32 @@ export class SessionService {
   }
 
   async rotate(params: RotateSessionParams): Promise<AuthSession> {
-    const session = await this.validateSession(params.userId, params.sessionId, {
-      deviceId: params.deviceId,
-      refreshToken: params.refreshToken
-    })
-    const newRefreshTokenHash = await this.cryptoService.hash(params.newRefreshToken)
+    return this.prisma.$transaction(async tx => {
+      await this.acquireSessionLock(params.sessionId, tx)
 
-    return this.sessionRepository.updateById(session.id, {
-      refreshTokenHash: newRefreshTokenHash,
-      userAgent: params.userAgent ?? session.userAgent,
-      ipAddress: params.ipAddress ?? session.ipAddress,
-      expiresAt: this.tokenService.getRefreshExpiresAt(),
-      lastUsedAt: new Date()
+      const session = await this.validateSession(
+        params.userId,
+        params.sessionId,
+        {
+          deviceId: params.deviceId,
+          refreshToken: params.refreshToken
+        },
+        tx
+      )
+
+      const newRefreshTokenHash = this.cryptoService.hashToken(params.newRefreshToken)
+
+      return this.sessionRepository.updateById(
+        session.id,
+        {
+          refreshTokenHash: newRefreshTokenHash,
+          userAgent: params.userAgent ?? session.userAgent,
+          ipAddress: params.ipAddress ?? session.ipAddress,
+          expiresAt: this.tokenService.getRefreshExpiresAt(),
+          lastUsedAt: new Date()
+        },
+        tx
+      )
     })
   }
 
@@ -90,9 +104,10 @@ export class SessionService {
     options?: {
       refreshToken?: string
       deviceId?: string
-    }
+    },
+    tx?: Prisma.TransactionClient
   ) {
-    const session = await this.sessionRepository.findById(sessionId)
+    const session = await this.sessionRepository.findById(sessionId, tx)
 
     if (!session) {
       throw new UnauthorizedException('Session not found')
@@ -111,39 +126,53 @@ export class SessionService {
     }
 
     if (session.expiresAt.getTime() <= Date.now()) {
-      await this.sessionRepository.updateById(session.id, {
-        revokedAt: new Date()
-      })
+      await this.sessionRepository.updateById(
+        session.id,
+        {
+          revokedAt: new Date()
+        },
+        tx
+      )
 
       throw new UnauthorizedException('Session expired')
     }
 
     if (options?.deviceId && session.deviceId !== options.deviceId) {
-      // A mismatched device ID means the refresh token escaped its original
-      // browser/device context, so the session is treated as compromised.
-      await this.sessionRepository.updateById(session.id, {
-        revokedAt: new Date(),
-        compromisedAt: new Date()
-      })
+      await this.sessionRepository.updateById(
+        session.id,
+        {
+          revokedAt: new Date(),
+          compromisedAt: new Date()
+        },
+        tx
+      )
 
       throw new UnauthorizedException('Invalid device')
     }
 
     if (options?.refreshToken) {
-      const isValid = await this.cryptoService.compare(options.refreshToken, session.refreshTokenHash)
+      const isValid = this.cryptoService.compareToken(options.refreshToken, session.refreshTokenHash)
 
       if (!isValid) {
-        // Refresh-token replay or tampering revokes the session instead of just
-        // rejecting the request so subsequent access checks also fail fast.
-        await this.sessionRepository.updateById(session.id, {
-          revokedAt: new Date(),
-          compromisedAt: new Date()
-        })
+        await this.sessionRepository.updateById(
+          session.id,
+          {
+            revokedAt: new Date(),
+            compromisedAt: new Date()
+          },
+          tx
+        )
 
         throw new UnauthorizedException('Invalid refresh token')
       }
     }
 
     return session
+  }
+
+  private async acquireSessionLock(sessionId: string, tx: Prisma.TransactionClient) {
+    await tx.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${`auth-session:${sessionId}`}))
+    `
   }
 }

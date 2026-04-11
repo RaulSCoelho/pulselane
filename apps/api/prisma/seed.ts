@@ -1,4 +1,3 @@
-import bcrypt from 'bcrypt';
 import {
   AuditLogAction,
   ClientStatus,
@@ -7,11 +6,12 @@ import {
   PrismaClient,
   ProjectStatus,
   TaskPriority,
-  TaskStatus,
-} from '@prisma/client';
+  TaskStatus
+} from '@prisma/client'
+import bcrypt from 'bcrypt'
 
-const prisma = new PrismaClient();
-const defaultPassword = '123456';
+const prisma = new PrismaClient()
+const defaultPassword = '123456'
 
 // The seed dataset mirrors the core tenant hierarchy used by the API:
 // organization -> clients -> projects -> tasks, plus sessions and audit history.
@@ -20,74 +20,74 @@ const users = [
   {
     id: 'seed_user_raul',
     name: 'Raul Costa',
-    email: 'raul@pulselane.dev',
+    email: 'raul@pulselane.dev'
   },
   {
     id: 'seed_user_ana',
     name: 'Ana Martins',
-    email: 'ana@brightforge.dev',
+    email: 'ana@brightforge.dev'
   },
   {
     id: 'seed_user_bruno',
     name: 'Bruno Almeida',
-    email: 'bruno@northstarlabs.dev',
+    email: 'bruno@northstarlabs.dev'
   },
   {
     id: 'seed_user_clara',
     name: 'Clara Souza',
-    email: 'clara@everpeak.dev',
-  },
-] as const;
+    email: 'clara@everpeak.dev'
+  }
+] as const
 
 const organizations = [
   {
     id: 'seed_org_pulselane',
     name: 'Pulselane Labs',
-    slug: 'pulselane-labs',
+    slug: 'pulselane-labs'
   },
   {
     id: 'seed_org_brightforge',
     name: 'Brightforge Studio',
-    slug: 'brightforge-studio',
+    slug: 'brightforge-studio'
   },
   {
     id: 'seed_org_northstar',
     name: 'Northstar Labs',
-    slug: 'northstar-labs',
+    slug: 'northstar-labs'
   },
   {
     id: 'seed_org_everpeak',
     name: 'Everpeak Health',
-    slug: 'everpeak-health',
-  },
-] as const;
+    slug: 'everpeak-health'
+  }
+] as const
 
 const memberships = [
   {
     id: 'seed_membership_raul',
     userId: 'seed_user_raul',
     organizationId: 'seed_org_pulselane',
-    role: MembershipRole.owner,
+    role: MembershipRole.owner
   },
   {
     id: 'seed_membership_ana',
     userId: 'seed_user_ana',
     organizationId: 'seed_org_brightforge',
-    role: MembershipRole.owner,
+    role: MembershipRole.owner
   },
   {
     id: 'seed_membership_bruno',
     userId: 'seed_user_bruno',
     organizationId: 'seed_org_northstar',
-    role: MembershipRole.owner,
+    role: MembershipRole.owner
   },
   {
     id: 'seed_membership_clara',
     userId: 'seed_user_clara',
     organizationId: 'seed_org_everpeak',
-    role: MembershipRole.owner,
-  },
-] as const;
+    role: MembershipRole.owner
+  }
+] as const
 
 const clients = [
   {
@@ -96,7 +96,7 @@ const clients = [
     name: 'Acme Corp',
     email: 'contact@acme.com',
     companyName: 'Acme Corporation',
-    status: ClientStatus.active,
+    status: ClientStatus.active
   },
   {
     id: 'seed_client_pulselane_orbit',
@@ -104,7 +104,7 @@ const clients = [
     name: 'Orbit Finance',
     email: 'ops@orbitfinance.com',
     companyName: 'Orbit Finance',
-    status: ClientStatus.active,
+    status: ClientStatus.active
   },
   {
     id: 'seed_client_pulselane_legacy',
@@ -112,7 +112,7 @@ const clients = [
     name: 'Legacy Retail',
     email: 'finance@legacyretail.com',
     companyName: 'Legacy Retail Group',
-    status: ClientStatus.inactive,
+    status: ClientStatus.inactive
   },
   {
     id: 'seed_client_brightforge_harbor',
@@ -120,7 +120,7 @@ const clients = [
     name: 'Harbor Media',
     email: 'hello@harbormedia.co',
     companyName: 'Harbor Media Co.',
-    status: ClientStatus.active,
+    status: ClientStatus.active
   },
   {
     id: 'seed_client_brightforge_summit',
@@ -128,7 +128,7 @@ const clients = [
     name: 'Summit Gear',
     email: 'sales@summitgear.com',
     companyName: 'Summit Gear',
-    status: ClientStatus.active,
+    status: ClientStatus.active
   },
   {
     id: 'seed_client_brightforge_moonbase',
@@ -136,7 +136,7 @@ const clients = [
     name: 'Moonbase Travel',
     email: 'team@moonbase.travel',
     companyName: 'Moonbase Travel',
-    status: ClientStatus.archived,
+    status: ClientStatus.archived
   },
   {
     id: 'seed_client_northstar_quarry',
@@ -144,7 +144,7 @@ const clients = [
     name: 'Quarry Systems',
     email: 'product@quarrysystems.io',
     companyName: 'Quarry Systems',
-    status: ClientStatus.active,
+    status: ClientStatus.active
   },
   {
     id: 'seed_client_northstar_lumen',
@@ -152,7 +152,7 @@ const clients = [
     name: 'Lumen Freight',
     email: 'ops@lumenfreight.com',
     companyName: 'Lumen Freight',
-    status: ClientStatus.active,
+    status: ClientStatus.active
   },
   {
     id: 'seed_client_northstar_oldport',
@@ -160,7 +160,7 @@ const clients = [
     name: 'Oldport Logistics',
     email: 'it@oldportlogistics.com',
     companyName: 'Oldport Logistics',
-    status: ClientStatus.inactive,
+    status: ClientStatus.inactive
   },
   {
     id: 'seed_client_everpeak_greenleaf',
@@ -168,7 +168,7 @@ const clients = [
     name: 'Greenleaf Clinic',
     email: 'admin@greenleafclinic.health',
     companyName: 'Greenleaf Clinic',
-    status: ClientStatus.active,
+    status: ClientStatus.active
   },
   {
     id: 'seed_client_everpeak_maple',
@@ -176,7 +176,7 @@ const clients = [
     name: 'Maple Diagnostics',
     email: 'support@mapledx.com',
     companyName: 'Maple Diagnostics',
-    status: ClientStatus.active,
+    status: ClientStatus.active
   },
   {
     id: 'seed_client_everpeak_riverside',
@@ -184,9 +184,9 @@ const clients = [
     name: 'Riverside Care',
     email: 'ops@riversidecare.org',
     companyName: 'Riverside Care',
-    status: ClientStatus.archived,
-  },
-] as const;
+    status: ClientStatus.archived
+  }
+] as const
 
 const projects = [
   {
@@ -195,7 +195,7 @@ const projects = [
     clientId: 'seed_client_pulselane_acme',
     name: 'Website Redesign',
     description: 'New marketing website focused on demo conversion.',
-    status: ProjectStatus.active,
+    status: ProjectStatus.active
   },
   {
     id: 'seed_project_pulselane_crm',
@@ -203,7 +203,7 @@ const projects = [
     clientId: 'seed_client_pulselane_orbit',
     name: 'CRM Migration',
     description: 'Migrate sales pipeline data and automate lifecycle stages.',
-    status: ProjectStatus.on_hold,
+    status: ProjectStatus.on_hold
   },
   {
     id: 'seed_project_brightforge_brand',
@@ -211,7 +211,7 @@ const projects = [
     clientId: 'seed_client_brightforge_harbor',
     name: 'Brand Refresh',
     description: 'Refresh visual identity and launch assets.',
-    status: ProjectStatus.active,
+    status: ProjectStatus.active
   },
   {
     id: 'seed_project_brightforge_store',
@@ -219,7 +219,7 @@ const projects = [
     clientId: 'seed_client_brightforge_summit',
     name: 'Storefront Revamp',
     description: 'Improve mobile checkout and campaign landing pages.',
-    status: ProjectStatus.completed,
+    status: ProjectStatus.completed
   },
   {
     id: 'seed_project_northstar_dashboard',
@@ -227,7 +227,7 @@ const projects = [
     clientId: 'seed_client_northstar_quarry',
     name: 'Operations Dashboard',
     description: 'Executive dashboard for delivery KPIs and SLA visibility.',
-    status: ProjectStatus.active,
+    status: ProjectStatus.active
   },
   {
     id: 'seed_project_northstar_api',
@@ -235,7 +235,7 @@ const projects = [
     clientId: 'seed_client_northstar_lumen',
     name: 'Carrier API Integration',
     description: 'Connect carrier feeds and normalize shipment statuses.',
-    status: ProjectStatus.active,
+    status: ProjectStatus.active
   },
   {
     id: 'seed_project_everpeak_portal',
@@ -243,7 +243,7 @@ const projects = [
     clientId: 'seed_client_everpeak_greenleaf',
     name: 'Patient Portal MVP',
     description: 'Launch secure access to appointments and care plans.',
-    status: ProjectStatus.active,
+    status: ProjectStatus.active
   },
   {
     id: 'seed_project_everpeak_lab',
@@ -251,9 +251,9 @@ const projects = [
     clientId: 'seed_client_everpeak_maple',
     name: 'Lab Results Delivery',
     description: 'Automate delivery of lab result notifications.',
-    status: ProjectStatus.on_hold,
-  },
-] as const;
+    status: ProjectStatus.on_hold
+  }
+] as const
 
 const tasks = [
   {
@@ -265,7 +265,7 @@ const tasks = [
     description: 'Document positioning, CTA hierarchy and proof points.',
     status: TaskStatus.in_progress,
     priority: TaskPriority.high,
-    dueDate: new Date('2026-04-15T14:00:00.000Z'),
+    dueDate: new Date('2026-04-15T14:00:00.000Z')
   },
   {
     id: 'seed_task_pulselane_copy',
@@ -276,7 +276,7 @@ const tasks = [
     description: 'Write three headline variants for stakeholder review.',
     status: TaskStatus.todo,
     priority: TaskPriority.medium,
-    dueDate: new Date('2026-04-18T14:00:00.000Z'),
+    dueDate: new Date('2026-04-18T14:00:00.000Z')
   },
   {
     id: 'seed_task_pulselane_mapping',
@@ -287,7 +287,7 @@ const tasks = [
     description: 'Confirm source fields and required transformations.',
     status: TaskStatus.todo,
     priority: TaskPriority.urgent,
-    dueDate: new Date('2026-04-11T14:00:00.000Z'),
+    dueDate: new Date('2026-04-11T14:00:00.000Z')
   },
   {
     id: 'seed_task_brightforge_assets',
@@ -298,7 +298,7 @@ const tasks = [
     description: 'List social, paid media and email assets for release.',
     status: TaskStatus.in_progress,
     priority: TaskPriority.high,
-    dueDate: new Date('2026-04-12T14:00:00.000Z'),
+    dueDate: new Date('2026-04-12T14:00:00.000Z')
   },
   {
     id: 'seed_task_brightforge_qa',
@@ -309,7 +309,7 @@ const tasks = [
     description: 'Review checkout regression fixes and publish sign-off.',
     status: TaskStatus.done,
     priority: TaskPriority.medium,
-    dueDate: new Date('2026-03-28T14:00:00.000Z'),
+    dueDate: new Date('2026-03-28T14:00:00.000Z')
   },
   {
     id: 'seed_task_northstar_kpis',
@@ -320,7 +320,7 @@ const tasks = [
     description: 'Freeze metrics, targets and refresh cadence.',
     status: TaskStatus.in_progress,
     priority: TaskPriority.high,
-    dueDate: new Date('2026-04-17T14:00:00.000Z'),
+    dueDate: new Date('2026-04-17T14:00:00.000Z')
   },
   {
     id: 'seed_task_northstar_webhooks',
@@ -331,7 +331,7 @@ const tasks = [
     description: 'Map provider events into the internal shipment timeline.',
     status: TaskStatus.todo,
     priority: TaskPriority.urgent,
-    dueDate: new Date('2026-04-19T14:00:00.000Z'),
+    dueDate: new Date('2026-04-19T14:00:00.000Z')
   },
   {
     id: 'seed_task_everpeak_login',
@@ -342,7 +342,7 @@ const tasks = [
     description: 'Support password login and session expiration rules.',
     status: TaskStatus.in_progress,
     priority: TaskPriority.urgent,
-    dueDate: new Date('2026-04-10T18:00:00.000Z'),
+    dueDate: new Date('2026-04-10T18:00:00.000Z')
   },
   {
     id: 'seed_task_everpeak_notifications',
@@ -353,9 +353,9 @@ const tasks = [
     description: 'Define retry policy and delivery audit requirements.',
     status: TaskStatus.todo,
     priority: TaskPriority.medium,
-    dueDate: new Date('2026-04-22T14:00:00.000Z'),
-  },
-] as const;
+    dueDate: new Date('2026-04-22T14:00:00.000Z')
+  }
+] as const
 
 const authSessions = [
   {
@@ -368,7 +368,7 @@ const authSessions = [
     expiresAt: new Date('2026-05-07T12:00:00.000Z'),
     lastUsedAt: new Date('2026-04-07T09:15:00.000Z'),
     revokedAt: null,
-    compromisedAt: null,
+    compromisedAt: null
   },
   {
     id: 'seed_session_ana',
@@ -380,7 +380,7 @@ const authSessions = [
     expiresAt: new Date('2026-05-08T12:00:00.000Z'),
     lastUsedAt: new Date('2026-04-07T09:45:00.000Z'),
     revokedAt: null,
-    compromisedAt: null,
+    compromisedAt: null
   },
   {
     id: 'seed_session_bruno',
@@ -392,7 +392,7 @@ const authSessions = [
     expiresAt: new Date('2026-05-09T12:00:00.000Z'),
     lastUsedAt: new Date('2026-04-07T10:10:00.000Z'),
     revokedAt: null,
-    compromisedAt: null,
+    compromisedAt: null
   },
   {
     id: 'seed_session_clara',
@@ -404,19 +404,19 @@ const authSessions = [
     expiresAt: new Date('2026-05-10T12:00:00.000Z'),
     lastUsedAt: new Date('2026-04-07T10:30:00.000Z'),
     revokedAt: null,
-    compromisedAt: null,
-  },
-] as const;
+    compromisedAt: null
+  }
+] as const
 
 const auditLogs: Array<{
-  id: string;
-  organizationId: string;
-  actorUserId: string;
-  entityType: string;
-  entityId: string;
-  action: AuditLogAction;
-  metadata: Prisma.InputJsonValue;
-  createdAt: Date;
+  id: string
+  organizationId: string
+  actorUserId: string
+  entityType: string
+  entityId: string
+  action: AuditLogAction
+  metadata: Prisma.InputJsonValue
+  createdAt: Date
 }> = [
   {
     id: 'seed_audit_client_acme_created',
@@ -429,9 +429,9 @@ const auditLogs: Array<{
       name: 'Acme Corp',
       email: 'contact@acme.com',
       companyName: 'Acme Corporation',
-      status: ClientStatus.active,
+      status: ClientStatus.active
     },
-    createdAt: new Date('2026-04-01T12:00:00.000Z'),
+    createdAt: new Date('2026-04-01T12:00:00.000Z')
   },
   {
     id: 'seed_audit_client_orbit_created',
@@ -444,9 +444,9 @@ const auditLogs: Array<{
       name: 'Orbit Finance',
       email: 'ops@orbitfinance.com',
       companyName: 'Orbit Finance',
-      status: ClientStatus.active,
+      status: ClientStatus.active
     },
-    createdAt: new Date('2026-04-01T12:10:00.000Z'),
+    createdAt: new Date('2026-04-01T12:10:00.000Z')
   },
   {
     id: 'seed_audit_client_legacy_updated',
@@ -459,9 +459,9 @@ const auditLogs: Array<{
       name: 'Legacy Retail',
       email: 'finance@legacyretail.com',
       companyName: 'Legacy Retail Group',
-      status: ClientStatus.inactive,
+      status: ClientStatus.inactive
     },
-    createdAt: new Date('2026-04-01T12:20:00.000Z'),
+    createdAt: new Date('2026-04-01T12:20:00.000Z')
   },
   {
     id: 'seed_audit_project_website_created',
@@ -474,9 +474,9 @@ const auditLogs: Array<{
       clientId: 'seed_client_pulselane_acme',
       name: 'Website Redesign',
       description: 'New marketing website focused on demo conversion.',
-      status: ProjectStatus.active,
+      status: ProjectStatus.active
     },
-    createdAt: new Date('2026-04-02T09:00:00.000Z'),
+    createdAt: new Date('2026-04-02T09:00:00.000Z')
   },
   {
     id: 'seed_audit_project_crm_created',
@@ -489,9 +489,9 @@ const auditLogs: Array<{
       clientId: 'seed_client_pulselane_orbit',
       name: 'CRM Migration',
       description: 'Migrate sales pipeline data and automate lifecycle stages.',
-      status: ProjectStatus.on_hold,
+      status: ProjectStatus.on_hold
     },
-    createdAt: new Date('2026-04-02T09:15:00.000Z'),
+    createdAt: new Date('2026-04-02T09:15:00.000Z')
   },
   {
     id: 'seed_audit_task_brief_created',
@@ -506,9 +506,9 @@ const auditLogs: Array<{
       title: 'Finalize homepage brief',
       status: TaskStatus.in_progress,
       priority: TaskPriority.high,
-      dueDate: '2026-04-15T14:00:00.000Z',
+      dueDate: '2026-04-15T14:00:00.000Z'
     },
-    createdAt: new Date('2026-04-03T08:30:00.000Z'),
+    createdAt: new Date('2026-04-03T08:30:00.000Z')
   },
   {
     id: 'seed_audit_task_mapping_created',
@@ -523,9 +523,9 @@ const auditLogs: Array<{
       title: 'Validate CRM field mapping',
       status: TaskStatus.todo,
       priority: TaskPriority.urgent,
-      dueDate: '2026-04-11T14:00:00.000Z',
+      dueDate: '2026-04-11T14:00:00.000Z'
     },
-    createdAt: new Date('2026-04-03T08:45:00.000Z'),
+    createdAt: new Date('2026-04-03T08:45:00.000Z')
   },
   {
     id: 'seed_audit_client_harbor_created',
@@ -538,9 +538,9 @@ const auditLogs: Array<{
       name: 'Harbor Media',
       email: 'hello@harbormedia.co',
       companyName: 'Harbor Media Co.',
-      status: ClientStatus.active,
+      status: ClientStatus.active
     },
-    createdAt: new Date('2026-04-01T13:00:00.000Z'),
+    createdAt: new Date('2026-04-01T13:00:00.000Z')
   },
   {
     id: 'seed_audit_client_summit_created',
@@ -553,9 +553,9 @@ const auditLogs: Array<{
       name: 'Summit Gear',
       email: 'sales@summitgear.com',
       companyName: 'Summit Gear',
-      status: ClientStatus.active,
+      status: ClientStatus.active
     },
-    createdAt: new Date('2026-04-01T13:10:00.000Z'),
+    createdAt: new Date('2026-04-01T13:10:00.000Z')
   },
   {
     id: 'seed_audit_project_brand_created',
@@ -568,9 +568,9 @@ const auditLogs: Array<{
       clientId: 'seed_client_brightforge_harbor',
       name: 'Brand Refresh',
       description: 'Refresh visual identity and launch assets.',
-      status: ProjectStatus.active,
+      status: ProjectStatus.active
     },
-    createdAt: new Date('2026-04-02T10:00:00.000Z'),
+    createdAt: new Date('2026-04-02T10:00:00.000Z')
   },
   {
     id: 'seed_audit_task_assets_created',
@@ -585,9 +585,9 @@ const auditLogs: Array<{
       title: 'Assemble launch asset checklist',
       status: TaskStatus.in_progress,
       priority: TaskPriority.high,
-      dueDate: '2026-04-12T14:00:00.000Z',
+      dueDate: '2026-04-12T14:00:00.000Z'
     },
-    createdAt: new Date('2026-04-03T09:00:00.000Z'),
+    createdAt: new Date('2026-04-03T09:00:00.000Z')
   },
   {
     id: 'seed_audit_task_qa_updated',
@@ -602,9 +602,9 @@ const auditLogs: Array<{
       title: 'Close storefront QA',
       status: TaskStatus.done,
       priority: TaskPriority.medium,
-      dueDate: '2026-03-28T14:00:00.000Z',
+      dueDate: '2026-03-28T14:00:00.000Z'
     },
-    createdAt: new Date('2026-03-29T16:00:00.000Z'),
+    createdAt: new Date('2026-03-29T16:00:00.000Z')
   },
   {
     id: 'seed_audit_client_quarry_created',
@@ -617,9 +617,9 @@ const auditLogs: Array<{
       name: 'Quarry Systems',
       email: 'product@quarrysystems.io',
       companyName: 'Quarry Systems',
-      status: ClientStatus.active,
+      status: ClientStatus.active
     },
-    createdAt: new Date('2026-04-01T14:00:00.000Z'),
+    createdAt: new Date('2026-04-01T14:00:00.000Z')
   },
   {
     id: 'seed_audit_client_lumen_created',
@@ -632,9 +632,9 @@ const auditLogs: Array<{
       name: 'Lumen Freight',
       email: 'ops@lumenfreight.com',
       companyName: 'Lumen Freight',
-      status: ClientStatus.active,
+      status: ClientStatus.active
     },
-    createdAt: new Date('2026-04-01T14:10:00.000Z'),
+    createdAt: new Date('2026-04-01T14:10:00.000Z')
   },
   {
     id: 'seed_audit_project_dashboard_created',
@@ -647,9 +647,9 @@ const auditLogs: Array<{
       clientId: 'seed_client_northstar_quarry',
       name: 'Operations Dashboard',
       description: 'Executive dashboard for delivery KPIs and SLA visibility.',
-      status: ProjectStatus.active,
+      status: ProjectStatus.active
     },
-    createdAt: new Date('2026-04-02T11:00:00.000Z'),
+    createdAt: new Date('2026-04-02T11:00:00.000Z')
   },
   {
     id: 'seed_audit_task_kpis_created',
@@ -664,9 +664,9 @@ const auditLogs: Array<{
       title: 'Define dashboard KPI set',
       status: TaskStatus.in_progress,
       priority: TaskPriority.high,
-      dueDate: '2026-04-17T14:00:00.000Z',
+      dueDate: '2026-04-17T14:00:00.000Z'
     },
-    createdAt: new Date('2026-04-03T10:00:00.000Z'),
+    createdAt: new Date('2026-04-03T10:00:00.000Z')
   },
   {
     id: 'seed_audit_task_webhooks_created',
@@ -681,9 +681,9 @@ const auditLogs: Array<{
       title: 'Implement carrier webhook normalization',
       status: TaskStatus.todo,
       priority: TaskPriority.urgent,
-      dueDate: '2026-04-19T14:00:00.000Z',
+      dueDate: '2026-04-19T14:00:00.000Z'
     },
-    createdAt: new Date('2026-04-03T10:15:00.000Z'),
+    createdAt: new Date('2026-04-03T10:15:00.000Z')
   },
   {
     id: 'seed_audit_client_greenleaf_created',
@@ -696,9 +696,9 @@ const auditLogs: Array<{
       name: 'Greenleaf Clinic',
       email: 'admin@greenleafclinic.health',
       companyName: 'Greenleaf Clinic',
-      status: ClientStatus.active,
+      status: ClientStatus.active
     },
-    createdAt: new Date('2026-04-01T15:00:00.000Z'),
+    createdAt: new Date('2026-04-01T15:00:00.000Z')
   },
   {
     id: 'seed_audit_client_maple_created',
@@ -711,9 +711,9 @@ const auditLogs: Array<{
       name: 'Maple Diagnostics',
       email: 'support@mapledx.com',
       companyName: 'Maple Diagnostics',
-      status: ClientStatus.active,
+      status: ClientStatus.active
     },
-    createdAt: new Date('2026-04-01T15:10:00.000Z'),
+    createdAt: new Date('2026-04-01T15:10:00.000Z')
   },
   {
     id: 'seed_audit_project_portal_created',
@@ -726,9 +726,9 @@ const auditLogs: Array<{
       clientId: 'seed_client_everpeak_greenleaf',
       name: 'Patient Portal MVP',
       description: 'Launch secure access to appointments and care plans.',
-      status: ProjectStatus.active,
+      status: ProjectStatus.active
     },
-    createdAt: new Date('2026-04-02T12:00:00.000Z'),
+    createdAt: new Date('2026-04-02T12:00:00.000Z')
   },
   {
     id: 'seed_audit_task_login_created',
@@ -743,9 +743,9 @@ const auditLogs: Array<{
       title: 'Implement patient login journey',
       status: TaskStatus.in_progress,
       priority: TaskPriority.urgent,
-      dueDate: '2026-04-10T18:00:00.000Z',
+      dueDate: '2026-04-10T18:00:00.000Z'
     },
-    createdAt: new Date('2026-04-03T11:00:00.000Z'),
+    createdAt: new Date('2026-04-03T11:00:00.000Z')
   },
   {
     id: 'seed_audit_task_notifications_created',
@@ -760,15 +760,15 @@ const auditLogs: Array<{
       title: 'Review lab notification flow',
       status: TaskStatus.todo,
       priority: TaskPriority.medium,
-      dueDate: '2026-04-22T14:00:00.000Z',
+      dueDate: '2026-04-22T14:00:00.000Z'
     },
-    createdAt: new Date('2026-04-03T11:15:00.000Z'),
-  },
-] as const;
+    createdAt: new Date('2026-04-03T11:15:00.000Z')
+  }
+] as const
 
 async function main() {
-  const passwordHash = await bcrypt.hash(defaultPassword, 10);
-  const refreshTokenHash = await bcrypt.hash('seed-refresh-token', 10);
+  const passwordHash = await bcrypt.hash(defaultPassword, 10)
+  const refreshTokenHash = await bcrypt.hash('seed-refresh-token', 10)
 
   for (const user of users) {
     await prisma.user.upsert({
@@ -776,15 +776,15 @@ async function main() {
       update: {
         name: user.name,
         email: user.email,
-        passwordHash,
+        passwordHash
       },
       create: {
         id: user.id,
         name: user.name,
         email: user.email,
-        passwordHash,
-      },
-    });
+        passwordHash
+      }
+    })
   }
 
   for (const organization of organizations) {
@@ -792,10 +792,10 @@ async function main() {
       where: { id: organization.id },
       update: {
         name: organization.name,
-        slug: organization.slug,
+        slug: organization.slug
       },
-      create: organization,
-    });
+      create: organization
+    })
   }
 
   for (const membership of memberships) {
@@ -804,10 +804,10 @@ async function main() {
       update: {
         userId: membership.userId,
         organizationId: membership.organizationId,
-        role: membership.role,
+        role: membership.role
       },
-      create: membership,
-    });
+      create: membership
+    })
   }
 
   for (const client of clients) {
@@ -818,10 +818,10 @@ async function main() {
         name: client.name,
         email: client.email,
         companyName: client.companyName,
-        status: client.status,
+        status: client.status
       },
-      create: client,
-    });
+      create: client
+    })
   }
 
   for (const project of projects) {
@@ -832,10 +832,10 @@ async function main() {
         clientId: project.clientId,
         name: project.name,
         description: project.description,
-        status: project.status,
+        status: project.status
       },
-      create: project,
-    });
+      create: project
+    })
   }
 
   for (const task of tasks) {
@@ -849,10 +849,10 @@ async function main() {
         description: task.description,
         status: task.status,
         priority: task.priority,
-        dueDate: task.dueDate,
+        dueDate: task.dueDate
       },
-      create: task,
-    });
+      create: task
+    })
   }
 
   for (const session of authSessions) {
@@ -867,13 +867,13 @@ async function main() {
         expiresAt: session.expiresAt,
         lastUsedAt: session.lastUsedAt,
         revokedAt: session.revokedAt,
-        compromisedAt: session.compromisedAt,
+        compromisedAt: session.compromisedAt
       },
       create: {
         ...session,
-        refreshTokenHash,
-      },
-    });
+        refreshTokenHash
+      }
+    })
   }
 
   for (const auditLog of auditLogs) {
@@ -886,10 +886,10 @@ async function main() {
         entityId: auditLog.entityId,
         action: auditLog.action,
         metadata: auditLog.metadata,
-        createdAt: auditLog.createdAt,
+        createdAt: auditLog.createdAt
       },
-      create: auditLog,
-    });
+      create: auditLog
+    })
   }
 
   console.log(
@@ -903,18 +903,18 @@ async function main() {
       `Tasks: ${tasks.length}`,
       `Sessions: ${authSessions.length}`,
       `Audit logs: ${auditLogs.length}`,
-      `Default password: ${defaultPassword}`,
-    ].join('\n'),
-  );
+      `Default password: ${defaultPassword}`
+    ].join('\n')
+  )
 }
 
 main()
-  .catch((error) => {
-    console.error('Failed to run seed.');
-    console.error(error);
-    process.exitCode = 1;
+  .catch(error => {
+    console.error('Failed to run seed.')
+    console.error(error)
+    process.exitCode = 1
   })
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   .finally(async () => {
-    await prisma.$disconnect();
-  });
+    await prisma.$disconnect()
+  })

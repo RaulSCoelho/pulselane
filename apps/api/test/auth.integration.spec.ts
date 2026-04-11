@@ -121,6 +121,41 @@ describe('Auth integration', () => {
     expect(user?.authSessions[0].revokedAt).not.toBeNull()
   })
 
+  it('should allow only one successful refresh when two refresh requests race on the same session', async () => {
+    const signupResponse = await request(app.getHttpServer())
+      .post('/api/auth/signup')
+      .send({
+        name: 'Concurrent Refresh User',
+        email: 'concurrent-refresh@example.com',
+        password: '123456',
+        organizationName: 'Concurrent Refresh Workspace'
+      })
+      .expect(201)
+
+    const cookies = extractCookies(signupResponse.headers['set-cookie'])
+
+    const [firstRefresh, secondRefresh] = await Promise.all([
+      request(app.getHttpServer()).post('/api/auth/refresh').set('Cookie', cookies),
+      request(app.getHttpServer()).post('/api/auth/refresh').set('Cookie', cookies)
+    ])
+
+    const statuses = [firstRefresh.status, secondRefresh.status].sort((a, b) => a - b)
+
+    expect(statuses).toEqual([200, 401])
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: 'concurrent-refresh@example.com'
+      },
+      include: {
+        authSessions: true
+      }
+    })
+
+    expect(user).not.toBeNull()
+    expect(user?.authSessions).toHaveLength(1)
+  })
+
   it('should create multiple sessions and revoke all of them with logout-all', async () => {
     await request(app.getHttpServer())
       .post('/api/auth/signup')

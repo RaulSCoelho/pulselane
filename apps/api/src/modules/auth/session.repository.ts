@@ -16,8 +16,12 @@ type CreateSessionInput = {
 export class SessionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async upsert(input: CreateSessionInput) {
-    return this.prisma.authSession.upsert({
+  private getClient(tx?: Prisma.TransactionClient) {
+    return tx ?? this.prisma
+  }
+
+  async upsert(input: CreateSessionInput, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.upsert({
       where: {
         userId_deviceId: {
           userId: input.userId,
@@ -29,8 +33,6 @@ export class SessionRepository {
         expiresAt: input.expiresAt,
         userAgent: input.userAgent,
         ipAddress: input.ipAddress,
-        // Reusing a device should reactivate the session with the newest token
-        // and request metadata rather than leaving stale compromise flags behind.
         lastUsedAt: new Date(),
         revokedAt: null,
         compromisedAt: null
@@ -47,26 +49,28 @@ export class SessionRepository {
     })
   }
 
-  async updateById(id: string, data: Prisma.AuthSessionUpdateInput) {
-    return this.prisma.authSession.update({
+  async updateById(id: string, data: Prisma.AuthSessionUpdateInput, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.update({
       where: { id },
       data
     })
   }
 
-  async findManyByUserId(userId: string) {
-    return this.prisma.authSession.findMany({
+  async findManyByUserId(userId: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' }
     })
   }
 
-  async findById(id: string) {
-    return this.prisma.authSession.findUnique({ where: { id } })
+  async findById(id: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.findUnique({
+      where: { id }
+    })
   }
 
-  async findByUserAndDevice(userId: string, deviceId: string) {
-    return this.prisma.authSession.findUnique({
+  async findByUserAndDevice(userId: string, deviceId: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.findUnique({
       where: {
         userId_deviceId: {
           userId,
@@ -76,8 +80,8 @@ export class SessionRepository {
     })
   }
 
-  async revokeById(sessionId: string, userId: string) {
-    return this.prisma.authSession.updateMany({
+  async revokeById(sessionId: string, userId: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.updateMany({
       where: {
         id: sessionId,
         userId,
@@ -89,8 +93,8 @@ export class SessionRepository {
     })
   }
 
-  async revokeAllByUserId(userId: string) {
-    return this.prisma.authSession.updateMany({
+  async revokeAllByUserId(userId: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.updateMany({
       where: {
         userId,
         revokedAt: null
@@ -101,8 +105,8 @@ export class SessionRepository {
     })
   }
 
-  async revokeByDevice(userId: string, deviceId: string) {
-    return this.prisma.authSession.updateMany({
+  async revokeByDevice(userId: string, deviceId: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.updateMany({
       where: {
         userId,
         deviceId,
@@ -114,7 +118,9 @@ export class SessionRepository {
     })
   }
 
-  async deleteById(id: string) {
-    return this.prisma.authSession.delete({ where: { id } })
+  async deleteById(id: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).authSession.delete({
+      where: { id }
+    })
   }
 }

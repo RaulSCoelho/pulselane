@@ -75,7 +75,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials')
     }
 
-    const passwordValid = await this.cryptoService.compare(dto.password, user.passwordHash)
+    const passwordValid = await this.cryptoService.comparePassword(dto.password, user.passwordHash)
 
     if (!passwordValid) {
       throw new UnauthorizedException('Invalid credentials')

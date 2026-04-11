@@ -32,7 +32,7 @@ export class UserService {
       throw new ConflictException('Email already in use')
     }
 
-    const passwordHash = await this.cryptoService.hash(data.password)
+    const passwordHash = await this.cryptoService.hashPassword(data.password)
 
     return this.userRepository.create(
       {
