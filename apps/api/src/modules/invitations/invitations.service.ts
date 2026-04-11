@@ -35,70 +35,101 @@ export class InvitationsService {
   ) {}
 
   async create(actorUserId: string, organizationId: string, dto: CreateInvitationDto, tx?: Prisma.TransactionClient) {
-    const actorMembership = await this.membershipService.ensureUserIsMember(actorUserId, organizationId, { tx })
+    const createInvitation = async (trx: Prisma.TransactionClient) => {
+      await this.acquireInvitationEmailLock(organizationId, dto.email, trx)
 
-    this.assertCanManageInvitations(actorMembership.role)
+      const actorMembership = await this.membershipService.ensureUserIsMember(actorUserId, organizationId, { tx: trx })
 
-    if (actorMembership.role === MembershipRole.admin && dto.role === MembershipRole.owner) {
-      throw new ForbiddenException('Admins cannot invite owners')
-    }
+      this.assertCanManageInvitations(actorMembership.role)
 
-    const invitedUser = await this.userService.findByEmail(dto.email, tx)
+      if (actorMembership.role === MembershipRole.admin && dto.role === MembershipRole.owner) {
+        throw new ForbiddenException('Admins cannot invite owners')
+      }
 
-    if (invitedUser) {
-      const invitedMembership = await this.membershipService.findByUserAndOrganization(
-        invitedUser.id,
+      const invitedUser = await this.userService.findByEmail(dto.email, trx)
+
+      if (invitedUser) {
+        const invitedMembership = await this.membershipService.findByUserAndOrganization(
+          invitedUser.id,
+          organizationId,
+          trx
+        )
+
+        if (invitedMembership) {
+          throw new ConflictException('User already belongs to this organization')
+        }
+      }
+
+      const existingPendingInvitation = await this.invitationRepository.findPendingByOrganizationAndEmail(
         organizationId,
-        tx
+        dto.email,
+        trx
       )
 
-      if (invitedMembership) {
-        throw new ConflictException('User already belongs to this organization')
+      if (existingPendingInvitation) {
+        throw new ConflictException('A pending invitation already exists for this email')
       }
-    }
 
-    const existingPendingInvitation = await this.invitationRepository.findPendingByOrganizationAndEmail(
-      organizationId,
-      dto.email,
-      tx
-    )
-
-    if (existingPendingInvitation) {
-      throw new ConflictException('A pending invitation already exists for this email')
-    }
-
-    const invitation = await this.invitationRepository.create(
-      {
-        organizationId,
-        invitedByUserId: actorUserId,
-        email: dto.email,
-        role: dto.role,
-        token: this.generateToken(),
-        expiresAt: this.buildExpirationDate()
-      },
-      tx
-    )
-
-    await this.auditLogsService.create(
-      {
-        organizationId,
-        actorUserId,
-        entityType: 'organization_invitation',
-        entityId: invitation.id,
-        action: AuditLogAction.created,
-        metadata: {
-          email: invitation.email,
-          role: invitation.role,
-          status: invitation.status,
-          expiresAt: invitation.expiresAt
+      let invitation: OrganizationInvitation & {
+        invitedBy: {
+          id: string
+          name: string
+          email: string
         }
-      },
-      tx
-    )
+        organization: {
+          id: string
+          name: string
+          slug: string
+        }
+      }
 
-    await this.sendInvitationEmail(invitation, actorUserId, tx)
+      try {
+        invitation = await this.invitationRepository.create(
+          {
+            organizationId,
+            invitedByUserId: actorUserId,
+            email: dto.email,
+            role: dto.role,
+            token: this.generateToken(),
+            expiresAt: this.buildExpirationDate()
+          },
+          trx
+        )
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          throw new ConflictException('A pending invitation already exists for this email')
+        }
 
-    return invitation
+        throw error
+      }
+
+      await this.auditLogsService.create(
+        {
+          organizationId,
+          actorUserId,
+          entityType: 'organization_invitation',
+          entityId: invitation.id,
+          action: AuditLogAction.created,
+          metadata: {
+            email: invitation.email,
+            role: invitation.role,
+            status: invitation.status,
+            expiresAt: invitation.expiresAt
+          }
+        },
+        trx
+      )
+
+      await this.sendInvitationEmail(invitation, actorUserId, trx)
+
+      return invitation
+    }
+
+    if (tx) {
+      return createInvitation(tx)
+    }
+
+    return this.prisma.$transaction(trx => createInvitation(trx))
   }
 
   async findAll(organizationId: string, query: ListInvitationsQueryDto, tx?: Prisma.TransactionClient) {
@@ -137,8 +168,6 @@ export class InvitationsService {
 
     const isExpired = invitation.expiresAt.getTime() <= Date.now()
 
-    // Preview does not mutate state. It only tells the frontend what the user
-    // is looking at so the accept screen can render deterministically.
     return {
       id: invitation.id,
       email: invitation.email,
@@ -154,143 +183,173 @@ export class InvitationsService {
   }
 
   async revoke(actorUserId: string, organizationId: string, invitationId: string, tx?: Prisma.TransactionClient) {
-    const actorMembership = await this.membershipService.ensureUserIsMember(actorUserId, organizationId, { tx })
+    const revokeInvitation = async (trx: Prisma.TransactionClient) => {
+      await this.acquireInvitationLock(invitationId, trx)
 
-    this.assertCanManageInvitations(actorMembership.role)
+      const actorMembership = await this.membershipService.ensureUserIsMember(actorUserId, organizationId, { tx: trx })
 
-    const invitation = await this.getInvitationOrThrow(invitationId, organizationId, tx)
+      this.assertCanManageInvitations(actorMembership.role)
 
-    if (actorMembership.role === MembershipRole.admin && invitation.role === MembershipRole.owner) {
-      throw new ForbiddenException('Admins cannot manage owner invitations')
+      const invitation = await this.getInvitationOrThrow(invitationId, organizationId, trx)
+
+      if (actorMembership.role === MembershipRole.admin && invitation.role === MembershipRole.owner) {
+        throw new ForbiddenException('Admins cannot manage owner invitations')
+      }
+
+      if (invitation.status !== OrganizationInvitationStatus.pending) {
+        throw new ConflictException('Only pending invitations can be revoked')
+      }
+
+      const updatedInvitation = await this.invitationRepository.update(
+        invitation.id,
+        {
+          status: OrganizationInvitationStatus.revoked,
+          revokedAt: new Date()
+        },
+        trx
+      )
+
+      await this.auditLogsService.create(
+        {
+          organizationId,
+          actorUserId,
+          entityType: 'organization_invitation',
+          entityId: updatedInvitation.id,
+          action: AuditLogAction.updated,
+          metadata: {
+            email: updatedInvitation.email,
+            role: updatedInvitation.role,
+            status: updatedInvitation.status
+          }
+        },
+        trx
+      )
+
+      return updatedInvitation
     }
 
-    if (invitation.status !== OrganizationInvitationStatus.pending) {
-      throw new ConflictException('Only pending invitations can be revoked')
+    if (tx) {
+      return revokeInvitation(tx)
     }
 
-    const updatedInvitation = await this.invitationRepository.update(
-      invitation.id,
-      {
-        status: OrganizationInvitationStatus.revoked,
-        revokedAt: new Date()
-      },
-      tx
-    )
-
-    await this.auditLogsService.create(
-      {
-        organizationId,
-        actorUserId,
-        entityType: 'organization_invitation',
-        entityId: updatedInvitation.id,
-        action: AuditLogAction.updated,
-        metadata: {
-          email: updatedInvitation.email,
-          role: updatedInvitation.role,
-          status: updatedInvitation.status
-        }
-      },
-      tx
-    )
-
-    return updatedInvitation
+    return this.prisma.$transaction(trx => revokeInvitation(trx))
   }
 
   async resend(actorUserId: string, organizationId: string, invitationId: string, tx?: Prisma.TransactionClient) {
-    const actorMembership = await this.membershipService.ensureUserIsMember(actorUserId, organizationId, { tx })
+    const resendInvitation = async (trx: Prisma.TransactionClient) => {
+      await this.acquireInvitationLock(invitationId, trx)
 
-    this.assertCanManageInvitations(actorMembership.role)
+      const actorMembership = await this.membershipService.ensureUserIsMember(actorUserId, organizationId, { tx: trx })
 
-    const invitation = await this.getInvitationOrThrow(invitationId, organizationId, tx)
+      this.assertCanManageInvitations(actorMembership.role)
 
-    if (actorMembership.role === MembershipRole.admin && invitation.role === MembershipRole.owner) {
-      throw new ForbiddenException('Admins cannot manage owner invitations')
+      const invitation = await this.getInvitationOrThrow(invitationId, organizationId, trx)
+
+      if (actorMembership.role === MembershipRole.admin && invitation.role === MembershipRole.owner) {
+        throw new ForbiddenException('Admins cannot manage owner invitations')
+      }
+
+      if (
+        invitation.status !== OrganizationInvitationStatus.pending &&
+        invitation.status !== OrganizationInvitationStatus.expired
+      ) {
+        throw new ConflictException('Only pending or expired invitations can be resent')
+      }
+
+      const resentInvitation = await this.invitationRepository.update(
+        invitation.id,
+        {
+          token: this.generateToken(),
+          expiresAt: this.buildExpirationDate(),
+          status: OrganizationInvitationStatus.pending,
+          revokedAt: null,
+          acceptedAt: null
+        },
+        trx
+      )
+
+      await this.auditLogsService.create(
+        {
+          organizationId,
+          actorUserId,
+          entityType: 'organization_invitation',
+          entityId: resentInvitation.id,
+          action: AuditLogAction.updated,
+          metadata: {
+            email: resentInvitation.email,
+            role: resentInvitation.role,
+            status: resentInvitation.status,
+            expiresAt: resentInvitation.expiresAt,
+            reason: 'resent'
+          }
+        },
+        trx
+      )
+
+      await this.sendInvitationEmail(resentInvitation, actorUserId, trx)
+
+      return resentInvitation
     }
 
-    if (
-      invitation.status !== OrganizationInvitationStatus.pending &&
-      invitation.status !== OrganizationInvitationStatus.expired
-    ) {
-      throw new ConflictException('Only pending or expired invitations can be resent')
+    if (tx) {
+      return resendInvitation(tx)
     }
 
-    // Resend rotates the token and expiration window so stale links stop being
-    // valid after a fresh invitation email is emitted.
-    const resentInvitation = await this.invitationRepository.update(
-      invitation.id,
-      {
-        token: this.generateToken(),
-        expiresAt: this.buildExpirationDate(),
-        status: OrganizationInvitationStatus.pending,
-        revokedAt: null,
-        acceptedAt: null
-      },
-      tx
-    )
-
-    await this.auditLogsService.create(
-      {
-        organizationId,
-        actorUserId,
-        entityType: 'organization_invitation',
-        entityId: resentInvitation.id,
-        action: AuditLogAction.updated,
-        metadata: {
-          email: resentInvitation.email,
-          role: resentInvitation.role,
-          status: resentInvitation.status,
-          expiresAt: resentInvitation.expiresAt,
-          reason: 'resent'
-        }
-      },
-      tx
-    )
-
-    await this.sendInvitationEmail(resentInvitation, actorUserId, tx)
-
-    return resentInvitation
+    return this.prisma.$transaction(trx => resendInvitation(trx))
   }
 
   async accept(actorUserId: string, dto: AcceptInvitationDto, tx?: Prisma.TransactionClient) {
-    const invitation = await this.invitationRepository.findByToken(dto.token, tx)
-
-    if (!invitation) {
-      throw new NotFoundException('Invitation not found')
-    }
-
-    if (invitation.status !== OrganizationInvitationStatus.pending) {
-      throw new ConflictException('Invitation is no longer pending')
-    }
-
-    if (invitation.expiresAt.getTime() <= Date.now()) {
-      await this.invitationRepository.update(invitation.id, {
-        status: OrganizationInvitationStatus.expired
-      })
-
-      throw new ConflictException('Invitation has expired')
-    }
-
-    const user = await this.userService.findById(actorUserId, tx)
-
-    if (!user) {
-      throw new NotFoundException('User not found')
-    }
-
-    if (invitation.email.toLowerCase() !== user.email.toLowerCase()) {
-      throw new ForbiddenException('You can only accept invitations sent to your own email')
-    }
-
-    const existingMembership = await this.membershipService.findByUserAndOrganization(
-      actorUserId,
-      invitation.organizationId,
-      tx
-    )
-
-    if (existingMembership) {
-      throw new ConflictException('User already belongs to this organization')
-    }
-
     const acceptInvitation = async (trx: Prisma.TransactionClient) => {
+      const initialInvitation = await this.invitationRepository.findByToken(dto.token, trx)
+
+      if (!initialInvitation) {
+        throw new NotFoundException('Invitation not found')
+      }
+
+      await this.acquireInvitationLock(initialInvitation.id, trx)
+
+      const invitation = await this.invitationRepository.findByToken(dto.token, trx)
+
+      if (!invitation) {
+        throw new NotFoundException('Invitation not found')
+      }
+
+      if (invitation.status !== OrganizationInvitationStatus.pending) {
+        throw new ConflictException('Invitation is no longer pending')
+      }
+
+      if (invitation.expiresAt.getTime() <= Date.now()) {
+        await this.invitationRepository.update(
+          invitation.id,
+          {
+            status: OrganizationInvitationStatus.expired
+          },
+          trx
+        )
+
+        throw new ConflictException('Invitation has expired')
+      }
+
+      const user = await this.userService.findById(actorUserId, trx)
+
+      if (!user) {
+        throw new NotFoundException('User not found')
+      }
+
+      if (invitation.email.toLowerCase() !== user.email.toLowerCase()) {
+        throw new ForbiddenException('You can only accept invitations sent to your own email')
+      }
+
+      const existingMembership = await this.membershipService.findByUserAndOrganization(
+        actorUserId,
+        invitation.organizationId,
+        trx
+      )
+
+      if (existingMembership) {
+        throw new ConflictException('User already belongs to this organization')
+      }
+
       await this.membershipService.create(
         {
           userId: actorUserId,
@@ -394,7 +453,24 @@ export class InvitationsService {
     )
   }
 
-  // Tokens are only used for acceptance and should not be guessable.
+  private async acquireInvitationLock(invitationId: string, tx: Prisma.TransactionClient) {
+    await tx.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${`organization-invitation:${invitationId}`}))
+    `
+  }
+
+  private async acquireInvitationEmailLock(organizationId: string, email: string, tx: Prisma.TransactionClient) {
+    const normalizedEmail = this.normalizeEmail(email)
+
+    await tx.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${`organization-invitation:${organizationId}:${normalizedEmail}`}))
+    `
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase()
+  }
+
   private generateToken(): string {
     return randomBytes(24).toString('hex')
   }

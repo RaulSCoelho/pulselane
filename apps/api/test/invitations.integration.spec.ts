@@ -7,7 +7,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { getCurrentUser, signupAndGetAccessToken } from './helpers/auth-test-utils'
+import { getCurrentUser, signupAndGetAccessToken, signupAndGetContext } from './helpers/auth-test-utils'
 import { createTestApp } from './helpers/create-test-app'
 import { setupTestDatabase, teardownTestDatabase } from './helpers/prisma-test-utils'
 
@@ -294,5 +294,114 @@ describe('Invitations integration', () => {
     expect(emailDeliveriesResponse.body.meta.nextCursor).toBeNull()
     expect(emailDeliveriesResponse.body.items[0].to).toBe('invitee-resend@example.com')
     expect(emailDeliveriesResponse.body.items[1].to).toBe('invitee-resend@example.com')
+  })
+
+  it('should allow only one pending invitation when two create requests race for the same email', async () => {
+    const owner = await signupAndGetAccessToken(app, {
+      email: 'owner-race-create@example.com',
+      organizationName: 'Race Create Workspace'
+    })
+
+    const ownerMe = await getCurrentUser(app, owner.accessToken)
+    const organizationId = ownerMe.memberships[0].organization.id
+
+    const [firstCreate, secondCreate] = await Promise.all([
+      request(app.getHttpServer())
+        .post('/api/invitations')
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .set('x-organization-id', organizationId)
+        .send({
+          email: 'duplicate-invitee@example.com',
+          role: 'member'
+        }),
+      request(app.getHttpServer())
+        .post('/api/invitations')
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .set('x-organization-id', organizationId)
+        .send({
+          email: 'duplicate-invitee@example.com',
+          role: 'member'
+        })
+    ])
+
+    const statuses = [firstCreate.status, secondCreate.status].sort((a, b) => a - b)
+
+    expect(statuses).toEqual([201, 409])
+
+    const invitations = await prisma.organizationInvitation.findMany({
+      where: {
+        organizationId,
+        email: 'duplicate-invitee@example.com'
+      }
+    })
+
+    expect(invitations).toHaveLength(1)
+    expect(invitations[0].status).toBe('pending')
+  })
+
+  it('should allow only one successful acceptance when two accept requests race on the same token', async () => {
+    const owner = await signupAndGetContext({
+      app,
+      prisma,
+      email: 'owner-race-accept@example.com',
+      organizationName: 'Race Accept Workspace'
+    })
+
+    const ownerMe = await getCurrentUser(app, owner.accessToken)
+    const organizationId = ownerMe.memberships[0].organization.id
+
+    const createInvitationResponse = await request(app.getHttpServer())
+      .post('/api/invitations')
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        email: 'race-accept-invitee@example.com',
+        role: 'member'
+      })
+      .expect(201)
+
+    const invitee = await signupAndGetContext({
+      app,
+      prisma,
+      email: 'race-accept-invitee@example.com',
+      organizationName: 'Race Accept Invitee Workspace'
+    })
+
+    const [firstAccept, secondAccept] = await Promise.all([
+      request(app.getHttpServer())
+        .post('/api/invitations/accept')
+        .set('Authorization', `Bearer ${invitee.accessToken}`)
+        .send({
+          token: createInvitationResponse.body.token
+        }),
+      request(app.getHttpServer())
+        .post('/api/invitations/accept')
+        .set('Authorization', `Bearer ${invitee.accessToken}`)
+        .send({
+          token: createInvitationResponse.body.token
+        })
+    ])
+
+    const statuses = [firstAccept.status, secondAccept.status].sort((a, b) => a - b)
+
+    expect(statuses).toEqual([201, 409])
+
+    const acceptedMemberships = await prisma.membership.findMany({
+      where: {
+        organizationId,
+        userId: invitee.userId
+      }
+    })
+
+    expect(acceptedMemberships).toHaveLength(1)
+
+    const invitation = await prisma.organizationInvitation.findUnique({
+      where: {
+        id: createInvitationResponse.body.id as string
+      }
+    })
+
+    expect(invitation).not.toBeNull()
+    expect(invitation?.status).toBe('accepted')
   })
 })
