@@ -1,12 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger'
 
 export class AuditLogActorResponseDto {
   @ApiProperty({ example: 'clxuser123' })
-  id!: string;
+  id!: string
 
   @ApiProperty({ example: 'Raul Semicek' })
-  name!: string;
+  name!: string
 
   @ApiProperty({ example: 'raul@example.com' })
-  email!: string;
+  email!: string
 }

@@ -1,9 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger'
 
 export class ProjectClientResponseDto {
   @ApiProperty({ example: 'clxclient123' })
-  id!: string;
+  id!: string
 
   @ApiProperty({ example: 'Acme Corp' })
-  name!: string;
+  name!: string
 }

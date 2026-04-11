@@ -1,16 +1,16 @@
-import { PrismaService } from '@/infra/prisma/prisma.service';
-import { removeUndefinedFields } from '@/common/utils/remove-undefined';
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { removeUndefinedFields } from '@/common/utils/remove-undefined'
+import { PrismaService } from '@/infra/prisma/prisma.service'
+import { Injectable } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 
 type CreateSessionInput = {
-  userId: string;
-  deviceId: string;
-  refreshTokenHash: string;
-  userAgent?: string | null;
-  ipAddress?: string | null;
-  expiresAt: Date;
-};
+  userId: string
+  deviceId: string
+  refreshTokenHash: string
+  userAgent?: string | null
+  ipAddress?: string | null
+  expiresAt: Date
+}
 
 @Injectable()
 export class SessionRepository {
@@ -21,8 +21,8 @@ export class SessionRepository {
       where: {
         userId_deviceId: {
           userId: input.userId,
-          deviceId: input.deviceId,
-        },
+          deviceId: input.deviceId
+        }
       },
       update: removeUndefinedFields({
         refreshTokenHash: input.refreshTokenHash,
@@ -33,7 +33,7 @@ export class SessionRepository {
         // and request metadata rather than leaving stale compromise flags behind.
         lastUsedAt: new Date(),
         revokedAt: null,
-        compromisedAt: null,
+        compromisedAt: null
       }),
       create: {
         userId: input.userId,
@@ -42,27 +42,27 @@ export class SessionRepository {
         expiresAt: input.expiresAt,
         userAgent: input.userAgent ?? null,
         ipAddress: input.ipAddress ?? null,
-        lastUsedAt: new Date(),
-      },
-    });
+        lastUsedAt: new Date()
+      }
+    })
   }
 
   async updateById(id: string, data: Prisma.AuthSessionUpdateInput) {
     return this.prisma.authSession.update({
       where: { id },
-      data,
-    });
+      data
+    })
   }
 
   async findManyByUserId(userId: string) {
     return this.prisma.authSession.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+      orderBy: { createdAt: 'desc' }
+    })
   }
 
   async findById(id: string) {
-    return this.prisma.authSession.findUnique({ where: { id } });
+    return this.prisma.authSession.findUnique({ where: { id } })
   }
 
   async findByUserAndDevice(userId: string, deviceId: string) {
@@ -70,10 +70,10 @@ export class SessionRepository {
       where: {
         userId_deviceId: {
           userId,
-          deviceId,
-        },
-      },
-    });
+          deviceId
+        }
+      }
+    })
   }
 
   async revokeById(sessionId: string, userId: string) {
@@ -81,24 +81,24 @@ export class SessionRepository {
       where: {
         id: sessionId,
         userId,
-        revokedAt: null,
+        revokedAt: null
       },
       data: {
-        revokedAt: new Date(),
-      },
-    });
+        revokedAt: new Date()
+      }
+    })
   }
 
   async revokeAllByUserId(userId: string) {
     return this.prisma.authSession.updateMany({
       where: {
         userId,
-        revokedAt: null,
+        revokedAt: null
       },
       data: {
-        revokedAt: new Date(),
-      },
-    });
+        revokedAt: new Date()
+      }
+    })
   }
 
   async revokeByDevice(userId: string, deviceId: string) {
@@ -106,15 +106,15 @@ export class SessionRepository {
       where: {
         userId,
         deviceId,
-        revokedAt: null,
+        revokedAt: null
       },
       data: {
-        revokedAt: new Date(),
-      },
-    });
+        revokedAt: new Date()
+      }
+    })
   }
 
   async deleteById(id: string) {
-    return this.prisma.authSession.delete({ where: { id } });
+    return this.prisma.authSession.delete({ where: { id } })
   }
 }

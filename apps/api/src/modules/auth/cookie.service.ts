@@ -1,32 +1,28 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { FastifyReply } from 'fastify';
-import { DEVICE_COOKIE_NAME, REFRESH_COOKIE_NAME } from './auth.constants';
-import { EnvConfig } from '@/config/env.config';
+import { EnvConfig } from '@/config/env.config'
+import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { FastifyReply } from 'fastify'
+
+import { DEVICE_COOKIE_NAME, REFRESH_COOKIE_NAME } from './auth.constants'
 
 @Injectable()
 export class CookieService {
   constructor(private readonly configService: ConfigService<EnvConfig, true>) {}
 
   private get cookieSecure(): boolean {
-    return this.configService.getOrThrow('cookieSecure', { infer: true });
+    return this.configService.getOrThrow('cookieSecure', { infer: true })
   }
 
   private get cookieSameSite(): 'lax' | 'none' {
-    return this.configService.getOrThrow('cookieSameSite', { infer: true });
+    return this.configService.getOrThrow('cookieSameSite', { infer: true })
   }
 
   private get cookieDomain(): string | undefined {
-    return this.configService.get('cookieDomain', { infer: true });
+    return this.configService.get('cookieDomain', { infer: true })
   }
 
   private get refreshMaxAgeSeconds(): number {
-    return (
-      this.configService.getOrThrow('refreshTokenTtlDays', { infer: true }) *
-      24 *
-      60 *
-      60
-    );
+    return this.configService.getOrThrow('refreshTokenTtlDays', { infer: true }) * 24 * 60 * 60
   }
 
   setRefreshCookie(reply: FastifyReply, refreshToken: string) {
@@ -37,15 +33,15 @@ export class CookieService {
       // Keeping the refresh cookie under /api/auth narrows where browsers send it.
       path: '/api/auth',
       domain: this.cookieDomain,
-      maxAge: this.refreshMaxAgeSeconds,
-    });
+      maxAge: this.refreshMaxAgeSeconds
+    })
   }
 
   clearRefreshCookie(reply: FastifyReply) {
     reply.clearCookie(REFRESH_COOKIE_NAME, {
       path: '/api/auth',
-      domain: this.cookieDomain,
-    });
+      domain: this.cookieDomain
+    })
   }
 
   setDeviceCookie(reply: FastifyReply, deviceId: string) {
@@ -57,14 +53,14 @@ export class CookieService {
       // access-protected flows both rely on the same device binding.
       path: '/',
       domain: this.cookieDomain,
-      maxAge: this.refreshMaxAgeSeconds,
-    });
+      maxAge: this.refreshMaxAgeSeconds
+    })
   }
 
   clearDeviceCookie(reply: FastifyReply) {
     reply.clearCookie(DEVICE_COOKIE_NAME, {
       path: '/',
-      domain: this.cookieDomain,
-    });
+      domain: this.cookieDomain
+    })
   }
 }

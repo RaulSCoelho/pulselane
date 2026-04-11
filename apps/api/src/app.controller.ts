@@ -1,5 +1,5 @@
-import { Controller, Get, Version } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Version } from '@nestjs/common'
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger'
 
 @ApiTags('health')
 @Controller('health')
@@ -9,11 +9,11 @@ export class AppController {
   @ApiOkResponse({
     schema: {
       example: {
-        status: 'ok',
-      },
-    },
+        status: 'ok'
+      }
+    }
   })
   getHealth() {
-    return { status: 'ok' };
+    return { status: 'ok' }
   }
 }

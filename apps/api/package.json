@@ -7,22 +7,17 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-
     "typecheck": "tsc --noEmit",
-
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\"",
-
     "db:seed": "prisma db seed",
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:prod": "prisma migrate deploy",
-    
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts",
@@ -64,6 +59,8 @@
     "@types/supertest": "6.0.2",
     "eslint": "9.18.0",
     "eslint-config-prettier": "10.0.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-import-helpers": "^2.0.1",
     "eslint-plugin-prettier": "5.2.2",
     "globals": "16.0.0",
     "prettier": "3.4.2",

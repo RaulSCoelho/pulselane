@@ -1,48 +1,36 @@
-import {
-  BadRequestException,
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { OrganizationService } from '../organization.service';
-import { RequestWithCurrentOrganization } from '@/common/decorators/current-organization.decorator';
-import { RequestWithOrganizationMembership } from '@/common/decorators/organization-membership.decorator';
+import { RequestWithCurrentOrganization } from '@/common/decorators/current-organization.decorator'
+import { RequestWithOrganizationMembership } from '@/common/decorators/organization-membership.decorator'
+import { BadRequestException, CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common'
 
-type RequestWithOrganizationContext = RequestWithCurrentOrganization &
-  RequestWithOrganizationMembership;
+import { OrganizationService } from '../organization.service'
+
+type RequestWithOrganizationContext = RequestWithCurrentOrganization & RequestWithOrganizationMembership
 
 @Injectable()
 export class OrganizationContextGuard implements CanActivate {
   constructor(private readonly organizationService: OrganizationService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context
-      .switchToHttp()
-      .getRequest<RequestWithOrganizationContext>();
+    const request = context.switchToHttp().getRequest<RequestWithOrganizationContext>()
 
-    const userId = request.user?.sub;
-    const organizationId = request.headers['x-organization-id'];
+    const userId = request.user?.sub
+    const organizationId = request.headers['x-organization-id']
 
     if (!userId) {
-      throw new UnauthorizedException('Unauthorized');
+      throw new UnauthorizedException('Unauthorized')
     }
 
     if (!organizationId || typeof organizationId !== 'string') {
-      throw new BadRequestException('x-organization-id header is required');
+      throw new BadRequestException('x-organization-id header is required')
     }
 
-    const { organization, membership } =
-      await this.organizationService.findCurrentByUserId(
-        userId,
-        organizationId,
-      );
+    const { organization, membership } = await this.organizationService.findCurrentByUserId(userId, organizationId)
 
     // Downstream decorators and role guards depend on these request-scoped values
     // instead of reloading organization context in every controller/service.
-    request.currentOrganization = organization;
-    request.currentMembership = membership;
+    request.currentOrganization = organization
+    request.currentMembership = membership
 
-    return true;
+    return true
   }
 }

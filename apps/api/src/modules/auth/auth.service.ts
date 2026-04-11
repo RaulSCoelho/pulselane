@@ -1,35 +1,31 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { PrismaService } from '@/infra/prisma/prisma.service';
+import { CryptoService } from '@/infra/crypto/crypto.service'
+import { PrismaService } from '@/infra/prisma/prisma.service'
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import { MembershipRole } from '@prisma/client'
 
-import { SessionService } from './session.service';
-import { TokenService } from './token.service';
-import { MembershipRole } from '@prisma/client';
-import { SignupDto } from './dto/requests/signup.dto';
-import { LoginDto } from './dto/requests/login.dto';
-import { OrganizationService } from '../organization/organization.service';
-import { CryptoService } from '@/infra/crypto/crypto.service';
-import { UserService } from '../user/user.service';
-import { MembershipService } from '../membership/membership.service';
-import { MeResponseDto } from './dto/responses/me-response.dto';
+import { MembershipService } from '../membership/membership.service'
+import { OrganizationService } from '../organization/organization.service'
+import { UserService } from '../user/user.service'
+import { LoginDto } from './dto/requests/login.dto'
+import { SignupDto } from './dto/requests/signup.dto'
+import { MeResponseDto } from './dto/responses/me-response.dto'
+import { SessionService } from './session.service'
+import { TokenService } from './token.service'
 
 type SessionParams = {
-  deviceId?: string;
-  userAgent?: string;
-  ipAddress?: string;
-};
+  deviceId?: string
+  userAgent?: string
+  ipAddress?: string
+}
 
 type RotateParams = {
-  userId: string;
-  sessionId: string;
-  deviceId: string;
-  refreshToken: string;
-  userAgent?: string;
-  ipAddress?: string;
-};
+  userId: string
+  sessionId: string
+  deviceId: string
+  refreshToken: string
+  userAgent?: string
+  ipAddress?: string
+}
 
 @Injectable()
 export class AuthService {
@@ -40,55 +36,49 @@ export class AuthService {
     private readonly cryptoService: CryptoService,
     private readonly userService: UserService,
     private readonly organizationService: OrganizationService,
-    private readonly membershipService: MembershipService,
+    private readonly membershipService: MembershipService
   ) {}
 
   async signup(dto: SignupDto, params: SessionParams) {
     // Signup creates the initial tenant boundary as part of the same transaction:
     // user, organization, and owner membership must either all exist or all fail.
-    await this.prisma.$transaction(async (tx) => {
-      const user = await this.userService.create(dto, tx);
-      const organization = await this.organizationService.create(
-        dto.organizationName,
-        tx,
-      );
+    await this.prisma.$transaction(async tx => {
+      const user = await this.userService.create(dto, tx)
+      const organization = await this.organizationService.create(dto.organizationName, tx)
       await this.membershipService.create(
         {
           userId: user.id,
           organizationId: organization.id,
-          role: MembershipRole.owner,
+          role: MembershipRole.owner
         },
-        tx,
-      );
-    });
+        tx
+      )
+    })
 
     return this.login(
       {
         email: dto.email,
-        password: dto.password,
+        password: dto.password
       },
       {
         deviceId: params.deviceId,
         userAgent: params.userAgent,
-        ipAddress: params.ipAddress,
-      },
-    );
+        ipAddress: params.ipAddress
+      }
+    )
   }
 
   async login(dto: LoginDto, params: SessionParams) {
-    const user = await this.userService.findByEmail(dto.email);
+    const user = await this.userService.findByEmail(dto.email)
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid credentials')
     }
 
-    const passwordValid = await this.cryptoService.compare(
-      dto.password,
-      user.passwordHash,
-    );
+    const passwordValid = await this.cryptoService.compare(dto.password, user.passwordHash)
 
     if (!passwordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid credentials')
     }
 
     let session = await this.sessionService.upsert({
@@ -96,33 +86,33 @@ export class AuthService {
       deviceId: params.deviceId,
       refreshToken: 'temp',
       userAgent: params.userAgent,
-      ipAddress: params.ipAddress,
-    });
+      ipAddress: params.ipAddress
+    })
 
     // Session persistence stores a hash of the refresh token, so we need the
     // initial upsert first to get a stable session ID for signing the real token.
     const refreshToken = await this.tokenService.signRefreshToken({
       userId: user.id,
       sessionId: session.id,
-      deviceId: session.deviceId,
-    });
+      deviceId: session.deviceId
+    })
 
     const accessToken = await this.tokenService.signAccessToken({
       userId: user.id,
-      sessionId: session.id,
-    });
+      sessionId: session.id
+    })
 
     session = await this.sessionService.upsert({
       userId: user.id,
       deviceId: session.deviceId,
-      refreshToken,
-    });
+      refreshToken
+    })
 
     return {
       session,
       accessToken,
-      refreshToken,
-    };
+      refreshToken
+    }
   }
 
   async me(userId: string): Promise<MeResponseDto> {
@@ -131,14 +121,14 @@ export class AuthService {
       include: {
         memberships: {
           include: {
-            organization: true,
-          },
-        },
-      },
-    });
+            organization: true
+          }
+        }
+      }
+    })
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('User not found')
     }
 
     return {
@@ -147,16 +137,16 @@ export class AuthService {
       email: user.email,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      memberships: user.memberships.map((membership) => ({
+      memberships: user.memberships.map(membership => ({
         id: membership.id,
         role: membership.role,
         organization: {
           id: membership.organization.id,
           name: membership.organization.name,
-          slug: membership.organization.slug,
-        },
-      })),
-    };
+          slug: membership.organization.slug
+        }
+      }))
+    }
   }
 
   async rotate(params: RotateParams) {
@@ -165,8 +155,8 @@ export class AuthService {
     const newRefreshToken = await this.tokenService.signRefreshToken({
       userId: params.userId,
       sessionId: params.sessionId,
-      deviceId: params.deviceId,
-    });
+      deviceId: params.deviceId
+    })
 
     const session = await this.sessionService.rotate({
       userId: params.userId,
@@ -175,33 +165,33 @@ export class AuthService {
       refreshToken: params.refreshToken,
       newRefreshToken,
       userAgent: params.userAgent,
-      ipAddress: params.ipAddress,
-    });
+      ipAddress: params.ipAddress
+    })
 
     const accessToken = await this.tokenService.signAccessToken({
       userId: params.userId,
-      sessionId: params.sessionId,
-    });
+      sessionId: params.sessionId
+    })
 
     return {
       session,
       accessToken,
-      newRefreshToken,
-    };
+      newRefreshToken
+    }
   }
 
   async logoutCurrentSession(userId: string, sessionId: string): Promise<void> {
-    await this.sessionService.revokeById(sessionId, userId);
+    await this.sessionService.revokeById(sessionId, userId)
   }
 
   async logoutAllSessions(userId: string): Promise<void> {
-    await this.sessionService.revokeAllByUserId(userId);
+    await this.sessionService.revokeAllByUserId(userId)
   }
 
   async listSessions(userId: string, currentSessionId: string) {
-    const sessions = await this.sessionService.findManyByUserId(userId);
+    const sessions = await this.sessionService.findManyByUserId(userId)
 
-    return sessions.map((session) => ({
+    return sessions.map(session => ({
       id: session.id,
       deviceId: session.deviceId,
       userAgent: session.userAgent,
@@ -214,10 +204,7 @@ export class AuthService {
       isCurrent: session.id === currentSessionId,
       // "active" is derived at read time so expired or revoked sessions still
       // remain visible in session history.
-      isActive:
-        !session.revokedAt &&
-        !session.compromisedAt &&
-        session.expiresAt > new Date(),
-    }));
+      isActive: !session.revokedAt && !session.compromisedAt && session.expiresAt > new Date()
+    }))
   }
 }

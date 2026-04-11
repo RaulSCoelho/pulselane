@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common';
-import { OrganizationModule } from '@/modules/organization/organization.module';
-import { AuditLogsController } from './audit-logs.controller';
-import { AuditLogsService } from './audit-logs.service';
-import { AuditLogRepository } from './audit-log.repository';
+import { OrganizationModule } from '@/modules/organization/organization.module'
+import { Module } from '@nestjs/common'
+
+import { AuditLogRepository } from './audit-log.repository'
+import { AuditLogsController } from './audit-logs.controller'
+import { AuditLogsService } from './audit-logs.service'
 
 @Module({
   imports: [OrganizationModule],
   controllers: [AuditLogsController],
   providers: [AuditLogsService, AuditLogRepository],
-  exports: [AuditLogsService],
+  exports: [AuditLogsService]
 })
 export class AuditLogsModule {}

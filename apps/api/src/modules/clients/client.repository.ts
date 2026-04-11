@@ -1,137 +1,122 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, ClientStatus } from '@prisma/client';
-import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
-import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
-import { PrismaService } from '@/infra/prisma/prisma.service';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util'
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util'
+import { PrismaService } from '@/infra/prisma/prisma.service'
+import { Injectable } from '@nestjs/common'
+import { Prisma, ClientStatus } from '@prisma/client'
 
 type FindManyByOrganizationParams = {
-  organizationId: string;
-  search?: string;
-  status?: ClientStatus;
-  includeArchived?: boolean;
-  cursor?: string;
-  limit: number;
-};
+  organizationId: string
+  search?: string
+  status?: ClientStatus
+  includeArchived?: boolean
+  cursor?: string
+  limit: number
+}
 
 @Injectable()
 export class ClientRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private getClient(tx?: Prisma.TransactionClient) {
-    return tx ?? this.prisma;
+    return tx ?? this.prisma
   }
 
-  async create(
-    data: Prisma.ClientCreateArgs['data'],
-    tx?: Prisma.TransactionClient,
-  ) {
+  async create(data: Prisma.ClientCreateArgs['data'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).client.create({
-      data,
-    });
+      data
+    })
   }
 
-  async findManyByOrganization(
-    params: FindManyByOrganizationParams,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const { organizationId, search, status, includeArchived, cursor, limit } =
-      params;
+  async findManyByOrganization(params: FindManyByOrganizationParams, tx?: Prisma.TransactionClient) {
+    const { organizationId, search, status, includeArchived, cursor, limit } = params
 
-    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor)
 
-    const andFilters: Prisma.ClientWhereInput[] = [{ organizationId }];
+    const andFilters: Prisma.ClientWhereInput[] = [{ organizationId }]
 
     if (status) {
-      andFilters.push({ status });
+      andFilters.push({ status })
     } else if (!includeArchived) {
       andFilters.push({
         status: {
-          not: ClientStatus.archived,
-        },
-      });
+          not: ClientStatus.archived
+        }
+      })
     }
 
     if (search) {
       andFilters.push({
-        OR: ['name', 'email', 'companyName'].map((field) => ({
+        OR: ['name', 'email', 'companyName'].map(field => ({
           [field]: {
             contains: search,
-            mode: 'insensitive',
-          },
-        })),
-      });
+            mode: 'insensitive'
+          }
+        }))
+      })
     }
 
     if (cursorWhere) {
-      andFilters.push(cursorWhere);
+      andFilters.push(cursorWhere)
     }
 
     const items = await this.getClient(tx).client.findMany({
       where: {
-        AND: andFilters,
+        AND: andFilters
       },
       orderBy: [
         {
-          createdAt: 'desc',
+          createdAt: 'desc'
         },
         {
-          id: 'desc',
-        },
+          id: 'desc'
+        }
       ],
-      take: limit + 1,
-    });
+      take: limit + 1
+    })
 
     const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
       items,
       limit,
-      getCursorPayload: (item) => ({
+      getCursorPayload: item => ({
         id: item.id,
-        createdAt: item.createdAt.toISOString(),
-      }),
-    });
+        createdAt: item.createdAt.toISOString()
+      })
+    })
 
     return {
       items: normalizedItems,
       hasNextPage,
-      nextCursor,
-    };
+      nextCursor
+    }
   }
 
-  async findByIdAndOrganization(
-    id: string,
-    organizationId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findByIdAndOrganization(id: string, organizationId: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).client.findFirst({
       where: {
         id,
-        organizationId,
-      },
-    });
+        organizationId
+      }
+    })
   }
 
-  async update(
-    id: string,
-    data: Prisma.ClientUpdateArgs['data'],
-    tx?: Prisma.TransactionClient,
-  ) {
+  async update(id: string, data: Prisma.ClientUpdateArgs['data'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).client.update({
       where: {
-        id,
+        id
       },
-      data,
-    });
+      data
+    })
   }
 
   async archive(id: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).client.update({
       where: {
-        id,
+        id
       },
       data: {
         status: ClientStatus.archived,
-        archivedAt: new Date(),
-      },
-    });
+        archivedAt: new Date()
+      }
+    })
   }
 }

@@ -1,29 +1,29 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { AuditLogAction } from '@prisma/client';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { CursorPaginationQueryDto } from '@/common/pagination/dto/cursor-pagination-query.dto';
+import { CursorPaginationQueryDto } from '@/common/pagination/dto/cursor-pagination-query.dto'
+import { ApiPropertyOptional } from '@nestjs/swagger'
+import { AuditLogAction } from '@prisma/client'
+import { IsEnum, IsOptional, IsString } from 'class-validator'
 
 export class ListAuditLogsQueryDto extends CursorPaginationQueryDto {
   @ApiPropertyOptional({ example: 'client' })
   @IsOptional()
   @IsString()
-  entityType?: string;
+  entityType?: string
 
   @ApiPropertyOptional({ example: 'clxclient123' })
   @IsOptional()
   @IsString()
-  entityId?: string;
+  entityId?: string
 
   @ApiPropertyOptional({ example: 'clxuser123' })
   @IsOptional()
   @IsString()
-  actorUserId?: string;
+  actorUserId?: string
 
   @ApiPropertyOptional({
     enum: AuditLogAction,
-    example: AuditLogAction.created,
+    example: AuditLogAction.created
   })
   @IsOptional()
   @IsEnum(AuditLogAction)
-  action?: AuditLogAction;
+  action?: AuditLogAction
 }

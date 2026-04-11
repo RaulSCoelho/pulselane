@@ -1,12 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger'
 
 export class InvitationOrganizationResponseDto {
   @ApiProperty({ example: 'clxorg123' })
-  id!: string;
+  id!: string
 
   @ApiProperty({ example: 'Pulselane Labs' })
-  name!: string;
+  name!: string
 
   @ApiProperty({ example: 'pulselane-labs' })
-  slug!: string;
+  slug!: string
 }

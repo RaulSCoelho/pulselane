@@ -1,51 +1,52 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { TaskPriority, TaskStatus } from '@prisma/client';
-import { TaskProjectResponseDto } from './task-project-response.dto';
-import { TaskAssigneeResponseDto } from './task-assignee-response.dto';
+import { ApiProperty } from '@nestjs/swagger'
+import { TaskPriority, TaskStatus } from '@prisma/client'
+
+import { TaskAssigneeResponseDto } from './task-assignee-response.dto'
+import { TaskProjectResponseDto } from './task-project-response.dto'
 
 export class TaskResponseDto {
   @ApiProperty({ example: 'clxtask123' })
-  id!: string;
+  id!: string
 
   @ApiProperty({ example: 'clxorg123' })
-  organizationId!: string;
+  organizationId!: string
 
   @ApiProperty({ example: 'clxproject123' })
-  projectId!: string;
+  projectId!: string
 
   @ApiProperty({ example: 'clxuser123', nullable: true })
-  assigneeUserId!: string | null;
+  assigneeUserId!: string | null
 
   @ApiProperty({ example: 'Prepare proposal draft' })
-  title!: string;
+  title!: string
 
   @ApiProperty({
     example: 'Draft the proposal and review pricing before sending',
-    nullable: true,
+    nullable: true
   })
-  description!: string | null;
+  description!: string | null
 
   @ApiProperty({ enum: TaskStatus, example: TaskStatus.todo })
-  status!: TaskStatus;
+  status!: TaskStatus
 
   @ApiProperty({ enum: TaskPriority, example: TaskPriority.medium })
-  priority!: TaskPriority;
+  priority!: TaskPriority
 
   @ApiProperty({ example: '2026-04-10T18:00:00.000Z', nullable: true })
-  dueDate!: Date | null;
+  dueDate!: Date | null
 
   @ApiProperty({ example: '2026-04-09T20:00:00.000Z', nullable: true })
-  archivedAt!: Date | null;
+  archivedAt!: Date | null
 
   @ApiProperty({ type: TaskProjectResponseDto })
-  project!: TaskProjectResponseDto;
+  project!: TaskProjectResponseDto
 
   @ApiProperty({ type: TaskAssigneeResponseDto, nullable: true })
-  assignee!: TaskAssigneeResponseDto | null;
+  assignee!: TaskAssigneeResponseDto | null
 
   @ApiProperty({ example: '2026-04-03T20:00:00.000Z' })
-  createdAt!: Date;
+  createdAt!: Date
 
   @ApiProperty({ example: '2026-04-03T20:00:00.000Z' })
-  updatedAt!: Date;
+  updatedAt!: Date
 }

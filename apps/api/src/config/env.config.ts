@@ -1,17 +1,15 @@
-export type EmailTransport = 'logger' | 'smtp';
-export type EnvConfig = ReturnType<typeof configuration>;
+export type EmailTransport = 'logger' | 'smtp'
+export type EnvConfig = ReturnType<typeof configuration>
 
 export function configuration() {
-  const nodeEnv = process.env.NODE_ENV ?? 'development';
+  const nodeEnv = process.env.NODE_ENV ?? 'development'
 
   return {
     // app
     port: Number(process.env.PORT ?? 3001),
     nodeEnv,
     allowedCorsOrigins: process.env.ALLOWED_CORS_ORIGINS
-      ? process.env.ALLOWED_CORS_ORIGINS.split(',').map((origin) =>
-          origin.trim(),
-        )
+      ? process.env.ALLOWED_CORS_ORIGINS.split(',').map(origin => origin.trim())
       : [],
     // cookie
     cookieSecret: process.env.COOKIE_SECRET!,
@@ -33,6 +31,6 @@ export function configuration() {
     emailSmtpPort: Number(process.env.EMAIL_SMTP_PORT ?? 587),
     emailSmtpSecure: process.env.EMAIL_SMTP_SECURE === 'true',
     emailSmtpUser: process.env.EMAIL_SMTP_USER,
-    emailSmtpPassword: process.env.EMAIL_SMTP_PASSWORD,
-  };
+    emailSmtpPassword: process.env.EMAIL_SMTP_PASSWORD
+  }
 }

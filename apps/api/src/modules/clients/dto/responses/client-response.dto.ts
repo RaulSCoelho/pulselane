@@ -1,31 +1,31 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { ClientStatus } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger'
+import { ClientStatus } from '@prisma/client'
 
 export class ClientResponseDto {
   @ApiProperty({ example: 'clxclient123' })
-  id!: string;
+  id!: string
 
   @ApiProperty({ example: 'clxorg123' })
-  organizationId!: string;
+  organizationId!: string
 
   @ApiProperty({ example: 'Acme Corp' })
-  name!: string;
+  name!: string
 
   @ApiProperty({ example: 'contact@acme.com', nullable: true })
-  email!: string | null;
+  email!: string | null
 
   @ApiProperty({ example: 'Acme Corporation', nullable: true })
-  companyName!: string | null;
+  companyName!: string | null
 
   @ApiProperty({ enum: ClientStatus, example: ClientStatus.active })
-  status!: ClientStatus;
+  status!: ClientStatus
 
   @ApiProperty({ example: '2026-04-09T20:00:00.000Z', nullable: true })
-  archivedAt!: Date | null;
+  archivedAt!: Date | null
 
   @ApiProperty({ example: '2026-03-28T20:00:00.000Z' })
-  createdAt!: Date;
+  createdAt!: Date
 
   @ApiProperty({ example: '2026-03-28T20:00:00.000Z' })
-  updatedAt!: Date;
+  updatedAt!: Date
 }

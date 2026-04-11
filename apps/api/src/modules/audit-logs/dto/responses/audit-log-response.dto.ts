@@ -1,39 +1,40 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { AuditLogAction } from '@prisma/client';
-import { AuditLogActorResponseDto } from './audit-log-actor-response.dto';
-import { type JsonValue } from '@prisma/client/runtime/library';
+import { ApiProperty } from '@nestjs/swagger'
+import { AuditLogAction } from '@prisma/client'
+import { type JsonValue } from '@prisma/client/runtime/library'
+
+import { AuditLogActorResponseDto } from './audit-log-actor-response.dto'
 
 export class AuditLogResponseDto {
   @ApiProperty({ example: 'clxaudit123' })
-  id!: string;
+  id!: string
 
   @ApiProperty({ example: 'clxorg123' })
-  organizationId!: string;
+  organizationId!: string
 
   @ApiProperty({ example: 'clxuser123' })
-  actorUserId!: string;
+  actorUserId!: string
 
   @ApiProperty({ example: 'client' })
-  entityType!: string;
+  entityType!: string
 
   @ApiProperty({ example: 'clxclient123' })
-  entityId!: string;
+  entityId!: string
 
   @ApiProperty({ enum: AuditLogAction, example: AuditLogAction.created })
-  action!: AuditLogAction;
+  action!: AuditLogAction
 
   @ApiProperty({
     example: {
       name: 'Acme Corp',
-      status: 'active',
+      status: 'active'
     },
-    nullable: true,
+    nullable: true
   })
-  metadata!: JsonValue;
+  metadata!: JsonValue
 
   @ApiProperty({ type: AuditLogActorResponseDto })
-  actorUser!: AuditLogActorResponseDto;
+  actorUser!: AuditLogActorResponseDto
 
   @ApiProperty({ example: '2026-04-03T20:00:00.000Z' })
-  createdAt!: Date;
+  createdAt!: Date
 }

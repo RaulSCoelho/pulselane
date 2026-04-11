@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { OrganizationModule } from '@/modules/organization/organization.module';
-import { EmailService } from './email.service';
-import { EmailRepository } from './email.repository';
-import { EmailController } from './email.controller';
-import { LoggerEmailProvider } from './providers/logger-email-provider';
-import { SmtpEmailProvider } from './providers/smtp-email-provider';
-import { EMAIL_PROVIDER } from './email.constants';
-import { EnvConfig } from '@/config/env.config';
+import { EnvConfig } from '@/config/env.config'
+import { OrganizationModule } from '@/modules/organization/organization.module'
+import { Module } from '@nestjs/common'
+import { ConfigModule, ConfigService } from '@nestjs/config'
+
+import { EMAIL_PROVIDER } from './email.constants'
+import { EmailController } from './email.controller'
+import { EmailRepository } from './email.repository'
+import { EmailService } from './email.service'
+import { LoggerEmailProvider } from './providers/logger-email-provider'
+import { SmtpEmailProvider } from './providers/smtp-email-provider'
 
 @Module({
   imports: [ConfigModule, OrganizationModule],
@@ -23,18 +24,18 @@ import { EnvConfig } from '@/config/env.config';
       useFactory: (
         configService: ConfigService<EnvConfig, true>,
         loggerProvider: LoggerEmailProvider,
-        smtpProvider: SmtpEmailProvider,
+        smtpProvider: SmtpEmailProvider
       ) => {
-        const transport = configService.get('emailTransport', { infer: true });
+        const transport = configService.get('emailTransport', { infer: true })
 
         if (transport === 'smtp') {
-          return smtpProvider;
+          return smtpProvider
         }
 
-        return loggerProvider;
-      },
-    },
+        return loggerProvider
+      }
+    }
   ],
-  exports: [EmailService],
+  exports: [EmailService]
 })
 export class EmailModule {}

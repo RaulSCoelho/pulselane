@@ -1,15 +1,15 @@
-import { SetMetadata } from '@nestjs/common';
+import { SetMetadata } from '@nestjs/common'
 
-export const AUTH_OPTIONS_KEY = 'authOptions';
+export const AUTH_OPTIONS_KEY = 'authOptions'
 
-export type AuthMode = 'private' | 'public' | 'optional';
+export type AuthMode = 'private' | 'public' | 'optional'
 
 export type AuthOptions = {
-  mode?: AuthMode;
-};
+  mode?: AuthMode
+}
 
 export function Auth(options: AuthOptions = {}) {
   return SetMetadata(AUTH_OPTIONS_KEY, {
-    mode: options.mode ?? 'private',
-  } satisfies Required<AuthOptions>);
+    mode: options.mode ?? 'private'
+  } satisfies Required<AuthOptions>)
 }

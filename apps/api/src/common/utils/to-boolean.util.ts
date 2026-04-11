@@ -1,23 +1,23 @@
 export function toBoolean(value: unknown): boolean | undefined {
   if (value === undefined || value === null || value === '') {
-    return undefined;
+    return undefined
   }
 
   if (typeof value === 'boolean') {
-    return value;
+    return value
   }
 
   if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
+    const normalized = value.trim().toLowerCase()
 
     if (normalized === 'true') {
-      return true;
+      return true
     }
 
     if (normalized === 'false') {
-      return false;
+      return false
     }
   }
 
-  return undefined;
+  return undefined
 }

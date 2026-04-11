@@ -1,12 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EmailDeliveryStatus, Prisma } from '@prisma/client';
-import { EnvConfig } from '@/config/env.config';
-import { SendEmailInput } from './contracts/send-email.input';
-import { EmailRepository } from './email.repository';
-import { ListEmailDeliveriesQueryDto } from './dto/requests/list-email-deliveries-query.dto';
-import { EMAIL_PROVIDER } from './email.constants';
-import { type EmailProvider } from './contracts/email-provider';
+import { EnvConfig } from '@/config/env.config'
+import { Inject, Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { EmailDeliveryStatus, Prisma } from '@prisma/client'
+
+import { type EmailProvider } from './contracts/email-provider'
+import { SendEmailInput } from './contracts/send-email.input'
+import { ListEmailDeliveriesQueryDto } from './dto/requests/list-email-deliveries-query.dto'
+import { EMAIL_PROVIDER } from './email.constants'
+import { EmailRepository } from './email.repository'
 
 @Injectable()
 export class EmailService {
@@ -14,21 +15,21 @@ export class EmailService {
     private readonly configService: ConfigService<EnvConfig, true>,
     private readonly emailRepository: EmailRepository,
     @Inject(EMAIL_PROVIDER)
-    private readonly emailProvider: EmailProvider,
+    private readonly emailProvider: EmailProvider
   ) {}
 
   private get env() {
     return {
       fromName: this.configService.get('emailFromName', { infer: true }),
       fromAddress: this.configService.get('emailFromAddress', { infer: true }),
-      transport: this.configService.get('emailTransport', { infer: true }),
-    };
+      transport: this.configService.get('emailTransport', { infer: true })
+    }
   }
 
   async send(input: SendEmailInput, tx?: Prisma.TransactionClient) {
-    const fromName = this.env.fromName;
-    const fromAddress = this.env.fromAddress;
-    const transport = this.env.transport;
+    const fromName = this.env.fromName
+    const fromAddress = this.env.fromAddress
+    const transport = this.env.transport
 
     const delivery = await this.emailRepository.create(
       {
@@ -38,10 +39,10 @@ export class EmailService {
         subject: input.subject,
         transport,
         status: EmailDeliveryStatus.pending,
-        metadata: input.metadata,
+        metadata: input.metadata
       },
-      tx,
-    );
+      tx
+    )
 
     try {
       const result = await this.emailProvider.send({
@@ -50,8 +51,8 @@ export class EmailService {
         to: input.to,
         subject: input.subject,
         text: input.text,
-        html: input.html,
-      });
+        html: input.html
+      })
 
       return this.emailRepository.update(
         delivery.id,
@@ -62,36 +63,29 @@ export class EmailService {
           metadata: {
             ...(delivery.metadata as Record<string, unknown> | null),
             provider: result.provider,
-            providerMessageId: result.providerMessageId,
-          },
+            providerMessageId: result.providerMessageId
+          }
         },
-        tx,
-      );
+        tx
+      )
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Unexpected email delivery error';
+      const message = error instanceof Error ? error.message : 'Unexpected email delivery error'
 
       await this.emailRepository.update(
         delivery.id,
         {
           status: EmailDeliveryStatus.failed,
-          error: message,
+          error: message
         },
-        tx,
-      );
+        tx
+      )
 
-      throw error;
+      throw error
     }
   }
 
-  async findAll(
-    organizationId: string,
-    query: ListEmailDeliveriesQueryDto,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const limit = query.limit ?? 20;
+  async findAll(organizationId: string, query: ListEmailDeliveriesQueryDto, tx?: Prisma.TransactionClient) {
+    const limit = query.limit ?? 20
 
     const result = await this.emailRepository.findMany(
       {
@@ -99,18 +93,18 @@ export class EmailService {
         cursor: query.cursor,
         limit,
         to: query.to,
-        status: query.status,
+        status: query.status
       },
-      tx,
-    );
+      tx
+    )
 
     return {
       items: result.items,
       meta: {
         limit,
         hasNextPage: result.hasNextPage,
-        nextCursor: result.nextCursor,
-      },
-    };
+        nextCursor: result.nextCursor
+      }
+    }
   }
 }

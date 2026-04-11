@@ -1,24 +1,24 @@
-import { decodeCursor } from './cursor.util';
-import type { CursorPayload } from '../types/cursor-payload.type';
+import type { CursorPayload } from '../types/cursor-payload.type'
+import { decodeCursor } from './cursor.util'
 
 export type CreatedAtIdCursorWhere = {
-  OR: [{ createdAt: { lt: Date } }, { createdAt: Date; id: { lt: string } }];
-};
+  OR: [{ createdAt: { lt: Date } }, { createdAt: Date; id: { lt: string } }]
+}
 
 export function buildCreatedAtIdCursorFilter(cursor?: string): {
-  decodedCursor: CursorPayload | null;
-  where?: CreatedAtIdCursorWhere;
+  decodedCursor: CursorPayload | null
+  where?: CreatedAtIdCursorWhere
 } {
-  const decodedCursor = decodeCursor(cursor);
+  const decodedCursor = decodeCursor(cursor)
 
   if (!decodedCursor) {
     return {
       decodedCursor: null,
-      where: undefined,
-    };
+      where: undefined
+    }
   }
 
-  const createdAt = new Date(decodedCursor.createdAt);
+  const createdAt = new Date(decodedCursor.createdAt)
 
   return {
     decodedCursor,
@@ -26,16 +26,16 @@ export function buildCreatedAtIdCursorFilter(cursor?: string): {
       OR: [
         {
           createdAt: {
-            lt: createdAt,
-          },
+            lt: createdAt
+          }
         },
         {
           createdAt,
           id: {
-            lt: decodedCursor.id,
-          },
-        },
-      ],
-    },
-  };
+            lt: decodedCursor.id
+          }
+        }
+      ]
+    }
+  }
 }

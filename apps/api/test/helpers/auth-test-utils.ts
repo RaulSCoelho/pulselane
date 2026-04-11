@@ -1,40 +1,36 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import request from 'supertest';
-import { PrismaClient } from '@prisma/client';
-import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
+import { PrismaClient } from '@prisma/client'
+import request from 'supertest'
 
 type SignupInput = {
-  name?: string;
-  email?: string;
-  password?: string;
-  organizationName?: string;
-};
+  name?: string
+  email?: string
+  password?: string
+  organizationName?: string
+}
 
 type SignupResult = {
-  accessToken: string;
-  email: string;
-};
+  accessToken: string
+  email: string
+}
 
 type SignupTestContextInput = SignupInput & {
-  app: NestFastifyApplication;
-  prisma: PrismaClient;
-};
+  app: NestFastifyApplication
+  prisma: PrismaClient
+}
 
 type SignupTestContextResult = {
-  accessToken: string;
-  userId: string;
-  organizationId: string;
-  email: string;
-};
+  accessToken: string
+  userId: string
+  organizationId: string
+  email: string
+}
 
-export async function signupAndGetAccessToken(
-  app: NestFastifyApplication,
-  input?: SignupInput,
-): Promise<SignupResult> {
-  const email =
-    input?.email ?? `user-${Date.now()}-${Math.random()}@example.com`;
+export async function signupAndGetAccessToken(app: NestFastifyApplication, input?: SignupInput): Promise<SignupResult> {
+  const email = input?.email ?? `user-${Date.now()}-${Math.random()}@example.com`
 
   const response = await request(app.getHttpServer())
     .post('/api/auth/signup')
@@ -42,26 +38,23 @@ export async function signupAndGetAccessToken(
       name: input?.name ?? 'Raul',
       email,
       password: input?.password ?? '123456',
-      organizationName: input?.organizationName ?? `Workspace ${Date.now()}`,
+      organizationName: input?.organizationName ?? `Workspace ${Date.now()}`
     })
-    .expect(201);
+    .expect(201)
 
   return {
     accessToken: response.body.accessToken as string,
-    email,
-  };
+    email
+  }
 }
 
-export async function getCurrentUser(
-  app: NestFastifyApplication,
-  accessToken: string,
-) {
+export async function getCurrentUser(app: NestFastifyApplication, accessToken: string) {
   const response = await request(app.getHttpServer())
     .get('/api/auth/me')
     .set('Authorization', `Bearer ${accessToken}`)
-    .expect(200);
+    .expect(200)
 
-  return response.body;
+  return response.body
 }
 
 export async function signupAndGetContext({
@@ -70,7 +63,7 @@ export async function signupAndGetContext({
   name = 'Raul',
   email = `user-${Date.now()}-${Math.random()}@example.com`,
   password = '123456',
-  organizationName = `Workspace ${Date.now()}`,
+  organizationName = `Workspace ${Date.now()}`
 }: SignupTestContextInput): Promise<SignupTestContextResult> {
   const signupResponse = await request(app.getHttpServer())
     .post('/api/auth/signup')
@@ -78,29 +71,29 @@ export async function signupAndGetContext({
       name,
       email,
       password,
-      organizationName,
+      organizationName
     })
-    .expect(201);
+    .expect(201)
 
-  const accessToken = signupResponse.body.accessToken as string;
+  const accessToken = signupResponse.body.accessToken as string
 
   const user = await prisma.user.findUnique({
     where: {
-      email,
+      email
     },
     include: {
-      memberships: true,
-    },
-  });
+      memberships: true
+    }
+  })
 
   if (!user || user.memberships.length === 0) {
-    throw new Error('Failed to resolve test user organization context');
+    throw new Error('Failed to resolve test user organization context')
   }
 
   return {
     accessToken,
     userId: user.id,
     organizationId: user.memberships[0].organizationId,
-    email,
-  };
+    email
+  }
 }

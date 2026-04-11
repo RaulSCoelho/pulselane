@@ -1,163 +1,141 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, ProjectStatus } from '@prisma/client';
-import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
-import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
-import { PrismaService } from '@/infra/prisma/prisma.service';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util'
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util'
+import { PrismaService } from '@/infra/prisma/prisma.service'
+import { Injectable } from '@nestjs/common'
+import { Prisma, ProjectStatus } from '@prisma/client'
 
 type FindManyByOrganizationParams = {
-  organizationId: string;
-  clientId?: string;
-  search?: string;
-  status?: ProjectStatus;
-  includeArchived?: boolean;
-  cursor?: string;
-  limit: number;
-};
+  organizationId: string
+  clientId?: string
+  search?: string
+  status?: ProjectStatus
+  includeArchived?: boolean
+  cursor?: string
+  limit: number
+}
 
 const clientInclude = {
   client: {
     select: {
       id: true,
-      name: true,
-    },
-  },
-} satisfies Prisma.ProjectInclude;
+      name: true
+    }
+  }
+} satisfies Prisma.ProjectInclude
 
 @Injectable()
 export class ProjectRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private getClient(tx?: Prisma.TransactionClient) {
-    return tx ?? this.prisma;
+    return tx ?? this.prisma
   }
 
-  async create(
-    data: Prisma.ProjectCreateArgs['data'],
-    tx?: Prisma.TransactionClient,
-  ) {
+  async create(data: Prisma.ProjectCreateArgs['data'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).project.create({
       data,
-      include: clientInclude,
-    });
+      include: clientInclude
+    })
   }
 
-  async findManyByOrganization(
-    params: FindManyByOrganizationParams,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const {
-      organizationId,
-      clientId,
-      search,
-      status,
-      includeArchived,
-      cursor,
-      limit,
-    } = params;
+  async findManyByOrganization(params: FindManyByOrganizationParams, tx?: Prisma.TransactionClient) {
+    const { organizationId, clientId, search, status, includeArchived, cursor, limit } = params
 
-    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor)
 
-    const andFilters: Prisma.ProjectWhereInput[] = [{ organizationId }];
+    const andFilters: Prisma.ProjectWhereInput[] = [{ organizationId }]
 
     if (clientId) {
-      andFilters.push({ clientId });
+      andFilters.push({ clientId })
     }
 
     if (status) {
-      andFilters.push({ status });
+      andFilters.push({ status })
     } else if (!includeArchived) {
       andFilters.push({
         status: {
-          not: ProjectStatus.archived,
-        },
-      });
+          not: ProjectStatus.archived
+        }
+      })
     }
 
     if (search) {
       andFilters.push({
-        OR: ['name', 'description'].map((field) => ({
+        OR: ['name', 'description'].map(field => ({
           [field]: {
             contains: search,
-            mode: 'insensitive',
-          },
-        })),
-      });
+            mode: 'insensitive'
+          }
+        }))
+      })
     }
 
     if (cursorWhere) {
-      andFilters.push(cursorWhere);
+      andFilters.push(cursorWhere)
     }
 
     const items = await this.getClient(tx).project.findMany({
       where: {
-        AND: andFilters,
+        AND: andFilters
       },
       include: clientInclude,
       orderBy: [
         {
-          createdAt: 'desc',
+          createdAt: 'desc'
         },
         {
-          id: 'desc',
-        },
+          id: 'desc'
+        }
       ],
-      take: limit + 1,
-    });
+      take: limit + 1
+    })
 
     const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
       items,
       limit,
-      getCursorPayload: (item) => ({
+      getCursorPayload: item => ({
         id: item.id,
-        createdAt: item.createdAt.toISOString(),
-      }),
-    });
+        createdAt: item.createdAt.toISOString()
+      })
+    })
 
     return {
       items: normalizedItems,
       hasNextPage,
-      nextCursor,
-    };
+      nextCursor
+    }
   }
 
-  async findByIdAndOrganization(
-    id: string,
-    organizationId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findByIdAndOrganization(id: string, organizationId: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).project.findFirst({
       where: {
         id,
-        organizationId,
+        organizationId
       },
-      include: clientInclude,
-    });
+      include: clientInclude
+    })
   }
 
-  async update(
-    id: string,
-    data: Prisma.ProjectUpdateArgs['data'],
-    tx?: Prisma.TransactionClient,
-  ) {
+  async update(id: string, data: Prisma.ProjectUpdateArgs['data'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).project.update({
       where: {
-        id,
+        id
       },
       data,
-      include: clientInclude,
-    });
+      include: clientInclude
+    })
   }
 
   async archive(id: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).project.update({
       where: {
-        id,
+        id
       },
       data: {
         status: ProjectStatus.archived,
-        archivedAt: new Date(),
+        archivedAt: new Date()
       },
-      include: clientInclude,
-    });
+      include: clientInclude
+    })
   }
 }

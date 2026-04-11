@@ -1,24 +1,25 @@
-import { Module } from '@nestjs/common';
-import { PrismaModule } from './infra/prisma/prisma.module';
-import { ConfigModule } from '@nestjs/config';
-import { AuthModule } from './modules/auth/auth.module';
-import { ClientsModule } from './modules/clients/clients.module';
-import { configuration } from './config/env.config';
-import { envValidationSchema } from './config/env.validation';
-import { ProjectsModule } from './modules/projects/projects.module';
-import { TasksModule } from './modules/tasks/tasks.module';
-import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
-import { OrganizationModule } from './modules/organization/organization.module';
-import { MembershipModule } from './modules/membership/membership.module';
-import { InvitationsModule } from './modules/invitations/invitations.module';
-import { BillingModule } from './modules/billing/billing.module';
+import { Module } from '@nestjs/common'
+import { ConfigModule } from '@nestjs/config'
+
+import { configuration } from './config/env.config'
+import { envValidationSchema } from './config/env.validation'
+import { PrismaModule } from './infra/prisma/prisma.module'
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module'
+import { AuthModule } from './modules/auth/auth.module'
+import { BillingModule } from './modules/billing/billing.module'
+import { ClientsModule } from './modules/clients/clients.module'
+import { InvitationsModule } from './modules/invitations/invitations.module'
+import { MembershipModule } from './modules/membership/membership.module'
+import { OrganizationModule } from './modules/organization/organization.module'
+import { ProjectsModule } from './modules/projects/projects.module'
+import { TasksModule } from './modules/tasks/tasks.module'
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      validationSchema: envValidationSchema,
+      validationSchema: envValidationSchema
     }),
     PrismaModule,
     BillingModule,
@@ -29,7 +30,7 @@ import { BillingModule } from './modules/billing/billing.module';
     ProjectsModule,
     TasksModule,
     AuditLogsModule,
-    InvitationsModule,
-  ],
+    InvitationsModule
+  ]
 })
 export class AppModule {}

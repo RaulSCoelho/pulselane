@@ -1,152 +1,134 @@
-import { PrismaService } from '@/infra/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
-import { MembershipRole, Prisma } from '@prisma/client';
-import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
-import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util'
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util'
+import { PrismaService } from '@/infra/prisma/prisma.service'
+import { Injectable } from '@nestjs/common'
+import { MembershipRole, Prisma } from '@prisma/client'
 
 type FindManyByOrganizationParams = {
-  organizationId: string;
-  cursor?: string;
-  limit: number;
-  search?: string;
-  role?: MembershipRole | undefined;
-};
+  organizationId: string
+  cursor?: string
+  limit: number
+  search?: string
+  role?: MembershipRole | undefined
+}
 
 const membershipInclude = {
   user: {
     select: {
       id: true,
       name: true,
-      email: true,
-    },
+      email: true
+    }
   },
   organization: {
     select: {
       id: true,
       name: true,
-      slug: true,
-    },
-  },
-} satisfies Prisma.MembershipInclude;
+      slug: true
+    }
+  }
+} satisfies Prisma.MembershipInclude
 
 @Injectable()
 export class MembershipRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private getClient(tx?: Prisma.TransactionClient) {
-    return tx ?? this.prisma;
+    return tx ?? this.prisma
   }
 
-  async create(
-    data: Prisma.MembershipCreateArgs['data'],
-    tx?: Prisma.TransactionClient,
-  ) {
+  async create(data: Prisma.MembershipCreateArgs['data'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).membership.create({
-      data,
-    });
+      data
+    })
   }
 
-  async findByUserAndOrganization(
-    userId: string,
-    organizationId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findByUserAndOrganization(userId: string, organizationId: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).membership.findUnique({
       where: {
         userId_organizationId: {
           userId,
-          organizationId,
-        },
-      },
-    });
+          organizationId
+        }
+      }
+    })
   }
 
-  async findByIdAndOrganization(
-    id: string,
-    organizationId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findByIdAndOrganization(id: string, organizationId: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).membership.findFirst({
       where: {
         id,
-        organizationId,
+        organizationId
       },
-      include: membershipInclude,
-    });
+      include: membershipInclude
+    })
   }
 
-  async findManyByOrganization(
-    params: FindManyByOrganizationParams,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const { organizationId, cursor, limit, search, role } = params;
+  async findManyByOrganization(params: FindManyByOrganizationParams, tx?: Prisma.TransactionClient) {
+    const { organizationId, cursor, limit, search, role } = params
 
-    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor)
 
-    const andFilters: Prisma.MembershipWhereInput[] = [{ organizationId }];
+    const andFilters: Prisma.MembershipWhereInput[] = [{ organizationId }]
 
     if (role) {
-      andFilters.push({ role });
+      andFilters.push({ role })
     }
 
     if (search) {
       andFilters.push({
-        OR: ['name', 'email'].map((field) => ({
+        OR: ['name', 'email'].map(field => ({
           user: {
             [field]: {
               contains: search,
-              mode: 'insensitive',
-            },
-          },
-        })),
-      });
+              mode: 'insensitive'
+            }
+          }
+        }))
+      })
     }
 
     if (cursorWhere) {
-      andFilters.push(cursorWhere);
+      andFilters.push(cursorWhere)
     }
 
     const items = await this.getClient(tx).membership.findMany({
       where: {
-        AND: andFilters,
+        AND: andFilters
       },
       include: membershipInclude,
       orderBy: [
         {
-          createdAt: 'desc',
+          createdAt: 'desc'
         },
         {
-          id: 'desc',
-        },
+          id: 'desc'
+        }
       ],
-      take: limit + 1,
-    });
+      take: limit + 1
+    })
 
     const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
       items,
       limit,
-      getCursorPayload: (item) => ({
+      getCursorPayload: item => ({
         id: item.id,
-        createdAt: item.createdAt.toISOString(),
-      }),
-    });
+        createdAt: item.createdAt.toISOString()
+      })
+    })
 
     return {
       items: normalizedItems,
       hasNextPage,
-      nextCursor,
-    };
+      nextCursor
+    }
   }
 
-  async updateRole(
-    id: string,
-    role: Prisma.MembershipUpdateInput['role'],
-    tx?: Prisma.TransactionClient,
-  ) {
+  async updateRole(id: string, role: Prisma.MembershipUpdateInput['role'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).membership.update({
       where: { id },
       data: { role },
-      include: membershipInclude,
-    });
+      include: membershipInclude
+    })
   }
 }

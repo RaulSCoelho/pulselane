@@ -1,11 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { CursorPageMetaResponseDto } from '@/common/pagination/dto/cursor-page-meta-response.dto';
-import { InvitationResponseDto } from './invitation-response.dto';
+import { CursorPageMetaResponseDto } from '@/common/pagination/dto/cursor-page-meta-response.dto'
+import { ApiProperty } from '@nestjs/swagger'
+
+import { InvitationResponseDto } from './invitation-response.dto'
 
 export class ListInvitationsResponseDto {
   @ApiProperty({ type: [InvitationResponseDto] })
-  items!: InvitationResponseDto[];
+  items!: InvitationResponseDto[]
 
   @ApiProperty({ type: CursorPageMetaResponseDto })
-  meta!: CursorPageMetaResponseDto;
+  meta!: CursorPageMetaResponseDto
 }

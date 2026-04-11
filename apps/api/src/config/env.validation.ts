@@ -1,10 +1,8 @@
-import Joi from 'joi';
+import Joi from 'joi'
 
 export const envValidationSchema = Joi.object({
   PORT: Joi.number().default(3001),
-  NODE_ENV: Joi.string()
-    .valid('development', 'test', 'production')
-    .default('development'),
+  NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
   ALLOWED_CORS_ORIGINS: Joi.string().required(),
 
   DATABASE_URL: Joi.string().uri().required(),
@@ -28,22 +26,22 @@ export const envValidationSchema = Joi.object({
   EMAIL_SMTP_HOST: Joi.when('EMAIL_TRANSPORT', {
     is: 'smtp',
     then: Joi.string().required(),
-    otherwise: Joi.string().optional(),
+    otherwise: Joi.string().optional()
   }),
   EMAIL_SMTP_PORT: Joi.when('EMAIL_TRANSPORT', {
     is: 'smtp',
     then: Joi.number().integer().positive().required(),
-    otherwise: Joi.number().integer().positive().optional(),
+    otherwise: Joi.number().integer().positive().optional()
   }),
   EMAIL_SMTP_SECURE: Joi.boolean().default(false),
   EMAIL_SMTP_USER: Joi.when('EMAIL_TRANSPORT', {
     is: 'smtp',
     then: Joi.string().required(),
-    otherwise: Joi.string().optional(),
+    otherwise: Joi.string().optional()
   }),
   EMAIL_SMTP_PASSWORD: Joi.when('EMAIL_TRANSPORT', {
     is: 'smtp',
     then: Joi.string().required(),
-    otherwise: Joi.string().optional(),
-  }),
-});
+    otherwise: Joi.string().optional()
+  })
+})

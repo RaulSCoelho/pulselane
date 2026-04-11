@@ -1,37 +1,37 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { MembershipRole, OrganizationInvitationStatus } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger'
+import { MembershipRole, OrganizationInvitationStatus } from '@prisma/client'
 
 export class PreviewInvitationResponseDto {
   @ApiProperty({ example: 'clxinv123' })
-  id!: string;
+  id!: string
 
   @ApiProperty({ example: 'invitee@example.com' })
-  email!: string;
+  email!: string
 
   @ApiProperty({ enum: MembershipRole, example: MembershipRole.member })
-  role!: MembershipRole;
+  role!: MembershipRole
 
   @ApiProperty({
     enum: OrganizationInvitationStatus,
-    example: OrganizationInvitationStatus.pending,
+    example: OrganizationInvitationStatus.pending
   })
-  status!: OrganizationInvitationStatus;
+  status!: OrganizationInvitationStatus
 
   @ApiProperty({ example: 'Pulselane Labs' })
-  organizationName!: string;
+  organizationName!: string
 
   @ApiProperty({ example: 'pulselane-labs' })
-  organizationSlug!: string;
+  organizationSlug!: string
 
   @ApiProperty({ example: 'Raul Semicek' })
-  invitedByName!: string;
+  invitedByName!: string
 
   @ApiProperty({ example: '2026-04-30T12:00:00.000Z' })
-  expiresAt!: Date;
+  expiresAt!: Date
 
   @ApiProperty({ example: false })
-  isExpired!: boolean;
+  isExpired!: boolean
 
   @ApiProperty({ example: true })
-  canAccept!: boolean;
+  canAccept!: boolean
 }

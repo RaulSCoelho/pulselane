@@ -1,17 +1,14 @@
-import nodemailer from 'nodemailer';
-import SMTPTransport from 'nodemailer/lib/smtp-transport';
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { EnvConfig } from '@/config/env.config';
-import {
-  EmailProvider,
-  EmailProviderSendInput,
-  EmailProviderSendResult,
-} from '../contracts/email-provider';
+import { EnvConfig } from '@/config/env.config'
+import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import nodemailer from 'nodemailer'
+import SMTPTransport from 'nodemailer/lib/smtp-transport'
+
+import { EmailProvider, EmailProviderSendInput, EmailProviderSendResult } from '../contracts/email-provider'
 
 @Injectable()
 export class SmtpEmailProvider implements EmailProvider {
-  private readonly transporter: nodemailer.Transporter<SMTPTransport.SentMessageInfo>;
+  private readonly transporter: nodemailer.Transporter<SMTPTransport.SentMessageInfo>
 
   constructor(private readonly configService: ConfigService<EnvConfig, true>) {
     this.transporter = nodemailer.createTransport({
@@ -20,9 +17,9 @@ export class SmtpEmailProvider implements EmailProvider {
       secure: this.configService.get('emailSmtpSecure', { infer: true }),
       auth: {
         user: this.configService.get('emailSmtpUser', { infer: true }),
-        pass: this.configService.get('emailSmtpPassword', { infer: true }),
-      },
-    });
+        pass: this.configService.get('emailSmtpPassword', { infer: true })
+      }
+    })
   }
 
   async send(input: EmailProviderSendInput): Promise<EmailProviderSendResult> {
@@ -31,12 +28,12 @@ export class SmtpEmailProvider implements EmailProvider {
       to: input.to,
       subject: input.subject,
       text: input.text,
-      html: input.html,
-    });
+      html: input.html
+    })
 
     return {
       provider: 'smtp',
-      providerMessageId: info.messageId ?? null,
-    };
+      providerMessageId: info.messageId ?? null
+    }
   }
 }

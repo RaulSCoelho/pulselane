@@ -1,27 +1,18 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { MembershipModule } from '@/modules/membership/membership.module';
-import { BillingModule } from '@/modules/billing/billing.module';
-import { OrganizationService } from './organization.service';
-import { OrganizationRepository } from './organization.repository';
-import { OrganizationController } from './organization.controller';
-import { OrganizationContextGuard } from './guards/organization-context.guard';
-import { OrganizationRolesGuard } from './guards/organization-roles.guard';
+import { BillingModule } from '@/modules/billing/billing.module'
+import { MembershipModule } from '@/modules/membership/membership.module'
+import { forwardRef, Module } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
+
+import { OrganizationContextGuard } from './guards/organization-context.guard'
+import { OrganizationRolesGuard } from './guards/organization-roles.guard'
+import { OrganizationController } from './organization.controller'
+import { OrganizationRepository } from './organization.repository'
+import { OrganizationService } from './organization.service'
 
 @Module({
   imports: [forwardRef(() => MembershipModule), BillingModule],
   controllers: [OrganizationController],
-  providers: [
-    Reflector,
-    OrganizationService,
-    OrganizationRepository,
-    OrganizationContextGuard,
-    OrganizationRolesGuard,
-  ],
-  exports: [
-    OrganizationService,
-    OrganizationContextGuard,
-    OrganizationRolesGuard,
-  ],
+  providers: [Reflector, OrganizationService, OrganizationRepository, OrganizationContextGuard, OrganizationRolesGuard],
+  exports: [OrganizationService, OrganizationContextGuard, OrganizationRolesGuard]
 })
 export class OrganizationModule {}

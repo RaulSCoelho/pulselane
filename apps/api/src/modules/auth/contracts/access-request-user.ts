@@ -1,3 +1,3 @@
-import { AccessTokenPayload } from './access-token-payload';
+import { AccessTokenPayload } from './access-token-payload'
 
-export type AccessRequestUser = AccessTokenPayload;
+export type AccessRequestUser = AccessTokenPayload

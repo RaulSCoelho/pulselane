@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { AuditLogAction, Client, ClientStatus, Prisma } from '@prisma/client';
-import { UsagePolicyService } from '@/modules/billing/usage-policy.service';
-import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service';
-import { CreateClientDto } from './dto/requests/create-client.dto';
-import { ListClientsQueryDto } from './dto/requests/list-clients-query.dto';
-import { UpdateClientDto } from './dto/requests/update-client.dto';
-import { ClientRepository } from './client.repository';
-import { PrismaService } from '@/infra/prisma/prisma.service';
+import { PrismaService } from '@/infra/prisma/prisma.service'
+import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
+import { UsagePolicyService } from '@/modules/billing/usage-policy.service'
+import { Injectable, NotFoundException } from '@nestjs/common'
+import { AuditLogAction, Client, ClientStatus, Prisma } from '@prisma/client'
+
+import { ClientRepository } from './client.repository'
+import { CreateClientDto } from './dto/requests/create-client.dto'
+import { ListClientsQueryDto } from './dto/requests/list-clients-query.dto'
+import { UpdateClientDto } from './dto/requests/update-client.dto'
 
 @Injectable()
 export class ClientsService {
@@ -14,19 +15,14 @@ export class ClientsService {
     private readonly prisma: PrismaService,
     private readonly clientRepository: ClientRepository,
     private readonly auditLogsService: AuditLogsService,
-    private readonly usagePolicyService: UsagePolicyService,
+    private readonly usagePolicyService: UsagePolicyService
   ) {}
 
-  async create(
-    actorUserId: string,
-    organizationId: string,
-    dto: CreateClientDto,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const status = dto.status ?? ClientStatus.active;
+  async create(actorUserId: string, organizationId: string, dto: CreateClientDto, tx?: Prisma.TransactionClient) {
+    const status = dto.status ?? ClientStatus.active
 
     const createClient = async (trx: Prisma.TransactionClient) => {
-      await this.usagePolicyService.assertCanCreateClient(organizationId, trx);
+      await this.usagePolicyService.assertCanCreateClient(organizationId, trx)
 
       const client = await this.clientRepository.create(
         {
@@ -35,75 +31,56 @@ export class ClientsService {
           email: dto.email,
           companyName: dto.companyName,
           status,
-          archivedAt: status === ClientStatus.archived ? new Date() : null,
+          archivedAt: status === ClientStatus.archived ? new Date() : null
         },
-        trx,
-      );
+        trx
+      )
 
-      await this.auditLog(
-        client,
-        actorUserId,
-        organizationId,
-        AuditLogAction.created,
-        trx,
-      );
+      await this.auditLog(client, actorUserId, organizationId, AuditLogAction.created, trx)
 
-      return client;
-    };
-
-    if (tx) {
-      return createClient(tx);
+      return client
     }
 
-    return this.prisma.$transaction((trx) => createClient(trx));
+    if (tx) {
+      return createClient(tx)
+    }
+
+    return this.prisma.$transaction(trx => createClient(trx))
   }
 
-  async findAll(
-    organizationId: string,
-    query: ListClientsQueryDto,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const limit = query.limit ?? 20;
+  async findAll(organizationId: string, query: ListClientsQueryDto, tx?: Prisma.TransactionClient) {
+    const limit = query.limit ?? 20
 
-    const { items, nextCursor, hasNextPage } =
-      await this.clientRepository.findManyByOrganization(
-        {
-          organizationId,
-          search: query.search,
-          status: query.status,
-          includeArchived: query.includeArchived,
-          cursor: query.cursor,
-          limit,
-        },
-        tx,
-      );
+    const { items, nextCursor, hasNextPage } = await this.clientRepository.findManyByOrganization(
+      {
+        organizationId,
+        search: query.search,
+        status: query.status,
+        includeArchived: query.includeArchived,
+        cursor: query.cursor,
+        limit
+      },
+      tx
+    )
 
     return {
       items,
       meta: {
         limit,
         nextCursor,
-        hasNextPage,
-      },
-    };
+        hasNextPage
+      }
+    }
   }
 
-  async findOne(
-    organizationId: string,
-    clientId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const client = await this.clientRepository.findByIdAndOrganization(
-      clientId,
-      organizationId,
-      tx,
-    );
+  async findOne(organizationId: string, clientId: string, tx?: Prisma.TransactionClient) {
+    const client = await this.clientRepository.findByIdAndOrganization(clientId, organizationId, tx)
 
     if (!client) {
-      throw new NotFoundException('Client not found');
+      throw new NotFoundException('Client not found')
     }
 
-    return client;
+    return client
   }
 
   async update(
@@ -111,82 +88,52 @@ export class ClientsService {
     organizationId: string,
     clientId: string,
     dto: UpdateClientDto,
-    tx?: Prisma.TransactionClient,
+    tx?: Prisma.TransactionClient
   ) {
-    await this.ensureClientExists(clientId, organizationId, tx);
+    await this.ensureClientExists(clientId, organizationId, tx)
 
     const client = await this.clientRepository.update(
       clientId,
       {
         ...dto,
-        archivedAt:
-          dto.status === undefined
-            ? undefined
-            : dto.status === ClientStatus.archived
-              ? new Date()
-              : null,
+        archivedAt: dto.status === undefined ? undefined : dto.status === ClientStatus.archived ? new Date() : null
       },
-      tx,
-    );
+      tx
+    )
 
-    await this.auditLog(
-      client,
-      actorUserId,
-      organizationId,
-      AuditLogAction.updated,
-      tx,
-    );
+    await this.auditLog(client, actorUserId, organizationId, AuditLogAction.updated, tx)
 
-    return client;
+    return client
   }
 
-  async remove(
-    actorUserId: string,
-    organizationId: string,
-    clientId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
-    await this.getClientOrThrow(clientId, organizationId, tx);
+  async remove(actorUserId: string, organizationId: string, clientId: string, tx?: Prisma.TransactionClient) {
+    await this.getClientOrThrow(clientId, organizationId, tx)
 
-    const client = await this.clientRepository.archive(clientId, tx);
+    const client = await this.clientRepository.archive(clientId, tx)
 
-    await this.auditLog(
-      client,
-      actorUserId,
-      organizationId,
-      AuditLogAction.archived,
-      tx,
-    );
+    await this.auditLog(client, actorUserId, organizationId, AuditLogAction.archived, tx)
 
     return {
-      success: true,
-    };
+      success: true
+    }
   }
 
   private async ensureClientExists(
     clientId: string,
     organizationId: string,
-    tx?: Prisma.TransactionClient,
+    tx?: Prisma.TransactionClient
   ): Promise<void> {
-    await this.getClientOrThrow(clientId, organizationId, tx);
+    await this.getClientOrThrow(clientId, organizationId, tx)
   }
 
-  private async getClientOrThrow(
-    clientId: string,
-    organizationId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const client = await this.clientRepository.findByIdAndOrganization(
-      clientId,
-      organizationId,
-      tx,
-    );
+  private async getClientOrThrow(clientId: string, organizationId: string, tx?: Prisma.TransactionClient) {
+    const client = await this.clientRepository.findByIdAndOrganization(clientId, organizationId, tx)
 
     if (!client) {
-      throw new NotFoundException('Client not found');
+      throw new NotFoundException('Client not found')
     }
 
-    return client;
+    return client
   }
 
   private async auditLog(
@@ -194,7 +141,7 @@ export class ClientsService {
     actorUserId: string,
     organizationId: string,
     action: AuditLogAction,
-    tx?: Prisma.TransactionClient,
+    tx?: Prisma.TransactionClient
   ) {
     return this.auditLogsService.create(
       {
@@ -208,10 +155,10 @@ export class ClientsService {
           email: client.email,
           companyName: client.companyName,
           status: client.status,
-          archivedAt: client.archivedAt,
-        },
+          archivedAt: client.archivedAt
+        }
       },
-      tx,
-    );
+      tx
+    )
   }
 }

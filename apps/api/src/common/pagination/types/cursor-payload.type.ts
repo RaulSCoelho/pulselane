@@ -1,4 +1,4 @@
 export type CursorPayload = {
-  id: string;
-  createdAt: string;
-};
+  id: string
+  createdAt: string
+}

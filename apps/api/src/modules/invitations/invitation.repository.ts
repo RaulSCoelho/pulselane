@@ -1,161 +1,141 @@
-import { Injectable } from '@nestjs/common';
-import { OrganizationInvitationStatus, Prisma } from '@prisma/client';
-import { PrismaService } from '@/infra/prisma/prisma.service';
-import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util';
-import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util';
+import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util'
+import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util'
+import { PrismaService } from '@/infra/prisma/prisma.service'
+import { Injectable } from '@nestjs/common'
+import { OrganizationInvitationStatus, Prisma } from '@prisma/client'
 
 type FindManyByOrganizationParams = {
-  organizationId: string;
-  cursor?: string;
-  limit: number;
-  email?: string;
-  status?: OrganizationInvitationStatus;
-};
+  organizationId: string
+  cursor?: string
+  limit: number
+  email?: string
+  status?: OrganizationInvitationStatus
+}
 
 const invitationInclude = {
   invitedBy: {
     select: {
       id: true,
       name: true,
-      email: true,
-    },
+      email: true
+    }
   },
   organization: {
     select: {
       id: true,
       name: true,
-      slug: true,
-    },
-  },
-} satisfies Prisma.OrganizationInvitationInclude;
+      slug: true
+    }
+  }
+} satisfies Prisma.OrganizationInvitationInclude
 
 @Injectable()
 export class InvitationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private getClient(tx?: Prisma.TransactionClient) {
-    return tx ?? this.prisma;
+    return tx ?? this.prisma
   }
 
-  async create(
-    data: Prisma.OrganizationInvitationCreateArgs['data'],
-    tx?: Prisma.TransactionClient,
-  ) {
+  async create(data: Prisma.OrganizationInvitationCreateArgs['data'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).organizationInvitation.create({
       data,
-      include: invitationInclude,
-    });
+      include: invitationInclude
+    })
   }
 
   async findByToken(token: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).organizationInvitation.findUnique({
       where: { token },
-      include: invitationInclude,
-    });
+      include: invitationInclude
+    })
   }
 
-  async findPendingByOrganizationAndEmail(
-    organizationId: string,
-    email: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findPendingByOrganizationAndEmail(organizationId: string, email: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).organizationInvitation.findFirst({
       where: {
         organizationId,
         email,
-        status: OrganizationInvitationStatus.pending,
+        status: OrganizationInvitationStatus.pending
       },
       include: invitationInclude,
       orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        createdAt: 'desc'
+      }
+    })
   }
 
-  async findByIdAndOrganization(
-    id: string,
-    organizationId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findByIdAndOrganization(id: string, organizationId: string, tx?: Prisma.TransactionClient) {
     return this.getClient(tx).organizationInvitation.findFirst({
       where: {
         id,
-        organizationId,
+        organizationId
       },
-      include: invitationInclude,
-    });
+      include: invitationInclude
+    })
   }
 
-  async findManyByOrganization(
-    params: FindManyByOrganizationParams,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const { organizationId, cursor, limit, email, status } = params;
+  async findManyByOrganization(params: FindManyByOrganizationParams, tx?: Prisma.TransactionClient) {
+    const { organizationId, cursor, limit, email, status } = params
 
-    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor);
+    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor)
 
-    const andFilters: Prisma.OrganizationInvitationWhereInput[] = [
-      { organizationId },
-    ];
+    const andFilters: Prisma.OrganizationInvitationWhereInput[] = [{ organizationId }]
 
     if (status) {
-      andFilters.push({ status });
+      andFilters.push({ status })
     }
 
     if (email) {
       andFilters.push({
         email: {
           contains: email,
-          mode: 'insensitive',
-        },
-      });
+          mode: 'insensitive'
+        }
+      })
     }
 
     if (cursorWhere) {
-      andFilters.push(cursorWhere);
+      andFilters.push(cursorWhere)
     }
 
     const items = await this.getClient(tx).organizationInvitation.findMany({
       where: {
-        AND: andFilters,
+        AND: andFilters
       },
       include: invitationInclude,
       orderBy: [
         {
-          createdAt: 'desc',
+          createdAt: 'desc'
         },
         {
-          id: 'desc',
-        },
+          id: 'desc'
+        }
       ],
-      take: limit + 1,
-    });
+      take: limit + 1
+    })
 
     const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
       items,
       limit,
-      getCursorPayload: (item) => ({
+      getCursorPayload: item => ({
         id: item.id,
-        createdAt: item.createdAt.toISOString(),
-      }),
-    });
+        createdAt: item.createdAt.toISOString()
+      })
+    })
 
     return {
       items: normalizedItems,
       hasNextPage,
-      nextCursor,
-    };
+      nextCursor
+    }
   }
 
-  async update(
-    id: string,
-    data: Prisma.OrganizationInvitationUpdateArgs['data'],
-    tx?: Prisma.TransactionClient,
-  ) {
+  async update(id: string, data: Prisma.OrganizationInvitationUpdateArgs['data'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).organizationInvitation.update({
       where: { id },
       data,
-      include: invitationInclude,
-    });
+      include: invitationInclude
+    })
   }
 }

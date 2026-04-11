@@ -1,16 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { AuditLogAction, Prisma } from '@prisma/client';
-import { AuditLogRepository } from './audit-log.repository';
-import { ListAuditLogsQueryDto } from './dto/requests/list-audit-logs-query.dto';
+import { Injectable } from '@nestjs/common'
+import { AuditLogAction, Prisma } from '@prisma/client'
+
+import { AuditLogRepository } from './audit-log.repository'
+import { ListAuditLogsQueryDto } from './dto/requests/list-audit-logs-query.dto'
 
 type RegisterAuditLogInput = {
-  organizationId: string;
-  actorUserId: string;
-  entityType: string;
-  entityId: string;
-  action: AuditLogAction;
-  metadata?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput;
-};
+  organizationId: string
+  actorUserId: string
+  entityType: string
+  entityId: string
+  action: AuditLogAction
+  metadata?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput
+}
 
 @Injectable()
 export class AuditLogsService {
@@ -24,40 +25,35 @@ export class AuditLogsService {
         entityType: input.entityType,
         entityId: input.entityId,
         action: input.action,
-        metadata: input.metadata,
+        metadata: input.metadata
       },
-      tx,
-    );
+      tx
+    )
   }
 
-  async findAll(
-    organizationId: string,
-    query: ListAuditLogsQueryDto,
-    tx?: Prisma.TransactionClient,
-  ) {
-    const limit = query.limit ?? 20;
+  async findAll(organizationId: string, query: ListAuditLogsQueryDto, tx?: Prisma.TransactionClient) {
+    const limit = query.limit ?? 20
 
-    const { items, nextCursor, hasNextPage } =
-      await this.auditLogRepository.findManyByOrganization(
-        {
-          organizationId,
-          entityType: query.entityType,
-          entityId: query.entityId,
-          actorUserId: query.actorUserId,
-          action: query.action,
-          cursor: query.cursor,
-          limit,
-        },
-        tx,
-      );
+    const { items, nextCursor, hasNextPage } = await this.auditLogRepository.findManyByOrganization(
+      {
+        organizationId,
+        entityType: query.entityType,
+        entityId: query.entityId,
+        actorUserId: query.actorUserId,
+        action: query.action,
+        cursor: query.cursor,
+        limit
+      },
+      tx
+    )
 
     return {
       items,
       meta: {
         limit,
         nextCursor,
-        hasNextPage,
-      },
-    };
+        hasNextPage
+      }
+    }
   }
 }

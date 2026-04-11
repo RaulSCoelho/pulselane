@@ -1,27 +1,28 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { MembershipRole } from '@prisma/client';
-import { MembershipUserResponseDto } from './membership-user-response.dto';
-import { MembershipOrganizationResponseDto } from './membership-organization-response.dto';
+import { ApiProperty } from '@nestjs/swagger'
+import { MembershipRole } from '@prisma/client'
+
+import { MembershipOrganizationResponseDto } from './membership-organization-response.dto'
+import { MembershipUserResponseDto } from './membership-user-response.dto'
 
 export class MembershipResponseDto {
   @ApiProperty({ example: 'clxmembership123' })
-  id!: string;
+  id!: string
 
   @ApiProperty({ example: 'clxuser123' })
-  userId!: string;
+  userId!: string
 
   @ApiProperty({ example: 'clxorg123' })
-  organizationId!: string;
+  organizationId!: string
 
   @ApiProperty({ enum: MembershipRole, example: MembershipRole.member })
-  role!: MembershipRole;
+  role!: MembershipRole
 
   @ApiProperty({ example: '2026-04-03T20:00:00.000Z' })
-  createdAt!: Date;
+  createdAt!: Date
 
   @ApiProperty({ type: MembershipUserResponseDto })
-  user!: MembershipUserResponseDto;
+  user!: MembershipUserResponseDto
 
   @ApiProperty({ type: MembershipOrganizationResponseDto })
-  organization!: MembershipOrganizationResponseDto;
+  organization!: MembershipOrganizationResponseDto
 }
