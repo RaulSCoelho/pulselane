@@ -10,6 +10,7 @@ export const envValidationSchema = Joi.object({
   LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('debug'),
   SLOW_REQUEST_THRESHOLD_MS: Joi.number().integer().positive().default(1000),
 
+  THROTTLING_ENABLED: Joi.boolean().optional(),
   RATE_LIMIT_TTL_MS: Joi.number().integer().positive().default(60_000),
   RATE_LIMIT_LIMIT: Joi.number().integer().positive().default(120),
   AUTH_RATE_LIMIT_TTL_MS: Joi.number().integer().positive().default(60_000),

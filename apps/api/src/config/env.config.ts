@@ -17,6 +17,7 @@ export function configuration() {
     slowRequestThresholdMs: Number(process.env.SLOW_REQUEST_THRESHOLD_MS ?? 1000),
 
     // throttling
+    throttlingEnabled: process.env.THROTTLING_ENABLED ? process.env.THROTTLING_ENABLED === 'true' : nodeEnv !== 'test',
     rateLimitTtlMs: Number(process.env.RATE_LIMIT_TTL_MS ?? 60_000),
     rateLimitLimit: Number(process.env.RATE_LIMIT_LIMIT ?? 120),
     authRateLimitTtlMs: Number(process.env.AUTH_RATE_LIMIT_TTL_MS ?? 60_000),

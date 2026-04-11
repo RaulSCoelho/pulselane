@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { CanActivate, Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
@@ -57,9 +57,24 @@ import { TasksModule } from './modules/tasks/tasks.module'
     InvitationsModule
   ],
   providers: [
+    AppThrottlerGuard,
     {
       provide: APP_GUARD,
-      useClass: AppThrottlerGuard
+      inject: [ConfigService, AppThrottlerGuard],
+      useFactory: (
+        configService: ConfigService<EnvConfig, true>,
+        appThrottlerGuard: AppThrottlerGuard
+      ): CanActivate => {
+        const throttlingEnabled = configService.getOrThrow('throttlingEnabled', { infer: true })
+
+        if (!throttlingEnabled) {
+          return {
+            canActivate: () => true
+          }
+        }
+
+        return appThrottlerGuard
+      }
     },
     {
       provide: APP_FILTER,
