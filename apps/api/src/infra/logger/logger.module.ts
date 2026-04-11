@@ -99,6 +99,17 @@ function getRequestContext(request: unknown) {
           }
         }
 
+        if (nodeEnv === 'test') {
+          return {
+            ...baseParams,
+            pinoHttp: {
+              ...baseParams.pinoHttp,
+              level: 'silent',
+              autoLogging: false
+            }
+          }
+        }
+
         return baseParams
       }
     })
