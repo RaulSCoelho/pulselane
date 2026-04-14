@@ -1,6 +1,8 @@
 import { CurrentOrganization } from '@/common/decorators/current-organization.decorator'
+import { OrganizationRoles } from '@/common/decorators/organization-roles.decorator'
 import { ErrorResponseDto } from '@/common/dto/error-response.dto'
 import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard'
+import { OrganizationRolesGuard } from '@/modules/organization/guards/organization-roles.guard'
 import { Controller, Get, Query, UseGuards } from '@nestjs/common'
 import {
   ApiBadRequestResponse,
@@ -12,6 +14,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse
 } from '@nestjs/swagger'
+import { MembershipRole } from '@prisma/client'
 
 import { AuditLogsService } from './audit-logs.service'
 import { ListAuditLogsQueryDto } from './dto/requests/list-audit-logs-query.dto'
@@ -29,15 +32,16 @@ import { ListAuditLogsResponseDto } from './dto/responses/list-audit-logs-respon
   type: ErrorResponseDto
 })
 @ApiForbiddenResponse({
-  description: 'User is not a member of this organization',
+  description: 'Only organization owners and admins can access audit logs',
   type: ErrorResponseDto
 })
-@UseGuards(OrganizationContextGuard)
+@UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
 @Controller('audit-logs')
 export class AuditLogsController {
   constructor(private readonly auditLogsService: AuditLogsService) {}
 
   @Get()
+  @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
   @ApiOperation({ summary: 'List audit logs' })
   @ApiOkResponse({
     description: 'Audit logs returned successfully',
