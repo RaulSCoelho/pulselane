@@ -108,14 +108,13 @@ export async function ensureSharedTestDatabase(): Promise<PrismaClient> {
 
   prisma ??= createPrismaClient(SHARED_TEST_DATABASE_URL)
   await prisma.$connect()
-  await prisma.$executeRawUnsafe(buildTruncateStatement())
 
   isPrepared = true
 
   return prisma
 }
 
-export async function resetSharedTestDatabase(): Promise<void> {
+export async function clearSharedTestDatabase(): Promise<void> {
   const client = await ensureSharedTestDatabase()
   await client.$executeRawUnsafe(buildTruncateStatement())
 }
