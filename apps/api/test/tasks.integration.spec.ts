@@ -251,4 +251,71 @@ describe('Tasks integration', () => {
 
     expect(createForArchivedProject.body.message).toBe('Cannot create a task for an archived project')
   })
+
+  it('should block unarchiving a task when the free plan active task limit is already reached', async () => {
+    const owner = await signupAndGetContext({
+      app,
+      prisma,
+      email: 'tasks-unarchive-limit@example.com',
+      organizationName: 'Tasks Unarchive Limit Workspace'
+    })
+
+    const client = await prisma.client.create({
+      data: {
+        organizationId: owner.organizationId,
+        name: 'Tasks Limit Client',
+        status: 'active'
+      }
+    })
+
+    const project = await prisma.project.create({
+      data: {
+        organizationId: owner.organizationId,
+        clientId: client.id,
+        name: 'Tasks Limit Project',
+        status: 'active'
+      }
+    })
+
+    const archivedTask = await prisma.task.create({
+      data: {
+        organizationId: owner.organizationId,
+        projectId: project.id,
+        title: 'Archived Task',
+        status: 'archived',
+        archivedAt: new Date()
+      }
+    })
+
+    for (let index = 0; index < 100; index++) {
+      await prisma.task.create({
+        data: {
+          organizationId: owner.organizationId,
+          projectId: project.id,
+          title: `Active Task ${index + 1}`,
+          status: 'todo'
+        }
+      })
+    }
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/tasks/${archivedTask.id}`)
+      .set('Authorization', `Bearer ${owner.accessToken}`)
+      .set('x-organization-id', owner.organizationId)
+      .send({
+        status: 'todo'
+      })
+      .expect(403)
+
+    expect(response.body.message).toBe('Plan limit reached for active tasks')
+
+    const persistedTask = await prisma.task.findUnique({
+      where: {
+        id: archivedTask.id
+      }
+    })
+
+    expect(persistedTask).not.toBeNull()
+    expect(persistedTask?.status).toBe('archived')
+  })
 })

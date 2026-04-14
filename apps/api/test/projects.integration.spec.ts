@@ -220,4 +220,62 @@ describe('Projects integration', () => {
 
     expect(createForArchivedClient.body.message).toBe('Cannot create a project for an archived client')
   })
+
+  it('should block unarchiving a project when the free plan project limit is already reached', async () => {
+    const { accessToken, organizationId } = await signupAndGetContext({
+      app,
+      prisma,
+      email: 'projects-unarchive-limit@example.com',
+      organizationName: 'Projects Unarchive Limit Workspace'
+    })
+
+    const client = await prisma.client.create({
+      data: {
+        organizationId,
+        name: 'Projects Limit Client',
+        status: 'active'
+      }
+    })
+
+    const archivedProject = await prisma.project.create({
+      data: {
+        organizationId,
+        clientId: client.id,
+        name: 'Archived Project',
+        status: 'archived',
+        archivedAt: new Date()
+      }
+    })
+
+    for (let index = 0; index < 10; index++) {
+      await prisma.project.create({
+        data: {
+          organizationId,
+          clientId: client.id,
+          name: `Active Project ${index + 1}`,
+          status: 'active'
+        }
+      })
+    }
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/projects/${archivedProject.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        status: 'active'
+      })
+      .expect(403)
+
+    expect(response.body.message).toBe('Plan limit reached for projects')
+
+    const persistedProject = await prisma.project.findUnique({
+      where: {
+        id: archivedProject.id
+      }
+    })
+
+    expect(persistedProject).not.toBeNull()
+    expect(persistedProject?.status).toBe('archived')
+  })
 })

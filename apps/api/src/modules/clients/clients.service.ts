@@ -90,20 +90,34 @@ export class ClientsService {
     dto: UpdateClientDto,
     tx?: Prisma.TransactionClient
   ) {
-    await this.ensureClientExists(clientId, organizationId, tx)
+    const updateClient = async (trx: Prisma.TransactionClient) => {
+      const currentClient = await this.getClientOrThrow(clientId, organizationId, trx)
+      const nextStatus = dto.status ?? currentClient.status
+      const isUnarchiving = currentClient.status === ClientStatus.archived && nextStatus !== ClientStatus.archived
 
-    const client = await this.clientRepository.update(
-      clientId,
-      {
-        ...dto,
-        archivedAt: dto.status === undefined ? undefined : dto.status === ClientStatus.archived ? new Date() : null
-      },
-      tx
-    )
+      if (isUnarchiving) {
+        await this.usagePolicyService.assertCanCreateClient(organizationId, trx)
+      }
 
-    await this.auditLog(client, actorUserId, organizationId, AuditLogAction.updated, tx)
+      const client = await this.clientRepository.update(
+        clientId,
+        {
+          ...dto,
+          archivedAt: dto.status === undefined ? undefined : dto.status === ClientStatus.archived ? new Date() : null
+        },
+        trx
+      )
 
-    return client
+      await this.auditLog(client, actorUserId, organizationId, AuditLogAction.updated, trx)
+
+      return client
+    }
+
+    if (tx) {
+      return updateClient(tx)
+    }
+
+    return this.prisma.$transaction(trx => updateClient(trx))
   }
 
   async remove(actorUserId: string, organizationId: string, clientId: string, tx?: Prisma.TransactionClient) {
@@ -116,14 +130,6 @@ export class ClientsService {
     return {
       success: true
     }
-  }
-
-  private async ensureClientExists(
-    clientId: string,
-    organizationId: string,
-    tx?: Prisma.TransactionClient
-  ): Promise<void> {
-    await this.getClientOrThrow(clientId, organizationId, tx)
   }
 
   private async getClientOrThrow(clientId: string, organizationId: string, tx?: Prisma.TransactionClient) {

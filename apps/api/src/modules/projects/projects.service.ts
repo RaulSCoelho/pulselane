@@ -103,28 +103,44 @@ export class ProjectsService {
     dto: UpdateProjectDto,
     tx?: Prisma.TransactionClient
   ) {
-    await this.ensureProjectExists(projectId, organizationId, tx)
+    const updateProject = async (trx: Prisma.TransactionClient) => {
+      const currentProject = await this.getProjectOrThrow(projectId, organizationId, trx)
+      const nextStatus = dto.status ?? currentProject.status
+      const nextClientId = dto.clientId ?? currentProject.clientId
+      const isUnarchiving = currentProject.status === ProjectStatus.archived && nextStatus !== ProjectStatus.archived
+      const mustValidateTargetClient = dto.clientId !== undefined || isUnarchiving
 
-    if (dto.clientId) {
-      const client = await this.clientsService.findOne(organizationId, dto.clientId, tx)
+      if (mustValidateTargetClient) {
+        const client = await this.clientsService.findOne(organizationId, nextClientId, trx)
 
-      if (client.status === ClientStatus.archived) {
-        throw new BadRequestException('Cannot move a project to an archived client')
+        if (client.status === ClientStatus.archived) {
+          throw new BadRequestException('Cannot move a project to an archived client')
+        }
       }
+
+      if (isUnarchiving) {
+        await this.usagePolicyService.assertCanCreateProject(organizationId, trx)
+      }
+
+      const project = await this.projectRepository.update(
+        projectId,
+        {
+          ...dto,
+          archivedAt: dto.status === undefined ? undefined : dto.status === ProjectStatus.archived ? new Date() : null
+        },
+        trx
+      )
+
+      await this.auditLog(project, actorUserId, organizationId, AuditLogAction.updated, trx)
+
+      return project
     }
 
-    const project = await this.projectRepository.update(
-      projectId,
-      {
-        ...dto,
-        archivedAt: dto.status === undefined ? undefined : dto.status === ProjectStatus.archived ? new Date() : null
-      },
-      tx
-    )
+    if (tx) {
+      return updateProject(tx)
+    }
 
-    await this.auditLog(project, actorUserId, organizationId, AuditLogAction.updated, tx)
-
-    return project
+    return this.prisma.$transaction(trx => updateProject(trx))
   }
 
   async remove(actorUserId: string, organizationId: string, projectId: string, tx?: Prisma.TransactionClient) {
@@ -137,14 +153,6 @@ export class ProjectsService {
     return {
       success: true
     }
-  }
-
-  private async ensureProjectExists(
-    projectId: string,
-    organizationId: string,
-    tx?: Prisma.TransactionClient
-  ): Promise<void> {
-    await this.getProjectOrThrow(projectId, organizationId, tx)
   }
 
   private async getProjectOrThrow(projectId: string, organizationId: string, tx?: Prisma.TransactionClient) {

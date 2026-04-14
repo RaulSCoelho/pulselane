@@ -128,37 +128,53 @@ export class TasksService {
     dto: UpdateTaskDto,
     tx?: Prisma.TransactionClient
   ) {
-    await this.ensureTaskExists(taskId, organizationId, tx)
+    const updateTask = async (trx: Prisma.TransactionClient) => {
+      const currentTask = await this.getTaskOrThrow(taskId, organizationId, trx)
+      const nextStatus = dto.status ?? currentTask.status
+      const nextProjectId = dto.projectId ?? currentTask.projectId
+      const isUnarchiving = currentTask.status === TaskStatus.archived && nextStatus !== TaskStatus.archived
+      const mustValidateTargetProject = dto.projectId !== undefined || isUnarchiving
 
-    if (dto.projectId) {
-      const project = await this.projectsService.findOne(organizationId, dto.projectId, tx)
+      if (mustValidateTargetProject) {
+        const project = await this.projectsService.findOne(organizationId, nextProjectId, trx)
 
-      if (project.status === ProjectStatus.archived) {
-        throw new BadRequestException('Cannot move a task to an archived project')
+        if (project.status === ProjectStatus.archived) {
+          throw new BadRequestException('Cannot move a task to an archived project')
+        }
       }
+
+      if (dto.assigneeUserId) {
+        await this.membershipService.ensureUserIsMember(dto.assigneeUserId, organizationId, {
+          notFoundMessage: 'Assignee not found in this organization',
+          exceptionType: 'not_found',
+          tx: trx
+        })
+      }
+
+      if (isUnarchiving) {
+        await this.usagePolicyService.assertCanCreateActiveTask(organizationId, trx)
+      }
+
+      const task = await this.taskRepository.update(
+        taskId,
+        {
+          ...dto,
+          dueDate: dto.dueDate === undefined ? undefined : dto.dueDate ? new Date(dto.dueDate) : null,
+          archivedAt: dto.status === undefined ? undefined : dto.status === TaskStatus.archived ? new Date() : null
+        },
+        trx
+      )
+
+      await this.auditLog(task, actorUserId, organizationId, AuditLogAction.updated, trx)
+
+      return task
     }
 
-    if (dto.assigneeUserId) {
-      await this.membershipService.ensureUserIsMember(dto.assigneeUserId, organizationId, {
-        notFoundMessage: 'Assignee not found in this organization',
-        exceptionType: 'not_found',
-        tx
-      })
+    if (tx) {
+      return updateTask(tx)
     }
 
-    const task = await this.taskRepository.update(
-      taskId,
-      {
-        ...dto,
-        dueDate: dto.dueDate === undefined ? undefined : dto.dueDate ? new Date(dto.dueDate) : null,
-        archivedAt: dto.status === undefined ? undefined : dto.status === TaskStatus.archived ? new Date() : null
-      },
-      tx
-    )
-
-    await this.auditLog(task, actorUserId, organizationId, AuditLogAction.updated, tx)
-
-    return task
+    return this.prisma.$transaction(trx => updateTask(trx))
   }
 
   async remove(actorUserId: string, organizationId: string, taskId: string, tx?: Prisma.TransactionClient) {
@@ -171,10 +187,6 @@ export class TasksService {
     return {
       success: true
     }
-  }
-
-  private async ensureTaskExists(taskId: string, organizationId: string, tx?: Prisma.TransactionClient): Promise<void> {
-    await this.getTaskOrThrow(taskId, organizationId, tx)
   }
 
   private async getTaskOrThrow(taskId: string, organizationId: string, tx?: Prisma.TransactionClient) {

@@ -157,4 +157,52 @@ describe('Clients integration', () => {
     expect(archivedClient.status).toBe('archived')
     expect(archivedClient.archivedAt).toBeTruthy()
   })
+
+  it('should block unarchiving a client when the free plan client limit is already reached', async () => {
+    const { accessToken, organizationId } = await signupAndGetContext({
+      app,
+      prisma,
+      email: 'clients-unarchive-limit@example.com',
+      organizationName: 'Clients Unarchive Limit Workspace'
+    })
+
+    const archivedClient = await prisma.client.create({
+      data: {
+        organizationId,
+        name: 'Archived Client',
+        status: 'archived',
+        archivedAt: new Date()
+      }
+    })
+
+    for (let index = 0; index < 10; index++) {
+      await prisma.client.create({
+        data: {
+          organizationId,
+          name: `Active Client ${index + 1}`,
+          status: 'active'
+        }
+      })
+    }
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/clients/${archivedClient.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        status: 'active'
+      })
+      .expect(403)
+
+    expect(response.body.message).toBe('Plan limit reached for clients')
+
+    const persistedClient = await prisma.client.findUnique({
+      where: {
+        id: archivedClient.id
+      }
+    })
+
+    expect(persistedClient).not.toBeNull()
+    expect(persistedClient?.status).toBe('archived')
+  })
 })
