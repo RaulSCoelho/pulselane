@@ -43,6 +43,10 @@ export class InvitationsController {
     description: 'Unauthorized',
     type: ErrorResponseDto
   })
+  @ApiForbiddenResponse({
+    description: 'Forbidden or plan limit reached for members',
+    type: ErrorResponseDto
+  })
   @ApiHeader({
     name: 'x-organization-id',
     required: true,

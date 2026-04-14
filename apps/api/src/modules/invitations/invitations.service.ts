@@ -1,5 +1,6 @@
 import { PrismaService } from '@/infra/prisma/prisma.service'
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
+import { UsagePolicyService } from '@/modules/billing/usage-policy.service'
 import { EmailService } from '@/modules/email/email.service'
 import { MembershipService } from '@/modules/membership/membership.service'
 import { UserService } from '@/modules/user/user.service'
@@ -31,7 +32,8 @@ export class InvitationsService {
     private readonly auditLogsService: AuditLogsService,
     private readonly userService: UserService,
     private readonly emailService: EmailService,
-    private readonly invitationLinksService: InvitationLinksService
+    private readonly invitationLinksService: InvitationLinksService,
+    private readonly usagePolicyService: UsagePolicyService
   ) {}
 
   async create(actorUserId: string, organizationId: string, dto: CreateInvitationDto, tx?: Prisma.TransactionClient) {
@@ -69,6 +71,8 @@ export class InvitationsService {
       if (existingPendingInvitation) {
         throw new ConflictException('A pending invitation already exists for this email')
       }
+
+      await this.usagePolicyService.assertCanCreateMembership(organizationId, trx)
 
       let invitation: OrganizationInvitation & {
         invitedBy: {

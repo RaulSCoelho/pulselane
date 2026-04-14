@@ -1,6 +1,7 @@
 import { describe } from 'vitest'
 
 import { registerInvitationEmailMismatchCase } from './invitation-email-mismatch.case'
+import { registerInvitationPlanLimitCreateCase } from './invitation-plan-limit-create.case'
 import { registerInvitationRaceAcceptCase } from './invitation-race-accept.case'
 import { registerInvitationRaceCreateCase } from './invitation-race-create.case'
 import { registerInvitationResendCase } from './invitation-resend.case'
@@ -14,4 +15,5 @@ describe('Invitations integration', () => {
   registerInvitationResendCase()
   registerInvitationRaceCreateCase()
   registerInvitationRaceAcceptCase()
+  registerInvitationPlanLimitCreateCase()
 })
