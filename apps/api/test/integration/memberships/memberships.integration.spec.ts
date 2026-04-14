@@ -1,36 +1,31 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
-import './helpers/test-env'
-import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import request from 'supertest'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-import { getCurrentUser, signupAndGetAccessToken, signupAndGetContext } from './helpers/auth-test-utils'
-import { createTestApp } from './helpers/create-test-app'
-import { setupTestDatabase, teardownTestDatabase } from './helpers/prisma-test-utils'
+import { createAuthenticatedUser, getCurrentUser, signupUser } from '../../support/factories/auth.factory'
+import { withOrgAuth } from '../../support/http/request-helpers'
+import type { CursorPageResponse, ErrorResponse } from '../../support/http/response.types'
+import { expectTyped } from '../../support/http/typed-response'
+import { getTestContext } from '../../support/runtime/test-context'
+
+type MembershipItem = {
+  id: string
+  role: string
+  user: {
+    id: string
+    email: string
+    name: string
+  }
+}
 
 describe('Memberships integration', () => {
-  let app: NestFastifyApplication
-  let prisma: Awaited<ReturnType<typeof setupTestDatabase>>
-
-  beforeAll(async () => {
-    prisma = await setupTestDatabase()
-    app = await createTestApp()
-  })
-
-  afterAll(async () => {
-    await app.close()
-    await teardownTestDatabase(prisma)
-  })
-
   it('should paginate memberships with cursor, filter memberships, and update role as owner', async () => {
-    const { accessToken } = await signupAndGetAccessToken(app, {
+    const { app, prisma } = await getTestContext()
+
+    const { response: ownerSignup } = await signupUser(app, {
       email: 'owner@example.com'
     })
 
-    const me = await getCurrentUser(app, accessToken)
+    const me = await getCurrentUser(app, ownerSignup.body.accessToken)
     const organizationId = me.memberships[0].organization.id
 
     const secondUser = await prisma.user.create({
@@ -65,89 +60,106 @@ describe('Memberships integration', () => {
       }
     })
 
-    const firstPage = await request(app.getHttpServer())
-      .get('/api/memberships')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
-      .query({ limit: 2 })
-      .expect(200)
+    const firstPage = await expectTyped<CursorPageResponse<MembershipItem>>(
+      withOrgAuth(request(app.getHttpServer()).get('/api/memberships').query({ limit: 2 }), {
+        accessToken: ownerSignup.body.accessToken,
+        organizationId
+      }),
+      200
+    )
 
     expect(firstPage.body.items).toHaveLength(2)
     expect(firstPage.body.meta.limit).toBe(2)
     expect(firstPage.body.meta.hasNextPage).toBe(true)
     expect(firstPage.body.meta.nextCursor).toBeTypeOf('string')
 
-    const secondPage = await request(app.getHttpServer())
-      .get('/api/memberships')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
-      .query({
-        limit: 2,
-        cursor: firstPage.body.meta.nextCursor as string
-      })
-      .expect(200)
+    const secondPage = await expectTyped<CursorPageResponse<MembershipItem>>(
+      withOrgAuth(
+        request(app.getHttpServer())
+          .get('/api/memberships')
+          .query({
+            limit: 2,
+            cursor: firstPage.body.meta.nextCursor ?? ''
+          }),
+        {
+          accessToken: ownerSignup.body.accessToken,
+          organizationId
+        }
+      ),
+      200
+    )
 
     expect(secondPage.body.items).toHaveLength(1)
     expect(secondPage.body.meta.hasNextPage).toBe(false)
     expect(secondPage.body.meta.nextCursor).toBeNull()
 
-    const filteredPage = await request(app.getHttpServer())
-      .get('/api/memberships')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
-      .query({
-        limit: 10,
-        search: 'member',
-        role: 'member'
-      })
-      .expect(200)
+    const filteredPage = await expectTyped<CursorPageResponse<MembershipItem>>(
+      withOrgAuth(
+        request(app.getHttpServer()).get('/api/memberships').query({
+          limit: 10,
+          search: 'member',
+          role: 'member'
+        }),
+        {
+          accessToken: ownerSignup.body.accessToken,
+          organizationId
+        }
+      ),
+      200
+    )
 
     expect(filteredPage.body.items).toHaveLength(1)
     expect(filteredPage.body.items[0].user.email).toBe('member@example.com')
     expect(filteredPage.body.items[0].role).toBe('member')
 
-    const updateResponse = await request(app.getHttpServer())
-      .patch(`/api/memberships/${membershipToUpdate.id}/role`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
-      .send({
+    const updateResponse = await expectTyped<MembershipItem>(
+      withOrgAuth(request(app.getHttpServer()).patch(`/api/memberships/${membershipToUpdate.id}/role`), {
+        accessToken: ownerSignup.body.accessToken,
+        organizationId
+      }).send({
         role: 'admin'
-      })
-      .expect(200)
+      }),
+      200
+    )
 
     expect(updateResponse.body.role).toBe('admin')
     expect(updateResponse.body.user.email).toBe('member@example.com')
   })
 
   it('should reject demoting the last owner of the organization', async () => {
-    const { accessToken } = await signupAndGetAccessToken(app, {
+    const { app } = await getTestContext()
+
+    const { response: ownerSignup } = await signupUser(app, {
       email: 'single-owner@example.com',
       organizationName: 'Single Owner Workspace'
     })
 
-    const me = await getCurrentUser(app, accessToken)
+    const me = await getCurrentUser(app, ownerSignup.body.accessToken)
     const organizationId = me.memberships[0].organization.id
     const ownerMembershipId = me.memberships[0].id
 
-    const response = await request(app.getHttpServer())
-      .patch(`/api/memberships/${ownerMembershipId}/role`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
-      .send({
+    const response = await expectTyped<ErrorResponse>(
+      withOrgAuth(request(app.getHttpServer()).patch(`/api/memberships/${ownerMembershipId}/role`), {
+        accessToken: ownerSignup.body.accessToken,
+        organizationId
+      }).send({
         role: 'admin'
-      })
-      .expect(403)
+      }),
+      403
+    )
 
     expect(response.body.message).toBe('Owner cannot remove own owner role')
   })
 
   it('should reject demoting another owner when they are the last owner remaining besides self after concurrency lock check', async () => {
-    const { accessToken } = await signupAndGetAccessToken(app, {
+    const { app, prisma } = await getTestContext()
+
+    const { response: ownerSignup } = await signupUser(app, {
       email: 'owner-a@example.com',
       organizationName: 'Owner Count Workspace'
     })
 
-    const me = await getCurrentUser(app, accessToken)
+    const me = await getCurrentUser(app, ownerSignup.body.accessToken)
     const organizationId = me.memberships[0].organization.id
 
     const secondOwnerUser = await prisma.user.create({
@@ -166,14 +178,15 @@ describe('Memberships integration', () => {
       }
     })
 
-    await request(app.getHttpServer())
-      .patch(`/api/memberships/${secondOwnerMembership.id}/role`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .set('x-organization-id', organizationId)
-      .send({
+    await expectTyped<MembershipItem>(
+      withOrgAuth(request(app.getHttpServer()).patch(`/api/memberships/${secondOwnerMembership.id}/role`), {
+        accessToken: ownerSignup.body.accessToken,
+        organizationId
+      }).send({
         role: 'admin'
-      })
-      .expect(200)
+      }),
+      200
+    )
 
     const updatedActorMembership = await prisma.membership.findFirst({
       where: {
@@ -196,12 +209,14 @@ describe('Memberships integration', () => {
   })
 
   it('should reject admin promoting a membership to owner', async () => {
-    const { accessToken } = await signupAndGetAccessToken(app, {
+    const { app, prisma } = await getTestContext()
+
+    const { response: ownerSignup } = await signupUser(app, {
       email: 'owner-promote@example.com',
       organizationName: 'Admin Promote Workspace'
     })
 
-    const me = await getCurrentUser(app, accessToken)
+    const me = await getCurrentUser(app, ownerSignup.body.accessToken)
     const organizationId = me.memberships[0].organization.id
 
     const adminUser = await prisma.user.create({
@@ -236,9 +251,7 @@ describe('Memberships integration', () => {
       }
     })
 
-    const adminLogin = await signupAndGetContext({
-      app,
-      prisma,
+    const adminLogin = await createAuthenticatedUser(app, prisma, {
       email: 'admin-promote-login@example.com',
       organizationName: 'Temporary Workspace'
     })
@@ -257,14 +270,15 @@ describe('Memberships integration', () => {
       }
     })
 
-    const response = await request(app.getHttpServer())
-      .patch(`/api/memberships/${memberMembership.id}/role`)
-      .set('Authorization', `Bearer ${adminLogin.accessToken}`)
-      .set('x-organization-id', organizationId)
-      .send({
+    const response = await expectTyped<ErrorResponse>(
+      withOrgAuth(request(app.getHttpServer()).patch(`/api/memberships/${memberMembership.id}/role`), {
+        accessToken: adminLogin.accessToken,
+        organizationId
+      }).send({
         role: 'owner'
-      })
-      .expect(403)
+      }),
+      403
+    )
 
     expect(response.body.message).toBe('Admins cannot assign owner role')
 

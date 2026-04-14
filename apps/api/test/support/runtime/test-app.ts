@@ -7,36 +7,41 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { Test } from '@nestjs/testing'
 import { Logger } from 'nestjs-pino'
 
-export async function createTestApp(): Promise<NestFastifyApplication> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile()
-  const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter(), { rawBody: true })
+let app: NestFastifyApplication | null = null
 
-  const configService = app.get(ConfigService<EnvConfig, true>)
-  const logger = app.get(Logger)
+async function createTestApp(): Promise<NestFastifyApplication> {
+  const moduleRef = await Test.createTestingModule({
+    imports: [AppModule]
+  }).compile()
 
-  app.useLogger(logger)
+  const nextApp = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter(), { rawBody: true })
+
+  const configService = nextApp.get(ConfigService<EnvConfig, true>)
+  const logger = nextApp.get(Logger)
+
+  nextApp.useLogger(logger)
 
   const cookieSecret = configService.getOrThrow('cookieSecret', { infer: true })
   const allowedCorsOrigins = configService.getOrThrow('allowedCorsOrigins', { infer: true })
 
-  await app.register(fastifyCookie, {
+  await nextApp.register(fastifyCookie, {
     secret: cookieSecret
   })
 
-  app.enableCors({
+  nextApp.enableCors({
     origin: allowedCorsOrigins,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS'
   })
 
-  app.setGlobalPrefix('api', {
+  nextApp.setGlobalPrefix('api', {
     exclude: [
       { path: 'health', method: RequestMethod.GET },
       { path: 'readiness', method: RequestMethod.GET }
     ]
   })
 
-  app.useGlobalPipes(
+  nextApp.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
@@ -44,8 +49,26 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
     })
   )
 
-  await app.init()
-  await app.getHttpAdapter().getInstance().ready()
+  await nextApp.init()
+  await nextApp.getHttpAdapter().getInstance().ready()
 
+  return nextApp
+}
+
+export async function getSharedTestApp(): Promise<NestFastifyApplication> {
+  if (app) {
+    return app
+  }
+
+  app = await createTestApp()
   return app
+}
+
+export async function closeSharedTestApp(): Promise<void> {
+  if (!app) {
+    return
+  }
+
+  await app.close()
+  app = null
 }
