@@ -22,7 +22,6 @@ const TRUNCATE_TABLES = [
 ] as const
 
 let prisma: PrismaClient | null = null
-let isPrepared = false
 
 function getDatabaseName(databaseUrl: string): string {
   const dbName = new URL(databaseUrl).pathname.replace(/^\//, '')
@@ -98,29 +97,27 @@ function buildTruncateStatement(): string {
   return `TRUNCATE TABLE ${quotedTables} RESTART IDENTITY CASCADE;`
 }
 
-export async function ensureSharedTestDatabase(): Promise<PrismaClient> {
-  if (isPrepared && prisma) {
-    return prisma
-  }
-
+export async function prepareSharedTestDatabase(): Promise<void> {
   await ensureDatabaseExists()
   runMigrations()
 
-  prisma ??= createPrismaClient(SHARED_TEST_DATABASE_URL)
-  await prisma.$connect()
+  const client = createPrismaClient(SHARED_TEST_DATABASE_URL)
 
-  isPrepared = true
-
-  return prisma
-}
-
-export async function clearSharedTestDatabase(): Promise<void> {
-  const client = await ensureSharedTestDatabase()
-  await client.$executeRawUnsafe(buildTruncateStatement())
+  try {
+    await client.$connect()
+    await client.$executeRawUnsafe(buildTruncateStatement())
+  } finally {
+    await client.$disconnect()
+  }
 }
 
 export async function getSharedPrisma(): Promise<PrismaClient> {
-  return ensureSharedTestDatabase()
+  if (!prisma) {
+    prisma = createPrismaClient(SHARED_TEST_DATABASE_URL)
+    await prisma.$connect()
+  }
+
+  return prisma
 }
 
 export async function closeSharedTestDatabase(): Promise<void> {
@@ -130,5 +127,4 @@ export async function closeSharedTestDatabase(): Promise<void> {
 
   await prisma.$disconnect()
   prisma = null
-  isPrepared = false
 }

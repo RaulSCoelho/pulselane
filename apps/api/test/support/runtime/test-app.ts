@@ -56,11 +56,10 @@ async function createTestApp(): Promise<NestFastifyApplication> {
 }
 
 export async function getSharedTestApp(): Promise<NestFastifyApplication> {
-  if (app) {
-    return app
+  if (!app) {
+    app = await createTestApp()
   }
 
-  app = await createTestApp()
   return app
 }
 
