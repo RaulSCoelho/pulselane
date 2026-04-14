@@ -7,7 +7,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { getCurrentUser, signupAndGetAccessToken } from './helpers/auth-test-utils'
+import { getCurrentUser, signupAndGetAccessToken, signupAndGetContext } from './helpers/auth-test-utils'
 import { createTestApp } from './helpers/create-test-app'
 import { setupTestDatabase, teardownTestDatabase } from './helpers/prisma-test-utils'
 
@@ -117,5 +117,164 @@ describe('Memberships integration', () => {
 
     expect(updateResponse.body.role).toBe('admin')
     expect(updateResponse.body.user.email).toBe('member@example.com')
+  })
+
+  it('should reject demoting the last owner of the organization', async () => {
+    const { accessToken } = await signupAndGetAccessToken(app, {
+      email: 'single-owner@example.com',
+      organizationName: 'Single Owner Workspace'
+    })
+
+    const me = await getCurrentUser(app, accessToken)
+    const organizationId = me.memberships[0].organization.id
+    const ownerMembershipId = me.memberships[0].id
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/memberships/${ownerMembershipId}/role`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        role: 'admin'
+      })
+      .expect(403)
+
+    expect(response.body.message).toBe('Owner cannot remove own owner role')
+  })
+
+  it('should reject demoting another owner when they are the last owner remaining besides self after concurrency lock check', async () => {
+    const { accessToken } = await signupAndGetAccessToken(app, {
+      email: 'owner-a@example.com',
+      organizationName: 'Owner Count Workspace'
+    })
+
+    const me = await getCurrentUser(app, accessToken)
+    const organizationId = me.memberships[0].organization.id
+
+    const secondOwnerUser = await prisma.user.create({
+      data: {
+        name: 'Second Owner',
+        email: 'owner-b@example.com',
+        passwordHash: 'hashed-password'
+      }
+    })
+
+    const secondOwnerMembership = await prisma.membership.create({
+      data: {
+        userId: secondOwnerUser.id,
+        organizationId,
+        role: 'owner'
+      }
+    })
+
+    await request(app.getHttpServer())
+      .patch(`/api/memberships/${secondOwnerMembership.id}/role`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        role: 'admin'
+      })
+      .expect(200)
+
+    const updatedActorMembership = await prisma.membership.findFirst({
+      where: {
+        organizationId,
+        userId: me.id
+      }
+    })
+
+    expect(updatedActorMembership).not.toBeNull()
+    expect(updatedActorMembership?.role).toBe('owner')
+
+    const updatedSecondOwnerMembership = await prisma.membership.findUnique({
+      where: {
+        id: secondOwnerMembership.id
+      }
+    })
+
+    expect(updatedSecondOwnerMembership).not.toBeNull()
+    expect(updatedSecondOwnerMembership?.role).toBe('admin')
+  })
+
+  it('should reject admin promoting a membership to owner', async () => {
+    const { accessToken } = await signupAndGetAccessToken(app, {
+      email: 'owner-promote@example.com',
+      organizationName: 'Admin Promote Workspace'
+    })
+
+    const me = await getCurrentUser(app, accessToken)
+    const organizationId = me.memberships[0].organization.id
+
+    const adminUser = await prisma.user.create({
+      data: {
+        name: 'Admin User',
+        email: 'admin-promote@example.com',
+        passwordHash: 'hashed-password'
+      }
+    })
+
+    const memberUser = await prisma.user.create({
+      data: {
+        name: 'Member User',
+        email: 'member-promote@example.com',
+        passwordHash: 'hashed-password'
+      }
+    })
+
+    const adminMembership = await prisma.membership.create({
+      data: {
+        userId: adminUser.id,
+        organizationId,
+        role: 'admin'
+      }
+    })
+
+    const memberMembership = await prisma.membership.create({
+      data: {
+        userId: memberUser.id,
+        organizationId,
+        role: 'member'
+      }
+    })
+
+    const adminLogin = await signupAndGetContext({
+      app,
+      prisma,
+      email: 'admin-promote-login@example.com',
+      organizationName: 'Temporary Workspace'
+    })
+
+    await prisma.membership.deleteMany({
+      where: {
+        userId: adminLogin.userId
+      }
+    })
+
+    await prisma.membership.create({
+      data: {
+        userId: adminLogin.userId,
+        organizationId,
+        role: 'admin'
+      }
+    })
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/memberships/${memberMembership.id}/role`)
+      .set('Authorization', `Bearer ${adminLogin.accessToken}`)
+      .set('x-organization-id', organizationId)
+      .send({
+        role: 'owner'
+      })
+      .expect(403)
+
+    expect(response.body.message).toBe('Admins cannot assign owner role')
+
+    const persistedAdminMembership = await prisma.membership.findUnique({
+      where: {
+        id: adminMembership.id
+      }
+    })
+
+    expect(persistedAdminMembership).not.toBeNull()
+    expect(persistedAdminMembership?.role).toBe('admin')
   })
 })

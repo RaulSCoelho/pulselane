@@ -64,6 +64,19 @@ export class MembershipRepository {
     })
   }
 
+  async countByOrganizationAndRole(
+    organizationId: string,
+    role: MembershipRole,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    return this.getClient(tx).membership.count({
+      where: {
+        organizationId,
+        role
+      }
+    })
+  }
+
   async findManyByOrganization(params: FindManyByOrganizationParams, tx?: Prisma.TransactionClient) {
     const { organizationId, cursor, limit, search, role } = params
 

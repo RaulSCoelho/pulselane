@@ -110,26 +110,60 @@ export class MembershipService {
     dto: UpdateMembershipRoleDto,
     tx?: Prisma.TransactionClient
   ) {
-    const actorMembership = await this.ensureUserIsMember(actorUserId, organizationId, { tx })
+    const updateMembershipRole = async (trx: Prisma.TransactionClient) => {
+      await this.acquireOrganizationMembershipLock(organizationId, trx)
 
-    if (actorMembership.role !== MembershipRole.owner && actorMembership.role !== MembershipRole.admin) {
-      throw new ForbiddenException('You do not have permission to manage memberships')
+      const actorMembership = await this.ensureUserIsMember(actorUserId, organizationId, { tx: trx })
+
+      if (actorMembership.role !== MembershipRole.owner && actorMembership.role !== MembershipRole.admin) {
+        throw new ForbiddenException('You do not have permission to manage memberships')
+      }
+
+      const targetMembership = await this.findOneByOrganization(organizationId, membershipId, trx)
+
+      if (actorMembership.role === MembershipRole.admin) {
+        if (targetMembership.role === MembershipRole.owner) {
+          throw new ForbiddenException('Admins cannot update owner memberships')
+        }
+
+        if (dto.role === MembershipRole.owner) {
+          throw new ForbiddenException('Admins cannot assign owner role')
+        }
+      }
+
+      if (
+        actorMembership.userId === targetMembership.userId &&
+        targetMembership.role === MembershipRole.owner &&
+        dto.role !== MembershipRole.owner
+      ) {
+        throw new ForbiddenException('Owner cannot remove own owner role')
+      }
+
+      if (targetMembership.role === MembershipRole.owner && dto.role !== MembershipRole.owner) {
+        const ownerCount = await this.membershipRepository.countByOrganizationAndRole(
+          organizationId,
+          MembershipRole.owner,
+          trx
+        )
+
+        if (ownerCount <= 1) {
+          throw new ConflictException('Organization must have at least one owner')
+        }
+      }
+
+      return this.membershipRepository.updateRole(membershipId, dto.role, trx)
     }
 
-    const targetMembership = await this.findOneByOrganization(organizationId, membershipId, tx)
-
-    if (actorMembership.role === MembershipRole.admin && targetMembership.role === MembershipRole.owner) {
-      throw new ForbiddenException('Admins cannot update owner memberships')
+    if (tx) {
+      return updateMembershipRole(tx)
     }
 
-    if (
-      actorMembership.userId === targetMembership.userId &&
-      targetMembership.role === MembershipRole.owner &&
-      dto.role !== MembershipRole.owner
-    ) {
-      throw new ForbiddenException('Owner cannot remove own owner role')
-    }
+    return this.prisma.$transaction(trx => updateMembershipRole(trx))
+  }
 
-    return this.membershipRepository.updateRole(membershipId, dto.role, tx)
+  private async acquireOrganizationMembershipLock(organizationId: string, tx: Prisma.TransactionClient) {
+    await tx.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${`organization-memberships:${organizationId}`}))
+    `
   }
 }
