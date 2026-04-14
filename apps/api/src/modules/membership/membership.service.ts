@@ -1,7 +1,9 @@
+import { SuccessResponseDto } from '@/common/dto/success-response.dto'
 import { PrismaService } from '@/infra/prisma/prisma.service'
+import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
 import { UsagePolicyService } from '@/modules/billing/usage-policy.service'
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
-import { MembershipRole, Prisma } from '@prisma/client'
+import { AuditLogAction, MembershipRole, Prisma } from '@prisma/client'
 
 import { ListMembershipsQueryDto } from './dto/requests/list-memberships-query.dto'
 import { UpdateMembershipRoleDto } from './dto/requests/update-membership-role.dto'
@@ -24,7 +26,8 @@ export class MembershipService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly membershipRepository: MembershipRepository,
-    private readonly usagePolicyService: UsagePolicyService
+    private readonly usagePolicyService: UsagePolicyService,
+    private readonly auditLogsService: AuditLogsService
   ) {}
 
   async create(data: CreateMembershipInput, tx?: Prisma.TransactionClient) {
@@ -159,6 +162,80 @@ export class MembershipService {
     }
 
     return this.prisma.$transaction(trx => updateMembershipRole(trx))
+  }
+
+  async remove(
+    actorUserId: string,
+    organizationId: string,
+    membershipId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<SuccessResponseDto> {
+    const removeMembership = async (trx: Prisma.TransactionClient) => {
+      await this.acquireOrganizationMembershipLock(organizationId, trx)
+
+      const actorMembership = await this.ensureUserIsMember(actorUserId, organizationId, { tx: trx })
+
+      if (actorMembership.role !== MembershipRole.owner && actorMembership.role !== MembershipRole.admin) {
+        throw new ForbiddenException('You do not have permission to manage memberships')
+      }
+
+      const targetMembership = await this.findOneByOrganization(organizationId, membershipId, trx)
+
+      if (actorMembership.role === MembershipRole.admin && targetMembership.role === MembershipRole.owner) {
+        throw new ForbiddenException('Admins cannot remove owner memberships')
+      }
+
+      if (targetMembership.role === MembershipRole.owner) {
+        const ownerCount = await this.membershipRepository.countByOrganizationAndRole(
+          organizationId,
+          MembershipRole.owner,
+          trx
+        )
+
+        if (ownerCount <= 1) {
+          throw new ConflictException('Organization must have at least one owner')
+        }
+      }
+
+      const unassignedTasks = await trx.task.updateMany({
+        where: {
+          organizationId,
+          assigneeUserId: targetMembership.userId
+        },
+        data: {
+          assigneeUserId: null
+        }
+      })
+
+      await this.membershipRepository.delete(membershipId, trx)
+
+      await this.auditLogsService.create(
+        {
+          organizationId,
+          actorUserId,
+          entityType: 'membership',
+          entityId: targetMembership.id,
+          action: AuditLogAction.deleted,
+          metadata: {
+            removedUserId: targetMembership.userId,
+            removedRole: targetMembership.role,
+            assigneePolicy: 'set_null',
+            unassignedTasksCount: unassignedTasks.count
+          }
+        },
+        trx
+      )
+
+      return {
+        success: true
+      }
+    }
+
+    if (tx) {
+      return removeMembership(tx)
+    }
+
+    return this.prisma.$transaction(trx => removeMembership(trx))
   }
 
   private async acquireOrganizationMembershipLock(organizationId: string, tx: Prisma.TransactionClient) {

@@ -2,13 +2,15 @@ import { CurrentOrganization } from '@/common/decorators/current-organization.de
 import { CurrentUser } from '@/common/decorators/current-user.decorator'
 import { OrganizationRoles } from '@/common/decorators/organization-roles.decorator'
 import { ErrorResponseDto } from '@/common/dto/error-response.dto'
+import { SuccessResponseDto } from '@/common/dto/success-response.dto'
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user'
 import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard'
 import { OrganizationRolesGuard } from '@/modules/organization/guards/organization-roles.guard'
-import { Controller, Get, Param, Patch, Query, Body, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Query, UseGuards } from '@nestjs/common'
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiHeader,
   ApiNotFoundResponse,
@@ -107,5 +109,32 @@ export class MembershipController {
     @Body() dto: UpdateMembershipRoleDto
   ): Promise<MembershipResponseDto> {
     return this.membershipService.updateRole(actorUserId, organizationId, membershipId, dto)
+  }
+
+  @Delete(':id')
+  @OrganizationRoles(MembershipRole.owner, MembershipRole.admin)
+  @ApiOperation({ summary: 'Remove membership' })
+  @ApiOkResponse({
+    description: 'Membership removed successfully',
+    type: SuccessResponseDto
+  })
+  @ApiNotFoundResponse({
+    description: 'Membership not found',
+    type: ErrorResponseDto
+  })
+  @ApiConflictResponse({
+    description: 'Membership cannot be removed',
+    type: ErrorResponseDto
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error or missing x-organization-id header',
+    type: ErrorResponseDto
+  })
+  remove(
+    @CurrentUser('sub') actorUserId: AccessRequestUser['sub'],
+    @CurrentOrganization('id') organizationId: string,
+    @Param('id') membershipId: string
+  ): Promise<SuccessResponseDto> {
+    return this.membershipService.remove(actorUserId, organizationId, membershipId)
   }
 }

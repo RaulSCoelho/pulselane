@@ -144,4 +144,10 @@ export class MembershipRepository {
       include: membershipInclude
     })
   }
+
+  async delete(id: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).membership.delete({
+      where: { id }
+    })
+  }
 }
