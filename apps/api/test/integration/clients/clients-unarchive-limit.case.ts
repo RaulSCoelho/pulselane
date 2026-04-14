@@ -45,7 +45,8 @@ export function registerClientsUnarchiveLimitCase(): void {
 
     const response = await expectTyped<ErrorResponse>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/clients/${archivedClient.id}`), owner).send({
-        status: ClientStatus.active
+        status: ClientStatus.active,
+        expectedUpdatedAt: archivedClient.updatedAt.toISOString()
       } satisfies UpdateClientDto),
       403
     )

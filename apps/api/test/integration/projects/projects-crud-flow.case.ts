@@ -8,7 +8,12 @@ import { expect, it } from 'vitest'
 
 import { createAuthenticatedUser } from '../../support/factories/auth.factory'
 import { withOrgAuth } from '../../support/http/request-helpers'
-import type { CursorPageResponse, ErrorResponse, ProjectResponse } from '../../support/http/response.types'
+import type {
+  ClientResponse,
+  CursorPageResponse,
+  ErrorResponse,
+  ProjectResponse
+} from '../../support/http/response.types'
 import { expectTyped } from '../../support/http/typed-response'
 import { getTestContext } from '../../support/runtime/test-context'
 
@@ -21,14 +26,14 @@ export function registerProjectsCrudFlowCase(): void {
       organizationName: 'Projects Workspace'
     })
 
-    const createClient = await expectTyped<{ id: string }>(
+    const createClient = await expectTyped<ClientResponse>(
       withOrgAuth(request(app.getHttpServer()).post('/api/clients'), owner).send({
         name: 'Pulselane Client'
       } satisfies CreateClientDto),
       201
     )
 
-    const secondClient = await expectTyped<{ id: string }>(
+    const secondClient = await expectTyped<ClientResponse>(
       withOrgAuth(request(app.getHttpServer()).post('/api/clients'), owner).send({
         name: 'Second Client'
       } satisfies CreateClientDto),
@@ -60,7 +65,8 @@ export function registerProjectsCrudFlowCase(): void {
     const updatedProject = await expectTyped<ProjectResponse>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/projects/${firstProjectId}`), owner).send({
         description: 'Updated description',
-        status: ProjectStatus.completed
+        status: ProjectStatus.completed,
+        expectedUpdatedAt: firstProject.body.updatedAt
       } satisfies UpdateProjectDto),
       200
     )
@@ -134,14 +140,16 @@ export function registerProjectsCrudFlowCase(): void {
 
     await expectTyped<{ id: string }>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/clients/${secondClientId}`), owner).send({
-        status: ClientStatus.archived
+        status: ClientStatus.archived,
+        expectedUpdatedAt: secondClient.body.updatedAt
       } satisfies UpdateClientDto),
       200
     )
 
     const moveToArchivedClient = await expectTyped<ErrorResponse>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/projects/${firstProjectId}`), owner).send({
-        clientId: secondClientId
+        clientId: secondClientId,
+        expectedUpdatedAt: updatedProject.body.updatedAt
       } satisfies UpdateProjectDto),
       400
     )
@@ -172,7 +180,8 @@ export function registerProjectsCrudFlowCase(): void {
 
     await expectTyped<{ id: string }>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/clients/${clientId}`), owner).send({
-        status: ClientStatus.archived
+        status: ClientStatus.archived,
+        expectedUpdatedAt: createClient.body.updatedAt
       } satisfies UpdateClientDto),
       200
     )

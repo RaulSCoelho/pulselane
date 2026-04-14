@@ -116,14 +116,27 @@ export class ProjectRepository {
     })
   }
 
-  async update(id: string, data: Prisma.ProjectUpdateArgs['data'], tx?: Prisma.TransactionClient) {
-    return this.getClient(tx).project.update({
+  async updateWithOptimisticConcurrency(
+    id: string,
+    organizationId: string,
+    expectedUpdatedAt: Date,
+    data: Prisma.ProjectUpdateArgs['data'],
+    tx?: Prisma.TransactionClient
+  ) {
+    const result = await this.getClient(tx).project.updateMany({
       where: {
-        id
+        id,
+        organizationId,
+        updatedAt: expectedUpdatedAt
       },
-      data,
-      include: clientInclude
+      data
     })
+
+    if (result.count === 0) {
+      return null
+    }
+
+    return this.findByIdAndOrganization(id, organizationId, tx)
   }
 
   async archive(id: string, tx?: Prisma.TransactionClient) {

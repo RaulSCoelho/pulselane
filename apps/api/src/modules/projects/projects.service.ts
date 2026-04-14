@@ -2,7 +2,7 @@ import { PrismaService } from '@/infra/prisma/prisma.service'
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
 import { UsagePolicyService } from '@/modules/billing/usage-policy.service'
 import { ClientsService } from '@/modules/clients/clients.service'
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { AuditLogAction, ClientStatus, Prisma, Project, ProjectStatus } from '@prisma/client'
 
 import { CreateProjectDto } from './dto/requests/create-project.dto'
@@ -105,10 +105,18 @@ export class ProjectsService {
   ) {
     const updateProject = async (trx: Prisma.TransactionClient) => {
       const currentProject = await this.getProjectOrThrow(projectId, organizationId, trx)
-      const nextStatus = dto.status ?? currentProject.status
-      const nextClientId = dto.clientId ?? currentProject.clientId
+      const expectedUpdatedAt = new Date(dto.expectedUpdatedAt)
+
+      if (currentProject.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+        throw new ConflictException('Project was updated by another request. Refresh and try again.')
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { expectedUpdatedAt: _, ...updateData } = dto
+      const nextStatus = updateData.status ?? currentProject.status
+      const nextClientId = updateData.clientId ?? currentProject.clientId
       const isUnarchiving = currentProject.status === ProjectStatus.archived && nextStatus !== ProjectStatus.archived
-      const mustValidateTargetClient = dto.clientId !== undefined || isUnarchiving
+      const mustValidateTargetClient = updateData.clientId !== undefined || isUnarchiving
 
       if (mustValidateTargetClient) {
         const client = await this.clientsService.findOne(organizationId, nextClientId, trx)
@@ -122,14 +130,25 @@ export class ProjectsService {
         await this.usagePolicyService.assertCanCreateProject(organizationId, trx)
       }
 
-      const project = await this.projectRepository.update(
+      const project = await this.projectRepository.updateWithOptimisticConcurrency(
         projectId,
+        organizationId,
+        currentProject.updatedAt,
         {
-          ...dto,
-          archivedAt: dto.status === undefined ? undefined : dto.status === ProjectStatus.archived ? new Date() : null
+          ...updateData,
+          archivedAt:
+            updateData.status === undefined
+              ? undefined
+              : updateData.status === ProjectStatus.archived
+                ? new Date()
+                : null
         },
         trx
       )
+
+      if (!project) {
+        throw new ConflictException('Project was updated by another request. Refresh and try again.')
+      }
 
       await this.auditLog(project, actorUserId, organizationId, AuditLogAction.updated, trx)
 

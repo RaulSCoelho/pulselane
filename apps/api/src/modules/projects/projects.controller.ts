@@ -10,6 +10,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiHeader,
@@ -113,6 +114,10 @@ export class ProjectsController {
   @ApiOkResponse({
     description: 'Project updated successfully',
     type: ProjectResponseDto
+  })
+  @ApiConflictResponse({
+    description: 'Project was updated by another request',
+    type: ErrorResponseDto
   })
   @ApiNotFoundResponse({
     description: 'Project not found',

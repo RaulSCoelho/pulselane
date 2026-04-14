@@ -52,7 +52,8 @@ export function registerProjectsUnarchiveLimitCase(): void {
 
     const response = await expectTyped<ErrorResponse>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/projects/${archivedProject.id}`), owner).send({
-        status: ProjectStatus.active
+        status: ProjectStatus.active,
+        expectedUpdatedAt: archivedProject.updatedAt.toISOString()
       } satisfies UpdateProjectDto),
       403
     )

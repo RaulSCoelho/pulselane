@@ -10,6 +10,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiHeader,
@@ -110,6 +111,10 @@ export class TasksController {
   @ApiOkResponse({
     description: 'Task updated successfully',
     type: TaskResponseDto
+  })
+  @ApiConflictResponse({
+    description: 'Task was updated by another request',
+    type: ErrorResponseDto
   })
   @ApiNotFoundResponse({
     description: 'Task not found',

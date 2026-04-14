@@ -3,7 +3,7 @@ import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
 import { UsagePolicyService } from '@/modules/billing/usage-policy.service'
 import { MembershipService } from '@/modules/membership/membership.service'
 import { ProjectsService } from '@/modules/projects/projects.service'
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { AuditLogAction, Prisma, ProjectStatus, Task, TaskPriority, TaskStatus } from '@prisma/client'
 
 import { CreateTaskDto } from './dto/requests/create-task.dto'
@@ -130,10 +130,18 @@ export class TasksService {
   ) {
     const updateTask = async (trx: Prisma.TransactionClient) => {
       const currentTask = await this.getTaskOrThrow(taskId, organizationId, trx)
-      const nextStatus = dto.status ?? currentTask.status
-      const nextProjectId = dto.projectId ?? currentTask.projectId
+      const expectedUpdatedAt = new Date(dto.expectedUpdatedAt)
+
+      if (currentTask.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+        throw new ConflictException('Task was updated by another request. Refresh and try again.')
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { expectedUpdatedAt: _, ...updateData } = dto
+      const nextStatus = updateData.status ?? currentTask.status
+      const nextProjectId = updateData.projectId ?? currentTask.projectId
       const isUnarchiving = currentTask.status === TaskStatus.archived && nextStatus !== TaskStatus.archived
-      const mustValidateTargetProject = dto.projectId !== undefined || isUnarchiving
+      const mustValidateTargetProject = updateData.projectId !== undefined || isUnarchiving
 
       if (mustValidateTargetProject) {
         const project = await this.projectsService.findOne(organizationId, nextProjectId, trx)
@@ -143,8 +151,8 @@ export class TasksService {
         }
       }
 
-      if (dto.assigneeUserId) {
-        await this.membershipService.ensureUserIsMember(dto.assigneeUserId, organizationId, {
+      if (updateData.assigneeUserId) {
+        await this.membershipService.ensureUserIsMember(updateData.assigneeUserId, organizationId, {
           notFoundMessage: 'Assignee not found in this organization',
           exceptionType: 'not_found',
           tx: trx
@@ -155,15 +163,23 @@ export class TasksService {
         await this.usagePolicyService.assertCanCreateActiveTask(organizationId, trx)
       }
 
-      const task = await this.taskRepository.update(
+      const task = await this.taskRepository.updateWithOptimisticConcurrency(
         taskId,
+        organizationId,
+        currentTask.updatedAt,
         {
-          ...dto,
-          dueDate: dto.dueDate === undefined ? undefined : dto.dueDate ? new Date(dto.dueDate) : null,
-          archivedAt: dto.status === undefined ? undefined : dto.status === TaskStatus.archived ? new Date() : null
+          ...updateData,
+          dueDate:
+            updateData.dueDate === undefined ? undefined : updateData.dueDate ? new Date(updateData.dueDate) : null,
+          archivedAt:
+            updateData.status === undefined ? undefined : updateData.status === TaskStatus.archived ? new Date() : null
         },
         trx
       )
+
+      if (!task) {
+        throw new ConflictException('Task was updated by another request. Refresh and try again.')
+      }
 
       await this.auditLog(task, actorUserId, organizationId, AuditLogAction.updated, trx)
 

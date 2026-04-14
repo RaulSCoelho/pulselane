@@ -1,7 +1,7 @@
 import { PrismaService } from '@/infra/prisma/prisma.service'
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
 import { UsagePolicyService } from '@/modules/billing/usage-policy.service'
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { AuditLogAction, Client, ClientStatus, Prisma } from '@prisma/client'
 
 import { ClientRepository } from './client.repository'
@@ -92,21 +92,40 @@ export class ClientsService {
   ) {
     const updateClient = async (trx: Prisma.TransactionClient) => {
       const currentClient = await this.getClientOrThrow(clientId, organizationId, trx)
-      const nextStatus = dto.status ?? currentClient.status
+      const expectedUpdatedAt = new Date(dto.expectedUpdatedAt)
+
+      if (currentClient.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+        throw new ConflictException('Client was updated by another request. Refresh and try again.')
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { expectedUpdatedAt: _, ...updateData } = dto
+      const nextStatus = updateData.status ?? currentClient.status
       const isUnarchiving = currentClient.status === ClientStatus.archived && nextStatus !== ClientStatus.archived
 
       if (isUnarchiving) {
         await this.usagePolicyService.assertCanCreateClient(organizationId, trx)
       }
 
-      const client = await this.clientRepository.update(
+      const client = await this.clientRepository.updateWithOptimisticConcurrency(
         clientId,
+        organizationId,
+        currentClient.updatedAt,
         {
-          ...dto,
-          archivedAt: dto.status === undefined ? undefined : dto.status === ClientStatus.archived ? new Date() : null
+          ...updateData,
+          archivedAt:
+            updateData.status === undefined
+              ? undefined
+              : updateData.status === ClientStatus.archived
+                ? new Date()
+                : null
         },
         trx
       )
+
+      if (!client) {
+        throw new ConflictException('Client was updated by another request. Refresh and try again.')
+      }
 
       await this.auditLog(client, actorUserId, organizationId, AuditLogAction.updated, trx)
 

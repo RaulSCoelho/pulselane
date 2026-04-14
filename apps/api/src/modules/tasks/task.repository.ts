@@ -134,14 +134,27 @@ export class TaskRepository {
     })
   }
 
-  async update(id: string, data: Prisma.TaskUpdateArgs['data'], tx?: Prisma.TransactionClient) {
-    return this.getClient(tx).task.update({
+  async updateWithOptimisticConcurrency(
+    id: string,
+    organizationId: string,
+    expectedUpdatedAt: Date,
+    data: Prisma.TaskUpdateArgs['data'],
+    tx?: Prisma.TransactionClient
+  ) {
+    const result = await this.getClient(tx).task.updateMany({
       where: {
-        id
+        id,
+        organizationId,
+        updatedAt: expectedUpdatedAt
       },
-      data,
-      include: taskInclude
+      data
     })
+
+    if (result.count === 0) {
+      return null
+    }
+
+    return this.findByIdAndOrganization(id, organizationId, tx)
   }
 
   async archive(id: string, tx?: Prisma.TransactionClient) {

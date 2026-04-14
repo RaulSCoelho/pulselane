@@ -60,7 +60,8 @@ export function registerTasksUnarchiveLimitCase(): void {
 
     const response = await expectTyped<ErrorResponse>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/tasks/${archivedTask.id}`), owner).send({
-        status: TaskStatus.todo
+        status: TaskStatus.todo,
+        expectedUpdatedAt: archivedTask.updatedAt.toISOString()
       } satisfies UpdateTaskDto),
       403
     )

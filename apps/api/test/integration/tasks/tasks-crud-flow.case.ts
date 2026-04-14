@@ -1,3 +1,4 @@
+import { UpdateProjectDto } from '@/modules/projects/dto/requests/update-project.dto'
 import type { CreateTaskDto } from '@/modules/tasks/dto/requests/create-task.dto'
 import type { UpdateTaskDto } from '@/modules/tasks/dto/requests/update-task.dto'
 import { ProjectStatus } from '@prisma/client'
@@ -7,7 +8,12 @@ import { expect, it } from 'vitest'
 import { createAuthenticatedUser } from '../../support/factories/auth.factory'
 import { addOrganizationMembership } from '../../support/factories/domain.factory'
 import { withOrgAuth } from '../../support/http/request-helpers'
-import type { CursorPageResponse, ErrorResponse, TaskResponse } from '../../support/http/response.types'
+import type {
+  CursorPageResponse,
+  ErrorResponse,
+  ProjectResponse,
+  TaskResponse
+} from '../../support/http/response.types'
 import { expectTyped } from '../../support/http/typed-response'
 import { getTestContext } from '../../support/runtime/test-context'
 
@@ -40,7 +46,7 @@ export function registerTasksCrudFlowCase(): void {
 
     const clientId = createClient.body.id
 
-    const createProject = await expectTyped<{ id: string }>(
+    const createProject = await expectTyped<ProjectResponse>(
       withOrgAuth(request(app.getHttpServer()).post('/api/projects'), owner).send({
         clientId,
         name: 'Tasks Project'
@@ -48,7 +54,7 @@ export function registerTasksCrudFlowCase(): void {
       201
     )
 
-    const archivedProject = await expectTyped<{ id: string }>(
+    const archivedProject = await expectTyped<ProjectResponse>(
       withOrgAuth(request(app.getHttpServer()).post('/api/projects'), owner).send({
         clientId,
         name: 'Archived Target Project'
@@ -83,7 +89,8 @@ export function registerTasksCrudFlowCase(): void {
       withOrgAuth(request(app.getHttpServer()).patch(`/api/tasks/${firstTaskId}`), owner).send({
         description: 'Updated task description',
         status: 'in_progress',
-        priority: 'urgent'
+        priority: 'urgent',
+        expectedUpdatedAt: firstTask.body.updatedAt
       } satisfies UpdateTaskDto),
       200
     )
@@ -158,14 +165,16 @@ export function registerTasksCrudFlowCase(): void {
 
     await expectTyped<{ id: string }>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/projects/${archivedProjectId}`), owner).send({
-        status: ProjectStatus.archived
-      }),
+        status: ProjectStatus.archived,
+        expectedUpdatedAt: archivedProject.body.updatedAt
+      } satisfies UpdateProjectDto),
       200
     )
 
     const moveToArchivedProject = await expectTyped<ErrorResponse>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/tasks/${firstTaskId}`), owner).send({
-        projectId: archivedProjectId
+        projectId: archivedProjectId,
+        expectedUpdatedAt: updatedTask.body.updatedAt
       } satisfies UpdateTaskDto),
       400
     )
@@ -196,8 +205,9 @@ export function registerTasksCrudFlowCase(): void {
 
     await expectTyped<{ id: string }>(
       withOrgAuth(request(app.getHttpServer()).patch(`/api/projects/${projectId}`), owner).send({
-        status: ProjectStatus.archived
-      }),
+        status: ProjectStatus.archived,
+        expectedUpdatedAt: createProject.body.updatedAt
+      } satisfies UpdateProjectDto),
       200
     )
 

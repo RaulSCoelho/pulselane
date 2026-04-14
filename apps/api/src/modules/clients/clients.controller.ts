@@ -10,6 +10,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiHeader,
@@ -113,6 +114,10 @@ export class ClientsController {
   @ApiOkResponse({
     description: 'Client updated successfully',
     type: ClientResponseDto
+  })
+  @ApiConflictResponse({
+    description: 'Client was updated by another request',
+    type: ErrorResponseDto
   })
   @ApiNotFoundResponse({
     description: 'Client not found',

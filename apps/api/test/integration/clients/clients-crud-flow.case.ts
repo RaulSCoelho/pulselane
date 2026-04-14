@@ -45,7 +45,8 @@ export function registerClientsCrudFlowCase(): void {
 
     const updatePayload: UpdateClientDto = {
       companyName: 'Acme LLC',
-      status: ClientStatus.inactive
+      status: ClientStatus.inactive,
+      expectedUpdatedAt: createFirst.body.updatedAt
     }
 
     const updatedClient = await expectTyped<ClientResponse>(
