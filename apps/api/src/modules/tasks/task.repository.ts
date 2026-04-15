@@ -1,8 +1,9 @@
-import { buildCreatedAtIdCursorFilter } from '@/common/pagination/utils/cursor-filter.util'
 import { buildCursorPageResult } from '@/common/pagination/utils/cursor-page.util'
 import { PrismaService } from '@/infra/prisma/prisma.service'
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { Prisma, TaskPriority, TaskStatus } from '@prisma/client'
+
+import { SortDirection, TaskSortBy } from './dto/requests/list-tasks-query.dto'
 
 type FindManyByOrganizationParams = {
   organizationId: string
@@ -11,9 +12,21 @@ type FindManyByOrganizationParams = {
   search?: string
   status?: TaskStatus
   priority?: TaskPriority
+  overdue?: boolean
+  dueDateFrom?: Date
+  dueDateTo?: Date
+  sortBy?: TaskSortBy
+  sortDirection?: SortDirection
   includeArchived?: boolean
   cursor?: string
   limit: number
+}
+
+type TaskCursorPayload = {
+  id: string
+  sortBy: TaskSortBy
+  sortDirection: SortDirection
+  value: string | null
 }
 
 const taskInclude = {
@@ -48,10 +61,24 @@ export class TaskRepository {
   }
 
   async findManyByOrganization(params: FindManyByOrganizationParams, tx?: Prisma.TransactionClient) {
-    const { organizationId, projectId, assigneeUserId, search, status, priority, includeArchived, cursor, limit } =
-      params
+    const {
+      organizationId,
+      projectId,
+      assigneeUserId,
+      search,
+      status,
+      priority,
+      overdue,
+      dueDateFrom,
+      dueDateTo,
+      sortBy = TaskSortBy.createdAt,
+      sortDirection = SortDirection.desc,
+      includeArchived,
+      cursor,
+      limit
+    } = params
 
-    const { where: cursorWhere } = buildCreatedAtIdCursorFilter(cursor)
+    const cursorWhere = this.buildCursorWhere(cursor, sortBy, sortDirection)
 
     const andFilters: Prisma.TaskWhereInput[] = [{ organizationId }]
 
@@ -79,12 +106,34 @@ export class TaskRepository {
 
     if (search) {
       andFilters.push({
-        OR: ['title', 'description'].map(field => ({
+        OR: ['title', 'description', 'blockedReason'].map(field => ({
           [field]: {
             contains: search,
             mode: 'insensitive'
           }
         }))
+      })
+    }
+
+    if (overdue) {
+      andFilters.push({
+        dueDate: {
+          lt: new Date()
+        }
+      })
+      andFilters.push({
+        status: {
+          notIn: [TaskStatus.done, TaskStatus.archived]
+        }
+      })
+    }
+
+    if (dueDateFrom || dueDateTo) {
+      andFilters.push({
+        dueDate: {
+          ...(dueDateFrom ? { gte: dueDateFrom } : {}),
+          ...(dueDateTo ? { lte: dueDateTo } : {})
+        }
       })
     }
 
@@ -97,24 +146,14 @@ export class TaskRepository {
         AND: andFilters
       },
       include: taskInclude,
-      orderBy: [
-        {
-          createdAt: 'desc'
-        },
-        {
-          id: 'desc'
-        }
-      ],
+      orderBy: this.buildOrderBy(sortBy, sortDirection),
       take: limit + 1
     })
 
     const { normalizedItems, hasNextPage, nextCursor } = buildCursorPageResult({
       items,
       limit,
-      getCursorPayload: item => ({
-        id: item.id,
-        createdAt: item.createdAt.toISOString()
-      })
+      getCursorPayload: item => this.buildCursorPayload(item, sortBy, sortDirection)
     })
 
     return {
@@ -168,5 +207,201 @@ export class TaskRepository {
       },
       include: taskInclude
     })
+  }
+
+  private buildOrderBy(sortBy: TaskSortBy, sortDirection: SortDirection): Prisma.TaskOrderByWithRelationInput[] {
+    if (sortBy === TaskSortBy.dueDate) {
+      return [
+        {
+          dueDate: {
+            sort: sortDirection,
+            nulls: 'last'
+          }
+        },
+        {
+          id: sortDirection
+        }
+      ]
+    }
+
+    return [
+      {
+        createdAt: sortDirection
+      },
+      {
+        id: sortDirection
+      }
+    ]
+  }
+
+  private buildCursorPayload(
+    item: {
+      id: string
+      createdAt: Date
+      dueDate: Date | null
+    },
+    sortBy: TaskSortBy,
+    sortDirection: SortDirection
+  ): TaskCursorPayload {
+    return {
+      id: item.id,
+      sortBy,
+      sortDirection,
+      value:
+        sortBy === TaskSortBy.dueDate
+          ? item.dueDate
+            ? item.dueDate.toISOString()
+            : null
+          : item.createdAt.toISOString()
+    }
+  }
+
+  private buildCursorWhere(
+    cursor: string | undefined,
+    sortBy: TaskSortBy,
+    sortDirection: SortDirection
+  ): Prisma.TaskWhereInput | undefined {
+    const decoded = this.decodeCursor(cursor)
+
+    if (!decoded) {
+      return undefined
+    }
+
+    if (decoded.sortBy !== sortBy || decoded.sortDirection !== sortDirection) {
+      throw new BadRequestException('Invalid cursor')
+    }
+
+    if (sortBy === TaskSortBy.createdAt) {
+      return this.buildCreatedAtCursorWhere(decoded, sortDirection)
+    }
+
+    return this.buildDueDateCursorWhere(decoded, sortDirection)
+  }
+
+  private buildCreatedAtCursorWhere(cursor: TaskCursorPayload, sortDirection: SortDirection): Prisma.TaskWhereInput {
+    if (!cursor.value) {
+      throw new BadRequestException('Invalid cursor')
+    }
+
+    const createdAt = new Date(cursor.value)
+
+    if (Number.isNaN(createdAt.getTime())) {
+      throw new BadRequestException('Invalid cursor')
+    }
+
+    if (sortDirection === SortDirection.asc) {
+      return {
+        OR: [
+          {
+            createdAt: {
+              gt: createdAt
+            }
+          },
+          {
+            createdAt,
+            id: {
+              gt: cursor.id
+            }
+          }
+        ]
+      }
+    }
+
+    return {
+      OR: [
+        {
+          createdAt: {
+            lt: createdAt
+          }
+        },
+        {
+          createdAt,
+          id: {
+            lt: cursor.id
+          }
+        }
+      ]
+    }
+  }
+
+  private buildDueDateCursorWhere(cursor: TaskCursorPayload, sortDirection: SortDirection): Prisma.TaskWhereInput {
+    if (cursor.value === null) {
+      return {
+        dueDate: null,
+        id: {
+          [sortDirection === SortDirection.asc ? 'gt' : 'lt']: cursor.id
+        }
+      }
+    }
+
+    const dueDate = new Date(cursor.value)
+
+    if (Number.isNaN(dueDate.getTime())) {
+      throw new BadRequestException('Invalid cursor')
+    }
+
+    if (sortDirection === SortDirection.asc) {
+      return {
+        OR: [
+          {
+            dueDate: {
+              gt: dueDate
+            }
+          },
+          {
+            dueDate,
+            id: {
+              gt: cursor.id
+            }
+          },
+          {
+            dueDate: null
+          }
+        ]
+      }
+    }
+
+    return {
+      OR: [
+        {
+          dueDate: {
+            lt: dueDate
+          }
+        },
+        {
+          dueDate,
+          id: {
+            lt: cursor.id
+          }
+        },
+        {
+          dueDate: null
+        }
+      ]
+    }
+  }
+
+  private decodeCursor(cursor?: string): TaskCursorPayload | null {
+    if (!cursor) {
+      return null
+    }
+
+    try {
+      const raw = Buffer.from(cursor, 'base64url').toString('utf-8')
+      const parsed = JSON.parse(raw) as TaskCursorPayload
+
+      const validSortBy = parsed.sortBy === TaskSortBy.createdAt || parsed.sortBy === TaskSortBy.dueDate
+      const validSortDirection =
+        parsed.sortDirection === SortDirection.asc || parsed.sortDirection === SortDirection.desc
+      const validValue = typeof parsed.value === 'string' || parsed.value === null
+
+      if (!parsed || typeof parsed.id !== 'string' || !validSortBy || !validSortDirection || !validValue) {
+        throw new Error('Invalid cursor shape')
+      }
+
+      return parsed
+    } catch {
+      throw new BadRequestException('Invalid cursor')
+    }
   }
 }

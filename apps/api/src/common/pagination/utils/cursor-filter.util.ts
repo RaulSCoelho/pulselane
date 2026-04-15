@@ -1,4 +1,4 @@
-import type { CursorPayload } from '../types/cursor-payload.type'
+import type { CreatedAtIdCursorPayload } from '../types/cursor-payload.type'
 import { decodeCursor } from './cursor.util'
 
 export type CreatedAtIdCursorWhere = {
@@ -6,10 +6,10 @@ export type CreatedAtIdCursorWhere = {
 }
 
 export function buildCreatedAtIdCursorFilter(cursor?: string): {
-  decodedCursor: CursorPayload | null
+  decodedCursor: CreatedAtIdCursorPayload | null
   where?: CreatedAtIdCursorWhere
 } {
-  const decodedCursor = decodeCursor(cursor)
+  const decodedCursor = decodeCursor(cursor) as CreatedAtIdCursorPayload
 
   if (!decodedCursor) {
     return {

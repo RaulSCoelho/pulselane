@@ -99,6 +99,11 @@ export class TasksService {
         search: query.search,
         status: query.status,
         priority: query.priority,
+        overdue: query.overdue,
+        dueDateFrom: query.dueDateFrom ? new Date(query.dueDateFrom) : undefined,
+        dueDateTo: query.dueDateTo ? new Date(query.dueDateTo) : undefined,
+        sortBy: query.sortBy,
+        sortDirection: query.sortDirection,
         includeArchived: query.includeArchived,
         cursor: query.cursor,
         limit

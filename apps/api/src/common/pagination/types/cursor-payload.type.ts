@@ -1,4 +1,4 @@
-export type CursorPayload = {
+export type CreatedAtIdCursorPayload = {
   id: string
   createdAt: string
 }

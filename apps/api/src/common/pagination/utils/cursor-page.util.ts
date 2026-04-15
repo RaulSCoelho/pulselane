@@ -1,10 +1,9 @@
-import type { CursorPayload } from '../types/cursor-payload.type'
 import { encodeCursor } from './cursor.util'
 
 type BuildCursorPageResultParams<T> = {
   items: T[]
   limit: number
-  getCursorPayload: (item: T) => CursorPayload
+  getCursorPayload: (item: T) => Record<string, any>
 }
 
 export function buildCursorPageResult<T>({ items, limit, getCursorPayload }: BuildCursorPageResultParams<T>) {

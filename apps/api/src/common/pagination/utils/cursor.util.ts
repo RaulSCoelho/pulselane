@@ -1,19 +1,17 @@
 import { BadRequestException } from '@nestjs/common'
 
-import type { CursorPayload } from '../types/cursor-payload.type'
-
-export function encodeCursor(payload: CursorPayload): string {
+export function encodeCursor(payload: Record<string, any>): string {
   return Buffer.from(JSON.stringify(payload), 'utf-8').toString('base64url')
 }
 
-export function decodeCursor(cursor?: string): CursorPayload | null {
+export function decodeCursor(cursor?: string): Record<string, any> | null {
   if (!cursor) {
     return null
   }
 
   try {
     const raw = Buffer.from(cursor, 'base64url').toString('utf-8')
-    const parsed = JSON.parse(raw) as CursorPayload
+    const parsed = JSON.parse(raw) as Record<string, any>
 
     if (!parsed || typeof parsed.id !== 'string' || typeof parsed.createdAt !== 'string') {
       throw new Error('Invalid cursor shape')
