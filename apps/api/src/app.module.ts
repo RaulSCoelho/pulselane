@@ -21,6 +21,7 @@ import { InvitationsModule } from './modules/invitations/invitations.module'
 import { MembershipModule } from './modules/membership/membership.module'
 import { OrganizationModule } from './modules/organization/organization.module'
 import { ProjectsModule } from './modules/projects/projects.module'
+import { QueueModule } from './modules/queue/queue.module'
 import { TasksModule } from './modules/tasks/tasks.module'
 
 @Module({
@@ -58,7 +59,8 @@ import { TasksModule } from './modules/tasks/tasks.module'
     TasksModule,
     CommentsModule,
     AuditLogsModule,
-    InvitationsModule
+    InvitationsModule,
+    QueueModule
   ],
   providers: [
     AppThrottlerGuard,
