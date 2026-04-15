@@ -1,12 +1,16 @@
+import { PrismaService } from '@/infra/prisma/prisma.service'
 import { ForbiddenException, Injectable } from '@nestjs/common'
-import { ClientStatus, Prisma, ProjectStatus, TaskStatus } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
-import { billingPlanLimits, UsageMetric, usageMetricLabels } from './billing-plan-limits'
+import { type UsageMetric, usageMetricLabels } from './billing-plan-limits'
 import { BillingService } from './billing.service'
 
 @Injectable()
 export class UsagePolicyService {
-  constructor(private readonly billingService: BillingService) {}
+  constructor(
+    private readonly billingService: BillingService,
+    private readonly prisma: PrismaService
+  ) {}
 
   async assertCanCreateMembership(organizationId: string, tx: Prisma.TransactionClient) {
     await this.assertWithinPlanLimit(organizationId, 'members', tx)
@@ -25,67 +29,33 @@ export class UsagePolicyService {
   }
 
   private async assertWithinPlanLimit(organizationId: string, metric: UsageMetric, tx: Prisma.TransactionClient) {
-    await this.acquireOrganizationUsageLock(organizationId, tx)
+    const assert = async (trx: Prisma.TransactionClient) => {
+      await this.acquireOrganizationUsageLock(organizationId, trx)
 
-    const billing = await this.billingService.getByOrganizationIdOrThrow(organizationId, tx)
+      const billing = await this.billingService.getByOrganizationIdOrThrow(organizationId, trx)
+      const limit = this.billingService.getPlanLimits(billing.plan)[metric]
 
-    const limit = billingPlanLimits[billing.plan][metric]
+      if (limit === null) {
+        return
+      }
 
-    if (limit === null) {
-      return
+      const currentUsage = await this.billingService.getCurrentUsageMetric(metric, organizationId, trx)
+
+      if (currentUsage >= limit) {
+        throw new ForbiddenException(`Plan limit reached for ${usageMetricLabels[metric]}`)
+      }
     }
 
-    const currentUsage = await this.getCurrentUsage(metric, organizationId, tx)
-
-    if (currentUsage >= limit) {
-      throw new ForbiddenException(`Plan limit reached for ${usageMetricLabels[metric]}`)
+    if (tx) {
+      return assert(tx)
     }
+
+    return this.prisma.$transaction(trx => assert(trx))
   }
 
   private async acquireOrganizationUsageLock(organizationId: string, tx: Prisma.TransactionClient) {
     await tx.$executeRaw`
       SELECT pg_advisory_xact_lock(hashtext(${`usage:${organizationId}`}))
     `
-  }
-
-  private async getCurrentUsage(metric: UsageMetric, organizationId: string, tx: Prisma.TransactionClient) {
-    switch (metric) {
-      case 'members':
-        return tx.membership.count({
-          where: {
-            organizationId
-          }
-        })
-
-      case 'clients':
-        return tx.client.count({
-          where: {
-            organizationId,
-            status: {
-              not: ClientStatus.archived
-            }
-          }
-        })
-
-      case 'projects':
-        return tx.project.count({
-          where: {
-            organizationId,
-            status: {
-              not: ProjectStatus.archived
-            }
-          }
-        })
-
-      case 'active_tasks':
-        return tx.task.count({
-          where: {
-            organizationId,
-            status: {
-              not: TaskStatus.archived
-            }
-          }
-        })
-    }
   }
 }

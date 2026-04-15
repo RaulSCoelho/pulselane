@@ -1,3 +1,4 @@
+import { AuditLogsModule } from '@/modules/audit-logs/audit-logs.module'
 import { BillingModule } from '@/modules/billing/billing.module'
 import { MembershipModule } from '@/modules/membership/membership.module'
 import { forwardRef, Module } from '@nestjs/common'
@@ -10,7 +11,7 @@ import { OrganizationRepository } from './organization.repository'
 import { OrganizationService } from './organization.service'
 
 @Module({
-  imports: [forwardRef(() => MembershipModule), BillingModule],
+  imports: [forwardRef(() => MembershipModule), BillingModule, forwardRef(() => AuditLogsModule)],
   controllers: [OrganizationController],
   providers: [Reflector, OrganizationService, OrganizationRepository, OrganizationContextGuard, OrganizationRolesGuard],
   exports: [OrganizationService, OrganizationContextGuard, OrganizationRolesGuard]

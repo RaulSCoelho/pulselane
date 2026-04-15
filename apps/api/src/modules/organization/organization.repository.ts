@@ -42,4 +42,11 @@ export class OrganizationRepository {
       data
     })
   }
+
+  async update(id: string, data: Prisma.OrganizationUpdateArgs['data'], tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).organization.update({
+      where: { id },
+      data
+    })
+  }
 }
