@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common'
+
 import type { CreatedAtIdCursorPayload } from '../types/cursor-payload.type'
 import { decodeCursor } from './cursor.util'
 
@@ -5,23 +7,35 @@ export type CreatedAtIdCursorWhere = {
   OR: [{ createdAt: { lt: Date } }, { createdAt: Date; id: { lt: string } }]
 }
 
+function isCreatedAtIdCursorPayload(value: Record<string, unknown>): value is CreatedAtIdCursorPayload {
+  return typeof value.id === 'string' && typeof value.createdAt === 'string'
+}
+
 export function buildCreatedAtIdCursorFilter(cursor?: string): {
   decodedCursor: CreatedAtIdCursorPayload | null
   where?: CreatedAtIdCursorWhere
 } {
-  const decodedCursor = decodeCursor(cursor) as CreatedAtIdCursorPayload
+  const decoded = decodeCursor(cursor)
 
-  if (!decodedCursor) {
+  if (!decoded) {
     return {
       decodedCursor: null,
       where: undefined
     }
   }
 
-  const createdAt = new Date(decodedCursor.createdAt)
+  if (!isCreatedAtIdCursorPayload(decoded)) {
+    throw new BadRequestException('Invalid cursor')
+  }
+
+  const createdAt = new Date(decoded.createdAt)
+
+  if (Number.isNaN(createdAt.getTime())) {
+    throw new BadRequestException('Invalid cursor')
+  }
 
   return {
-    decodedCursor,
+    decodedCursor: decoded,
     where: {
       OR: [
         {
@@ -32,7 +46,7 @@ export function buildCreatedAtIdCursorFilter(cursor?: string): {
         {
           createdAt,
           id: {
-            lt: decodedCursor.id
+            lt: decoded.id
           }
         }
       ]

@@ -1,29 +1,23 @@
 import { BadRequestException } from '@nestjs/common'
 
-export function encodeCursor(payload: Record<string, any>): string {
+export function encodeCursor(payload: Record<string, unknown>): string {
   return Buffer.from(JSON.stringify(payload), 'utf-8').toString('base64url')
 }
 
-export function decodeCursor(cursor?: string): Record<string, any> | null {
+export function decodeCursor<T extends Record<string, unknown> = Record<string, unknown>>(cursor?: string): T | null {
   if (!cursor) {
     return null
   }
 
   try {
     const raw = Buffer.from(cursor, 'base64url').toString('utf-8')
-    const parsed = JSON.parse(raw) as Record<string, any>
+    const parsed = JSON.parse(raw) as unknown
 
-    if (!parsed || typeof parsed.id !== 'string' || typeof parsed.createdAt !== 'string') {
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new Error('Invalid cursor shape')
     }
 
-    const date = new Date(parsed.createdAt)
-
-    if (Number.isNaN(date.getTime())) {
-      throw new Error('Invalid cursor date')
-    }
-
-    return parsed
+    return parsed as T
   } catch {
     throw new BadRequestException('Invalid cursor')
   }
