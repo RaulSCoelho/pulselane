@@ -103,6 +103,40 @@ export type TaskResponse = {
   } | null
 }
 
+export type CommentResponse = {
+  id: string
+  organizationId: string
+  taskId: string
+  authorUserId: string
+  body: string
+  deletedAt: string | null
+  createdAt: string
+  updatedAt: string
+  author: {
+    id: string
+    name: string
+    email: string
+  }
+}
+
+export type CommentActivityHistoryItemResponse = {
+  id: string
+  source: 'comment' | 'audit_log'
+  action: string
+  entityType: string
+  entityId: string
+  taskId: string
+  content: string | null
+  occurredAt: string
+  deletedAt: string | null
+  metadata: Record<string, unknown> | null
+  actor: {
+    id: string
+    name: string
+    email: string
+  } | null
+}
+
 export type InvitationResponse = {
   id: string
   organizationId: string

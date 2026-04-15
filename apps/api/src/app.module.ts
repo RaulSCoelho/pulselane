@@ -14,6 +14,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { BillingModule } from './modules/billing/billing.module'
 import { ClientsModule } from './modules/clients/clients.module'
+import { CommentsModule } from './modules/comments/comments.module'
 import { HealthModule } from './modules/health/health.module'
 import { InvitationsModule } from './modules/invitations/invitations.module'
 import { MembershipModule } from './modules/membership/membership.module'
@@ -53,6 +54,7 @@ import { TasksModule } from './modules/tasks/tasks.module'
     ClientsModule,
     ProjectsModule,
     TasksModule,
+    CommentsModule,
     AuditLogsModule,
     InvitationsModule
   ],
