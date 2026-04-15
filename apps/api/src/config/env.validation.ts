@@ -52,5 +52,27 @@ export const envValidationSchema = Joi.object({
     is: 'smtp',
     then: Joi.string().required(),
     otherwise: Joi.string().optional()
+  }),
+
+  STRIPE_ENABLED: Joi.boolean().default(false),
+  STRIPE_SECRET_KEY: Joi.when('STRIPE_ENABLED', {
+    is: true,
+    then: Joi.string().required(),
+    otherwise: Joi.string().allow('', null).optional()
+  }),
+  STRIPE_WEBHOOK_SECRET: Joi.when('STRIPE_ENABLED', {
+    is: true,
+    then: Joi.string().required(),
+    otherwise: Joi.string().allow('', null).optional()
+  }),
+  STRIPE_PRICE_STARTER: Joi.when('STRIPE_ENABLED', {
+    is: true,
+    then: Joi.string().required(),
+    otherwise: Joi.string().allow('', null).optional()
+  }),
+  STRIPE_PRICE_GROWTH: Joi.when('STRIPE_ENABLED', {
+    is: true,
+    then: Joi.string().required(),
+    otherwise: Joi.string().allow('', null).optional()
   })
 })

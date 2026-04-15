@@ -46,6 +46,13 @@ export function configuration() {
     emailSmtpPort: Number(process.env.EMAIL_SMTP_PORT ?? 587),
     emailSmtpSecure: process.env.EMAIL_SMTP_SECURE === 'true',
     emailSmtpUser: process.env.EMAIL_SMTP_USER,
-    emailSmtpPassword: process.env.EMAIL_SMTP_PASSWORD
+    emailSmtpPassword: process.env.EMAIL_SMTP_PASSWORD,
+
+    // stripe
+    stripeEnabled: process.env.STRIPE_ENABLED === 'true',
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    stripePriceStarter: process.env.STRIPE_PRICE_STARTER,
+    stripePriceGrowth: process.env.STRIPE_PRICE_GROWTH
   }
 }
