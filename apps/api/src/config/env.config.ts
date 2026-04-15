@@ -53,6 +53,11 @@ export function configuration() {
     stripeSecretKey: process.env.STRIPE_SECRET_KEY,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     stripePriceStarter: process.env.STRIPE_PRICE_STARTER,
-    stripePriceGrowth: process.env.STRIPE_PRICE_GROWTH
+    stripePriceGrowth: process.env.STRIPE_PRICE_GROWTH,
+
+    // redis
+    redisEnabled: process.env.REDIS_ENABLED === 'true',
+    redisRequired: process.env.REDIS_REQUIRED === 'true',
+    redisUrl: process.env.REDIS_URL
   }
 }

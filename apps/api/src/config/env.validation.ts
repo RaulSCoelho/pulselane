@@ -74,5 +74,13 @@ export const envValidationSchema = Joi.object({
     is: true,
     then: Joi.string().required(),
     otherwise: Joi.string().allow('', null).optional()
+  }),
+
+  REDIS_ENABLED: Joi.boolean().default(false),
+  REDIS_REQUIRED: Joi.boolean().default(false),
+  REDIS_URL: Joi.when('REDIS_ENABLED', {
+    is: true,
+    then: Joi.string().uri().required(),
+    otherwise: Joi.string().allow('', null).optional()
   })
 })

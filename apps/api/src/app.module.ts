@@ -10,6 +10,7 @@ import { envValidationSchema } from './config/env.validation'
 import { AppLoggerModule } from './infra/logger/logger.module'
 import { SlowRequestInterceptor } from './infra/logger/slow-request.interceptor'
 import { PrismaModule } from './infra/prisma/prisma.module'
+import { RedisModule } from './infra/redis/redis.module'
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { BillingModule } from './modules/billing/billing.module'
@@ -45,6 +46,7 @@ import { TasksModule } from './modules/tasks/tasks.module'
       ]
     }),
     PrismaModule,
+    RedisModule,
     AppLoggerModule,
     HealthModule,
     BillingModule,
