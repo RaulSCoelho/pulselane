@@ -3,7 +3,7 @@ import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
 import { UsagePolicyService } from '@/modules/billing/usage-policy.service'
 import { ClientsService } from '@/modules/clients/clients.service'
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common'
-import { AuditLogAction, ClientStatus, Prisma, Project, ProjectStatus } from '@prisma/client'
+import { AuditLogAction, ClientStatus, Prisma, Project, ProjectStatus, TaskStatus } from '@prisma/client'
 
 import { CreateProjectDto } from './dto/requests/create-project.dto'
 import { ListProjectsQueryDto } from './dto/requests/list-projects-query.dto'
@@ -163,15 +163,37 @@ export class ProjectsService {
   }
 
   async remove(actorUserId: string, organizationId: string, projectId: string, tx?: Prisma.TransactionClient) {
-    await this.getProjectOrThrow(projectId, organizationId, tx)
+    const archiveProject = async (trx: Prisma.TransactionClient) => {
+      await this.getProjectOrThrow(projectId, organizationId, trx)
 
-    const project = await this.projectRepository.archive(projectId, tx)
+      const openTasksCount = await trx.task.count({
+        where: {
+          organizationId,
+          projectId,
+          status: {
+            notIn: [TaskStatus.done, TaskStatus.archived]
+          }
+        }
+      })
 
-    await this.auditLog(project, actorUserId, organizationId, AuditLogAction.archived, tx)
+      if (openTasksCount > 0) {
+        throw new ConflictException('Cannot archive a project with open tasks')
+      }
 
-    return {
-      success: true
+      const project = await this.projectRepository.archive(projectId, trx)
+
+      await this.auditLog(project, actorUserId, organizationId, AuditLogAction.archived, trx)
+
+      return {
+        success: true
+      }
     }
+
+    if (tx) {
+      return archiveProject(tx)
+    }
+
+    return this.prisma.$transaction(trx => archiveProject(trx))
   }
 
   private async getProjectOrThrow(projectId: string, organizationId: string, tx?: Prisma.TransactionClient) {

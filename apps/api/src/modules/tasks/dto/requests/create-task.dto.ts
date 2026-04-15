@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { TaskPriority, TaskStatus } from '@prisma/client'
-import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator'
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator'
 
 export class CreateTaskDto {
   @ApiProperty({ example: 'Prepare proposal draft' })
@@ -34,6 +34,17 @@ export class CreateTaskDto {
   @IsOptional()
   @IsEnum(TaskPriority)
   priority?: TaskPriority
+
+  @ApiPropertyOptional({
+    example: 'Waiting for client approval before continuing',
+    nullable: true,
+    description: 'Allowed only when task status is blocked'
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  blockedReason?: string
 
   @ApiPropertyOptional({
     example: '2026-04-10T18:00:00.000Z',

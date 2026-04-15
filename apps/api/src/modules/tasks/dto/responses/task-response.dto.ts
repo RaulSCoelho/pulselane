@@ -26,6 +26,12 @@ export class TaskResponseDto {
   })
   description!: string | null
 
+  @ApiProperty({
+    example: 'Waiting for client approval before continuing',
+    nullable: true
+  })
+  blockedReason!: string | null
+
   @ApiProperty({ enum: TaskStatus, example: TaskStatus.todo })
   status!: TaskStatus
 

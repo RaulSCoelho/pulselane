@@ -1,7 +1,7 @@
 import { UpdateProjectDto } from '@/modules/projects/dto/requests/update-project.dto'
 import type { CreateTaskDto } from '@/modules/tasks/dto/requests/create-task.dto'
 import type { UpdateTaskDto } from '@/modules/tasks/dto/requests/update-task.dto'
-import { ProjectStatus } from '@prisma/client'
+import { ProjectStatus, TaskStatus } from '@prisma/client'
 import request from 'supertest'
 import { expect, it } from 'vitest'
 
@@ -100,15 +100,18 @@ export function registerTasksCrudFlowCase(): void {
     expect(updatedTask.body.status).toBe('in_progress')
     expect(updatedTask.body.priority).toBe('urgent')
 
-    await expectTyped<TaskResponse>(
+    const blockedTask = await expectTyped<TaskResponse>(
       withOrgAuth(request(app.getHttpServer()).post('/api/tasks'), owner).send({
         projectId,
         title: 'Blocked task',
         status: 'blocked',
-        priority: 'high'
+        priority: 'high',
+        blockedReason: 'Waiting for client approval'
       } satisfies CreateTaskDto),
       201
     )
+
+    expect(blockedTask.body.blockedReason).toBe('Waiting for client approval')
 
     const thirdTask = await expectTyped<TaskResponse>(
       withOrgAuth(request(app.getHttpServer()).post('/api/tasks'), owner).send({
@@ -181,8 +184,31 @@ export function registerTasksCrudFlowCase(): void {
 
     expect(moveToArchivedProject.body.message).toBe('Cannot move a task to an archived project')
 
+    const archiveProjectWithOpenTasks = await expectTyped<ErrorResponse>(
+      withOrgAuth(request(app.getHttpServer()).delete(`/api/projects/${projectId}`), owner),
+      409
+    )
+
+    expect(archiveProjectWithOpenTasks.body.message).toBe('Cannot archive a project with open tasks')
+
     await expectTyped<TaskResponse>(
       withOrgAuth(request(app.getHttpServer()).delete(`/api/tasks/${thirdTaskId}`), owner),
+      200
+    )
+
+    const completedFirstTask = await expectTyped<TaskResponse>(
+      withOrgAuth(request(app.getHttpServer()).patch(`/api/tasks/${firstTaskId}`), owner).send({
+        expectedUpdatedAt: updatedTask.body.updatedAt,
+        status: TaskStatus.done
+      } satisfies UpdateTaskDto),
+      200
+    )
+
+    await expectTyped<TaskResponse>(
+      withOrgAuth(request(app.getHttpServer()).patch(`/api/tasks/${blockedTask.body.id}`), owner).send({
+        expectedUpdatedAt: blockedTask.body.updatedAt,
+        status: TaskStatus.done
+      } satisfies UpdateTaskDto),
       200
     )
 
@@ -220,5 +246,6 @@ export function registerTasksCrudFlowCase(): void {
     )
 
     expect(createForArchivedProject.body.message).toBe('Cannot create a task for an archived project')
+    expect(completedFirstTask.body.status).toBe(TaskStatus.done)
   })
 }

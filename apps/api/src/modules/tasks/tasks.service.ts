@@ -39,6 +39,10 @@ export class TasksService {
 
     const status = dto.status ?? TaskStatus.todo
 
+    if (dto.blockedReason !== undefined && status !== TaskStatus.blocked) {
+      throw new BadRequestException('Blocked reason can only be set when task status is blocked')
+    }
+
     const createTask = async (trx: Prisma.TransactionClient) => {
       if (status !== TaskStatus.archived) {
         await this.usagePolicyService.assertCanCreateActiveTask(organizationId, trx)
@@ -51,6 +55,7 @@ export class TasksService {
           assigneeUserId: dto.assigneeUserId,
           title: dto.title,
           description: dto.description,
+          blockedReason: status === TaskStatus.blocked ? (dto.blockedReason ?? null) : null,
           status,
           priority: dto.priority ?? TaskPriority.medium,
           dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
@@ -159,9 +164,20 @@ export class TasksService {
         })
       }
 
+      if (updateData.blockedReason !== undefined && nextStatus !== TaskStatus.blocked) {
+        throw new BadRequestException('Blocked reason can only be set when task status is blocked')
+      }
+
       if (isUnarchiving) {
         await this.usagePolicyService.assertCanCreateActiveTask(organizationId, trx)
       }
+
+      const blockedReason =
+        nextStatus === TaskStatus.blocked
+          ? updateData.blockedReason === undefined
+            ? currentTask.blockedReason
+            : updateData.blockedReason
+          : null
 
       const task = await this.taskRepository.updateWithOptimisticConcurrency(
         taskId,
@@ -169,6 +185,7 @@ export class TasksService {
         currentTask.updatedAt,
         {
           ...updateData,
+          blockedReason,
           dueDate:
             updateData.dueDate === undefined ? undefined : updateData.dueDate ? new Date(updateData.dueDate) : null,
           archivedAt:
@@ -233,6 +250,8 @@ export class TasksService {
           projectId: task.projectId,
           assigneeUserId: task.assigneeUserId,
           title: task.title,
+          description: task.description,
+          blockedReason: task.blockedReason,
           status: task.status,
           priority: task.priority,
           dueDate: task.dueDate,

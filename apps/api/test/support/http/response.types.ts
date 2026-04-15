@@ -89,6 +89,7 @@ export type TaskResponse = {
   assigneeUserId: string | null
   title: string
   description: string | null
+  blockedReason: string | null
   status: TaskStatus
   priority: TaskPriority
   dueDate: string | null

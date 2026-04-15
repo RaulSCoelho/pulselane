@@ -143,6 +143,10 @@ export class ProjectsController {
     description: 'Project archived successfully',
     type: SuccessResponseDto
   })
+  @ApiConflictResponse({
+    description: 'Project cannot be archived while it has open tasks',
+    type: ErrorResponseDto
+  })
   @ApiNotFoundResponse({
     description: 'Project not found',
     type: ErrorResponseDto
