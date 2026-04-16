@@ -140,15 +140,23 @@ export class ClientsService {
   }
 
   async remove(actorUserId: string, organizationId: string, clientId: string, tx?: Prisma.TransactionClient) {
-    await this.getClientOrThrow(clientId, organizationId, tx)
+    const removeClient = async (trx: Prisma.TransactionClient) => {
+      await this.getClientOrThrow(clientId, organizationId, trx)
 
-    const client = await this.clientRepository.archive(clientId, tx)
+      const client = await this.clientRepository.archive(clientId, trx)
 
-    await this.auditLog(client, actorUserId, organizationId, AuditLogAction.archived, tx)
+      await this.auditLog(client, actorUserId, organizationId, AuditLogAction.archived, trx)
 
-    return {
-      success: true
+      return {
+        success: true
+      }
     }
+
+    if (tx) {
+      return removeClient(tx)
+    }
+
+    return this.prisma.$transaction(trx => removeClient(trx))
   }
 
   private async getClientOrThrow(clientId: string, organizationId: string, tx?: Prisma.TransactionClient) {

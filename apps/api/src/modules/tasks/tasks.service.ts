@@ -216,15 +216,23 @@ export class TasksService {
   }
 
   async remove(actorUserId: string, organizationId: string, taskId: string, tx?: Prisma.TransactionClient) {
-    await this.getTaskOrThrow(taskId, organizationId, tx)
+    const removeTask = async (trx: Prisma.TransactionClient) => {
+      await this.getTaskOrThrow(taskId, organizationId, trx)
 
-    const task = await this.taskRepository.archive(taskId, tx)
+      const task = await this.taskRepository.archive(taskId, trx)
 
-    await this.auditLog(task, actorUserId, organizationId, AuditLogAction.archived, tx)
+      await this.auditLog(task, actorUserId, organizationId, AuditLogAction.archived, trx)
 
-    return {
-      success: true
+      return {
+        success: true
+      }
     }
+
+    if (tx) {
+      return removeTask(tx)
+    }
+
+    return this.prisma.$transaction(trx => removeTask(trx))
   }
 
   private async getTaskOrThrow(taskId: string, organizationId: string, tx?: Prisma.TransactionClient) {
