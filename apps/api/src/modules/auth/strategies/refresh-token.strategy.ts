@@ -46,10 +46,6 @@ export class RefreshTokenStrategy extends PassportStrategy(Strategy, REFRESH_TOK
       throw new UnauthorizedException('Invalid refresh token')
     }
 
-    if (payload.did !== deviceId) {
-      throw new UnauthorizedException('Device ID mismatch')
-    }
-
     // The raw refresh token is preserved on request.user so AuthService can
     // compare it against the stored hash during rotation.
     return {

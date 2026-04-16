@@ -23,6 +23,8 @@ export class OrganizationService {
     const createOrganization = async (trx: Prisma.TransactionClient) => {
       const baseSlug = slugifyOrganizationName(name)
 
+      await this.acquireOrganizationSlugLock(baseSlug, trx)
+
       let attempt = 0
 
       while (true) {
@@ -35,20 +37,11 @@ export class OrganizationService {
           continue
         }
 
-        try {
-          const organization = await this.organizationRepository.create({ name, slug }, trx)
+        const organization = await this.organizationRepository.create({ name, slug }, trx)
 
-          await this.billingService.initializeOrganizationBilling(organization.id, trx)
+        await this.billingService.initializeOrganizationBilling(organization.id, trx)
 
-          return organization
-        } catch (error) {
-          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-            attempt++
-            continue
-          }
-
-          throw error
-        }
+        return organization
       }
     }
 
@@ -163,5 +156,11 @@ export class OrganizationService {
     }
 
     return this.prisma.$transaction(trx => updateOrganization(trx))
+  }
+
+  private async acquireOrganizationSlugLock(baseSlug: string, tx: Prisma.TransactionClient) {
+    await tx.$executeRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${`organization-slug:${baseSlug}`}))
+    `
   }
 }

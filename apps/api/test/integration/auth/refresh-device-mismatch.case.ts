@@ -8,7 +8,7 @@ import { getTestContext } from '../../support/runtime/test-context'
 
 export function registerAuthRefreshDeviceMismatchCase(): void {
   it('should reject refresh when device cookie does not match refresh token payload', async () => {
-    const { app } = await getTestContext()
+    const { app, prisma } = await getTestContext()
 
     const { response } = await signupUser(app, {
       name: 'Device Mismatch User',
@@ -27,6 +27,19 @@ export function registerAuthRefreshDeviceMismatchCase(): void {
 
     expect(refreshResponse.body.statusCode).toBe(401)
     expect(refreshResponse.body.error).toBe('Unauthorized')
-    expect(refreshResponse.body.message).toBe('Device ID mismatch')
+    expect(refreshResponse.body.message).toBe('Invalid device')
+
+    const user = await prisma.user.findUniqueOrThrow({
+      where: {
+        email: 'auth-device-mismatch@example.com'
+      },
+      include: {
+        authSessions: true
+      }
+    })
+
+    expect(user.authSessions).toHaveLength(1)
+    expect(user.authSessions[0].compromisedAt).not.toBeNull()
+    expect(user.authSessions[0].revokedAt).not.toBeNull()
   })
 }
