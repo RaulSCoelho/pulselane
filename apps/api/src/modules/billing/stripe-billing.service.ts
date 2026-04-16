@@ -1,4 +1,5 @@
 import { EnvConfig } from '@/config/env.config'
+import { MetricsService } from '@/infra/observability/metrics.service'
 import { PrismaService } from '@/infra/prisma/prisma.service'
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
 import {
@@ -33,7 +34,8 @@ export class StripeBillingService {
     private readonly prisma: PrismaService,
     private readonly billingRepository: BillingRepository,
     private readonly billingService: BillingService,
-    private readonly auditLogsService: AuditLogsService
+    private readonly auditLogsService: AuditLogsService,
+    private readonly metricsService: MetricsService
   ) {
     this.stripeEnabled = this.configService.getOrThrow('stripeEnabled', { infer: true })
 
@@ -169,37 +171,46 @@ export class StripeBillingService {
   async processWebhook(event: StripeWebhookEvent) {
     this.assertStripeEnabled()
 
-    return this.prisma.$transaction(async tx => {
-      await this.acquireWebhookEventLock(event.id, tx)
+    try {
+      return await this.prisma.$transaction(async tx => {
+        await this.acquireWebhookEventLock(event.id, tx)
 
-      const existingEvent = await this.billingRepository.findWebhookEventByProviderEventId(event.id, tx)
+        const existingEvent = await this.billingRepository.findWebhookEventByProviderEventId(event.id, tx)
 
-      if (!existingEvent) {
-        await this.billingRepository.createWebhookEvent(
+        if (!existingEvent) {
+          await this.billingRepository.createWebhookEvent(
+            {
+              providerEventId: event.id,
+              eventType: event.type,
+              providerCreatedAt: event.created ? new Date(event.created * 1000) : null,
+              payload: event as unknown as Prisma.InputJsonValue,
+              organizationId: null
+            },
+            tx
+          )
+        } else if (existingEvent.processedAt) {
+          return
+        }
+
+        const organizationId = await this.handleStripeEvent(event, tx)
+
+        await this.billingRepository.markWebhookEventProcessed(
+          event.id,
           {
-            providerEventId: event.id,
-            eventType: event.type,
-            providerCreatedAt: event.created ? new Date(event.created * 1000) : null,
-            payload: event as unknown as Prisma.InputJsonValue,
-            organizationId: null
+            organizationId,
+            processedAt: new Date()
           },
           tx
         )
-      } else if (existingEvent.processedAt) {
-        return
-      }
+      })
+    } catch (error) {
+      this.metricsService.recordBillingSyncFailure({
+        provider: 'stripe',
+        operation: event.type
+      })
 
-      const organizationId = await this.handleStripeEvent(event, tx)
-
-      await this.billingRepository.markWebhookEventProcessed(
-        event.id,
-        {
-          organizationId,
-          processedAt: new Date()
-        },
-        tx
-      )
-    })
+      throw error
+    }
   }
 
   private async handleStripeEvent(event: StripeWebhookEvent, tx: Prisma.TransactionClient): Promise<string | null> {

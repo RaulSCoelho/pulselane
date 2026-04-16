@@ -37,7 +37,8 @@ async function createTestApp(): Promise<NestFastifyApplication> {
   nextApp.setGlobalPrefix('api', {
     exclude: [
       { path: 'health', method: RequestMethod.GET },
-      { path: 'readiness', method: RequestMethod.GET }
+      { path: 'readiness', method: RequestMethod.GET },
+      { path: 'metrics', method: RequestMethod.GET }
     ]
   })
 

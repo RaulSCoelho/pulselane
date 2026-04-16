@@ -1,4 +1,5 @@
 import { CryptoService } from '@/infra/crypto/crypto.service'
+import { MetricsService } from '@/infra/observability/metrics.service'
 import { PrismaService } from '@/infra/prisma/prisma.service'
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { MembershipRole } from '@prisma/client'
@@ -36,7 +37,8 @@ export class AuthService {
     private readonly cryptoService: CryptoService,
     private readonly userService: UserService,
     private readonly organizationService: OrganizationService,
-    private readonly membershipService: MembershipService
+    private readonly membershipService: MembershipService,
+    private readonly metricsService: MetricsService
   ) {}
 
   async signup(dto: SignupDto, params: SessionParams) {
@@ -72,12 +74,14 @@ export class AuthService {
     const user = await this.userService.findByEmail(dto.email)
 
     if (!user) {
+      this.metricsService.recordFailedLogin('invalid_credentials')
       throw new UnauthorizedException('Invalid credentials')
     }
 
     const passwordValid = await this.cryptoService.comparePassword(dto.password, user.passwordHash)
 
     if (!passwordValid) {
+      this.metricsService.recordFailedLogin('invalid_credentials')
       throw new UnauthorizedException('Invalid credentials')
     }
 

@@ -3,6 +3,7 @@ import { CurrentOrganization } from '@/common/decorators/current-organization.de
 import { CurrentUser } from '@/common/decorators/current-user.decorator'
 import { OrganizationRoles } from '@/common/decorators/organization-roles.decorator'
 import { ErrorResponseDto } from '@/common/dto/error-response.dto'
+import { MetricsService } from '@/infra/observability/metrics.service'
 import type { AccessRequestUser } from '@/modules/auth/contracts/access-request-user'
 import { OrganizationContextGuard } from '@/modules/organization/guards/organization-context.guard'
 import { OrganizationRolesGuard } from '@/modules/organization/guards/organization-roles.guard'
@@ -41,7 +42,10 @@ import { StripeBillingService } from './stripe-billing.service'
 @ApiTags('Billing')
 @Controller('billing')
 export class BillingController {
-  constructor(private readonly stripeBillingService: StripeBillingService) {}
+  constructor(
+    private readonly stripeBillingService: StripeBillingService,
+    private readonly metricsService: MetricsService
+  ) {}
 
   @Post('checkout-session')
   @ApiBearerAuth()
@@ -143,6 +147,11 @@ export class BillingController {
     @Headers('stripe-signature') signature?: string
   ): Promise<StripeWebhookResponseDto> {
     if (!signature) {
+      this.metricsService.recordWebhookFailure({
+        provider: 'stripe',
+        eventType: 'missing_signature'
+      })
+
       throw new BadRequestException('Missing Stripe signature header')
     }
 
@@ -153,12 +162,24 @@ export class BillingController {
           ? request.rawBody
           : Buffer.from(request.rawBody)
 
-    const event = this.stripeBillingService.constructWebhookEvent(rawBody, signature)
+    let eventType = 'unknown'
 
-    await this.stripeBillingService.processWebhook(event)
+    try {
+      const event = this.stripeBillingService.constructWebhookEvent(rawBody, signature)
+      eventType = event.type
 
-    return {
-      received: true
+      await this.stripeBillingService.processWebhook(event)
+
+      return {
+        received: true
+      }
+    } catch (error) {
+      this.metricsService.recordWebhookFailure({
+        provider: 'stripe',
+        eventType
+      })
+
+      throw error
     }
   }
 }

@@ -9,6 +9,7 @@ import { type EnvConfig, configuration } from './config/env.config'
 import { envValidationSchema } from './config/env.validation'
 import { AppLoggerModule } from './infra/logger/logger.module'
 import { SlowRequestInterceptor } from './infra/logger/slow-request.interceptor'
+import { HttpMetricsInterceptor } from './infra/observability/http-metrics.interceptor'
 import { ObservabilityModule } from './infra/observability/observability.module'
 import { SentryRequestContextInterceptor } from './infra/observability/sentry-request-context.interceptor'
 import { PrismaModule } from './infra/prisma/prisma.module'
@@ -92,6 +93,10 @@ import { TasksModule } from './modules/tasks/tasks.module'
     {
       provide: APP_INTERCEPTOR,
       useClass: SentryRequestContextInterceptor
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpMetricsInterceptor
     },
     {
       provide: APP_INTERCEPTOR,
