@@ -1,5 +1,5 @@
 import { EnvConfig } from '@/config/env.config'
-import { Inject, Injectable, forwardRef } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { EmailDeliveryStatus, Prisma } from '@prisma/client'
 
@@ -13,7 +13,6 @@ export class EmailService {
   constructor(
     private readonly configService: ConfigService<EnvConfig, true>,
     private readonly emailRepository: EmailRepository,
-    @Inject(forwardRef(() => EmailQueueService))
     private readonly emailQueueService: EmailQueueService
   ) {}
 

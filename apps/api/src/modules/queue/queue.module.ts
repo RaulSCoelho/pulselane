@@ -1,11 +1,9 @@
 import type { EnvConfig } from '@/config/env.config'
-import { EmailModule } from '@/modules/email/email.module'
 import { BullModule } from '@nestjs/bullmq'
-import { forwardRef, Module } from '@nestjs/common'
+import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 
 import { EmailQueueService } from './email-queue.service'
-import { EmailQueueProcessor } from './processors/email-queue.processor'
 import { EMAIL_DELIVERY_QUEUE } from './queue.constants'
 
 function buildBullRedisConnection(redisUrl: string) {
@@ -34,7 +32,6 @@ function buildBullRedisConnection(redisUrl: string) {
 @Module({
   imports: [
     ConfigModule,
-    forwardRef(() => EmailModule),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService<EnvConfig, true>) => {
@@ -56,7 +53,7 @@ function buildBullRedisConnection(redisUrl: string) {
       name: EMAIL_DELIVERY_QUEUE
     })
   ],
-  providers: [EmailQueueService, EmailQueueProcessor],
-  exports: [EmailQueueService]
+  providers: [EmailQueueService],
+  exports: [BullModule, EmailQueueService]
 })
 export class QueueModule {}

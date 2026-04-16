@@ -1,14 +1,20 @@
 import { RequestWithCurrentOrganization } from '@/common/decorators/current-organization.decorator'
 import { RequestWithOrganizationMembership } from '@/common/decorators/organization-membership.decorator'
-import { BadRequestException, CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common'
-
-import { OrganizationService } from '../organization.service'
+import { PrismaService } from '@/infra/prisma/prisma.service'
+import {
+  BadRequestException,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException
+} from '@nestjs/common'
 
 type RequestWithOrganizationContext = RequestWithCurrentOrganization & RequestWithOrganizationMembership
 
 @Injectable()
 export class OrganizationContextGuard implements CanActivate {
-  constructor(private readonly organizationService: OrganizationService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithOrganizationContext>()
@@ -24,11 +30,21 @@ export class OrganizationContextGuard implements CanActivate {
       throw new BadRequestException('x-organization-id header is required')
     }
 
-    const { organization, membership } = await this.organizationService.findCurrentByUserId(userId, organizationId)
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        userId,
+        organizationId
+      },
+      include: {
+        organization: true
+      }
+    })
 
-    // Downstream decorators and role guards depend on these request-scoped values
-    // instead of reloading organization context in every controller/service.
-    request.currentOrganization = organization
+    if (!membership) {
+      throw new ForbiddenException('User is not a member of this organization')
+    }
+
+    request.currentOrganization = membership.organization
     request.currentMembership = membership
 
     return true

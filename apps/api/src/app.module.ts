@@ -22,6 +22,7 @@ import { CommentsModule } from './modules/comments/comments.module'
 import { HealthModule } from './modules/health/health.module'
 import { InvitationsModule } from './modules/invitations/invitations.module'
 import { MembershipModule } from './modules/membership/membership.module'
+import { OrganizationAccessModule } from './modules/organization/organization-access.module'
 import { OrganizationModule } from './modules/organization/organization.module'
 import { ProjectsModule } from './modules/projects/projects.module'
 import { QueueModule } from './modules/queue/queue.module'
@@ -53,6 +54,7 @@ import { TasksModule } from './modules/tasks/tasks.module'
     RedisModule,
     ObservabilityModule,
     AppLoggerModule,
+    OrganizationAccessModule,
     HealthModule,
     BillingModule,
     AuthModule,
