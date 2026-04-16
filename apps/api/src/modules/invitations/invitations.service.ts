@@ -124,16 +124,20 @@ export class InvitationsService {
         trx
       )
 
-      await this.sendInvitationEmail(invitation, actorUserId, trx)
-
       return invitation
     }
 
+    let invitation: Awaited<ReturnType<typeof createInvitation>>
+
     if (tx) {
-      return createInvitation(tx)
+      invitation = await createInvitation(tx)
+    } else {
+      invitation = await this.prisma.$transaction(trx => createInvitation(trx))
     }
 
-    return this.prisma.$transaction(trx => createInvitation(trx))
+    await this.sendInvitationEmail(invitation, actorUserId, tx)
+
+    return invitation
   }
 
   async findAll(organizationId: string, query: ListInvitationsQueryDto, tx?: Prisma.TransactionClient) {
@@ -290,16 +294,20 @@ export class InvitationsService {
         trx
       )
 
-      await this.sendInvitationEmail(resentInvitation, actorUserId, trx)
-
       return resentInvitation
     }
 
+    let resentInvitation: Awaited<ReturnType<typeof resendInvitation>>
+
     if (tx) {
-      return resendInvitation(tx)
+      resentInvitation = await resendInvitation(tx)
+    } else {
+      resentInvitation = await this.prisma.$transaction(trx => resendInvitation(trx))
     }
 
-    return this.prisma.$transaction(trx => resendInvitation(trx))
+    await this.sendInvitationEmail(resentInvitation, actorUserId, tx)
+
+    return resentInvitation
   }
 
   async accept(actorUserId: string, dto: AcceptInvitationDto, tx?: Prisma.TransactionClient) {

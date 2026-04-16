@@ -60,6 +60,7 @@ enum OrganizationInvitationStatus {
 
 enum EmailDeliveryStatus {
   pending
+  processing
   sent
   failed
 }

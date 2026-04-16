@@ -14,6 +14,7 @@ export class EmailQueueService {
 
   async enqueueSendEmail(payload: SendEmailJobPayload) {
     await this.emailQueue.add(SEND_EMAIL_JOB, payload, {
+      jobId: payload.deliveryId,
       attempts: 3,
       backoff: {
         type: 'exponential',

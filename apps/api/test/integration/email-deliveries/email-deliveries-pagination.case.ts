@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 import request from 'supertest'
 import { expect, it } from 'vitest'
 
@@ -38,6 +41,29 @@ export function registerEmailDeliveriesPaginationCase(): void {
         role: 'viewer'
       })
       .expect(201)
+
+    await expect
+      .poll(
+        async () => {
+          const response = await withOrgAuth(
+            request(app.getHttpServer()).get('/api/email-deliveries').query({
+              limit: 10,
+              status: 'sent'
+            }),
+            {
+              accessToken: ownerSignup.body.accessToken,
+              organizationId
+            }
+          )
+
+          return response.body.items?.length ?? 0
+        },
+        {
+          timeout: 5000,
+          interval: 100
+        }
+      )
+      .toBe(2)
 
     const firstPage = await expectTyped<CursorPageResponse<EmailDeliveryResponse>>(
       withOrgAuth(request(app.getHttpServer()).get('/api/email-deliveries').query({ limit: 1 }), {

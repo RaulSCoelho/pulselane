@@ -37,10 +37,62 @@ export class EmailRepository {
     })
   }
 
+  async findById(id: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).emailDelivery.findUnique({
+      where: { id },
+      include: emailDeliveryInclude
+    })
+  }
+
   async update(id: string, data: Prisma.EmailDeliveryUpdateArgs['data'], tx?: Prisma.TransactionClient) {
     return this.getClient(tx).emailDelivery.update({
       where: { id },
       data,
+      include: emailDeliveryInclude
+    })
+  }
+
+  async markProcessing(id: string, tx?: Prisma.TransactionClient) {
+    await this.getClient(tx).emailDelivery.updateMany({
+      where: {
+        id,
+        status: {
+          not: EmailDeliveryStatus.sent
+        }
+      },
+      data: {
+        status: EmailDeliveryStatus.processing,
+        error: null
+      }
+    })
+
+    return this.findById(id, tx)
+  }
+
+  async markSent(
+    id: string,
+    metadata: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput,
+    tx?: Prisma.TransactionClient
+  ) {
+    return this.getClient(tx).emailDelivery.update({
+      where: { id },
+      data: {
+        status: EmailDeliveryStatus.sent,
+        sentAt: new Date(),
+        error: null,
+        metadata
+      },
+      include: emailDeliveryInclude
+    })
+  }
+
+  async markFailed(id: string, error: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).emailDelivery.update({
+      where: { id },
+      data: {
+        status: EmailDeliveryStatus.failed,
+        error
+      },
       include: emailDeliveryInclude
     })
   }

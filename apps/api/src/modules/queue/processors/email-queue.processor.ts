@@ -1,4 +1,4 @@
-import { EmailService } from '@/modules/email/email.service'
+import { EmailDeliveryExecutorService } from '@/modules/email/email-delivery-executor.service'
 import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Injectable } from '@nestjs/common'
 import type { Job } from 'bullmq'
@@ -9,7 +9,7 @@ import { SEND_EMAIL_JOB, EMAIL_DELIVERY_QUEUE } from '../queue.constants'
 @Injectable()
 @Processor(EMAIL_DELIVERY_QUEUE)
 export class EmailQueueProcessor extends WorkerHost {
-  constructor(private readonly emailService: EmailService) {
+  constructor(private readonly emailDeliveryExecutorService: EmailDeliveryExecutorService) {
     super()
   }
 
@@ -18,6 +18,6 @@ export class EmailQueueProcessor extends WorkerHost {
       throw new Error(`Unsupported job name: ${job.name}`)
     }
 
-    await this.emailService.send(job.data)
+    await this.emailDeliveryExecutorService.processQueuedDelivery(job.data.deliveryId)
   }
 }

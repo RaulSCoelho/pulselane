@@ -1,12 +1,11 @@
 import { EnvConfig } from '@/config/env.config'
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, forwardRef } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { EmailDeliveryStatus, Prisma } from '@prisma/client'
 
-import { type EmailProvider } from './contracts/email-provider'
+import { EmailQueueService } from '../queue/email-queue.service'
 import { SendEmailInput } from './contracts/send-email.input'
 import { ListEmailDeliveriesQueryDto } from './dto/requests/list-email-deliveries-query.dto'
-import { EMAIL_PROVIDER } from './email.constants'
 import { EmailRepository } from './email.repository'
 
 @Injectable()
@@ -14,21 +13,17 @@ export class EmailService {
   constructor(
     private readonly configService: ConfigService<EnvConfig, true>,
     private readonly emailRepository: EmailRepository,
-    @Inject(EMAIL_PROVIDER)
-    private readonly emailProvider: EmailProvider
+    @Inject(forwardRef(() => EmailQueueService))
+    private readonly emailQueueService: EmailQueueService
   ) {}
 
   private get env() {
     return {
-      fromName: this.configService.get('emailFromName', { infer: true }),
-      fromAddress: this.configService.get('emailFromAddress', { infer: true }),
       transport: this.configService.get('emailTransport', { infer: true })
     }
   }
 
   async send(input: SendEmailInput, tx?: Prisma.TransactionClient) {
-    const fromName = this.env.fromName
-    const fromAddress = this.env.fromAddress
     const transport = this.env.transport
 
     const delivery = await this.emailRepository.create(
@@ -39,48 +34,27 @@ export class EmailService {
         subject: input.subject,
         transport,
         status: EmailDeliveryStatus.pending,
-        metadata: input.metadata
+        metadata: {
+          ...(typeof input.metadata === 'object' && input.metadata !== null && !Array.isArray(input.metadata)
+            ? input.metadata
+            : {}),
+          text: input.text,
+          html: input.html
+        }
       },
       tx
     )
 
     try {
-      const result = await this.emailProvider.send({
-        fromName,
-        fromAddress,
-        to: input.to,
-        subject: input.subject,
-        text: input.text,
-        html: input.html
+      await this.emailQueueService.enqueueSendEmail({
+        deliveryId: delivery.id
       })
 
-      return this.emailRepository.update(
-        delivery.id,
-        {
-          status: EmailDeliveryStatus.sent,
-          sentAt: new Date(),
-          error: null,
-          metadata: {
-            ...(delivery.metadata as Record<string, unknown> | null),
-            provider: result.provider,
-            providerMessageId: result.providerMessageId
-          }
-        },
-        tx
-      )
+      return delivery
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unexpected email delivery error'
+      const message = error instanceof Error ? error.message : 'Unexpected email enqueue error'
 
-      await this.emailRepository.update(
-        delivery.id,
-        {
-          status: EmailDeliveryStatus.failed,
-          error: message
-        },
-        tx
-      )
-
-      throw error
+      return this.emailRepository.markFailed(delivery.id, `Failed to enqueue email delivery: ${message}`, tx)
     }
   }
 
