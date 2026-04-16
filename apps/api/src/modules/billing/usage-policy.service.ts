@@ -1,6 +1,6 @@
 import { PrismaService } from '@/infra/prisma/prisma.service'
 import { ForbiddenException, Injectable } from '@nestjs/common'
-import { Prisma } from '@prisma/client'
+import { OrganizationInvitationStatus, Prisma } from '@prisma/client'
 
 import { type UsageMetric, usageMetricLabels } from './billing-plan-limits'
 import { BillingService } from './billing.service'
@@ -14,6 +14,45 @@ export class UsagePolicyService {
 
   async assertCanCreateMembership(organizationId: string, tx: Prisma.TransactionClient) {
     await this.assertWithinPlanLimit(organizationId, 'members', tx)
+  }
+
+  async assertCanReserveMembershipSlot(organizationId: string, tx: Prisma.TransactionClient) {
+    const assert = async (trx: Prisma.TransactionClient) => {
+      await this.acquireOrganizationUsageLock(organizationId, trx)
+
+      const billing = await this.billingService.getByOrganizationIdOrThrow(organizationId, trx)
+      const limit = this.billingService.getPlanLimits(billing.plan).members
+
+      if (limit === null) {
+        return
+      }
+
+      const [memberCount, pendingInvitationCount] = await Promise.all([
+        trx.membership.count({
+          where: {
+            organizationId
+          }
+        }),
+        trx.organizationInvitation.count({
+          where: {
+            organizationId,
+            status: OrganizationInvitationStatus.pending
+          }
+        })
+      ])
+
+      const reservedMemberSlots = memberCount + pendingInvitationCount
+
+      if (reservedMemberSlots >= limit) {
+        throw new ForbiddenException(`Plan limit reached for ${usageMetricLabels.members}`)
+      }
+    }
+
+    if (tx) {
+      return assert(tx)
+    }
+
+    return this.prisma.$transaction(trx => assert(trx))
   }
 
   async assertCanCreateClient(organizationId: string, tx: Prisma.TransactionClient) {

@@ -117,35 +117,27 @@ export class SessionService {
       throw new UnauthorizedException('Invalid session')
     }
 
-    if (session.revokedAt) {
-      throw new UnauthorizedException('Session revoked')
-    }
-
     if (session.compromisedAt) {
       throw new UnauthorizedException('Session compromised')
     }
 
+    if (session.revokedAt) {
+      throw new UnauthorizedException('Session revoked')
+    }
+
     if (session.expiresAt.getTime() <= Date.now()) {
-      await this.sessionRepository.updateById(
-        session.id,
-        {
-          revokedAt: new Date()
-        },
-        tx
-      )
+      await this.sessionRepository.updateById(session.id, {
+        revokedAt: new Date()
+      })
 
       throw new UnauthorizedException('Session expired')
     }
 
     if (options?.deviceId && session.deviceId !== options.deviceId) {
-      await this.sessionRepository.updateById(
-        session.id,
-        {
-          revokedAt: new Date(),
-          compromisedAt: new Date()
-        },
-        tx
-      )
+      await this.sessionRepository.updateById(session.id, {
+        revokedAt: new Date(),
+        compromisedAt: new Date()
+      })
 
       throw new UnauthorizedException('Invalid device')
     }
@@ -154,14 +146,10 @@ export class SessionService {
       const isValid = this.cryptoService.compareToken(options.refreshToken, session.refreshTokenHash)
 
       if (!isValid) {
-        await this.sessionRepository.updateById(
-          session.id,
-          {
-            revokedAt: new Date(),
-            compromisedAt: new Date()
-          },
-          tx
-        )
+        await this.sessionRepository.updateById(session.id, {
+          revokedAt: new Date(),
+          compromisedAt: new Date()
+        })
 
         throw new UnauthorizedException('Invalid refresh token')
       }

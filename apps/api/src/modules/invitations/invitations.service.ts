@@ -72,7 +72,7 @@ export class InvitationsService {
         throw new ConflictException('A pending invitation already exists for this email')
       }
 
-      await this.usagePolicyService.assertCanCreateMembership(organizationId, trx)
+      await this.usagePolicyService.assertCanReserveMembershipSlot(organizationId, trx)
 
       let invitation: OrganizationInvitation & {
         invitedBy: {
