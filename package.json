@@ -3,16 +3,38 @@
   "private": true,
   "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319",
   "scripts": {
+    "dev": "pnpm -r --parallel --filter ./apps/* dev",
     "dev:web": "pnpm --dir apps/web dev",
     "dev:api": "pnpm --dir apps/api start:dev",
+
+    "build": "pnpm build:web && pnpm build:api",
     "build:web": "pnpm --dir apps/web build",
     "build:api": "pnpm --dir apps/api build",
+
+    "start:web": "pnpm --dir apps/web start",
+    "start:api": "pnpm --dir apps/api start:prod",
+
+    "lint": "pnpm lint:web && pnpm lint:api",
     "lint:web": "pnpm --dir apps/web lint",
     "lint:api": "pnpm --dir apps/api lint",
+    "lint:check": "pnpm lint:web && pnpm lint:api:check",
+    "lint:api:check": "pnpm --dir apps/api lint:check",
+
+    "typecheck": "pnpm typecheck:web && pnpm typecheck:api",
+    "typecheck:web": "pnpm --dir apps/web exec tsc --noEmit",
+    "typecheck:api": "pnpm --dir apps/api typecheck",
+
+    "test": "pnpm test:api",
+    "test:watch": "pnpm --dir apps/api test:watch",
+    "test:coverage": "pnpm --dir apps/api test:coverage",
     "test:api": "pnpm --dir apps/api test",
-    "test:api:integration": "pnpm --dir apps/api test:integration",
+
+    "db:generate": "pnpm --dir apps/api db:generate",
+    "db:migrate": "pnpm --dir apps/api db:migrate:prod",
+    "db:migrate:dev": "pnpm --dir apps/api db:migrate:dev",
+    "db:migrate:prod": "pnpm --dir apps/api db:migrate:prod",
     "db:seed": "pnpm --dir apps/api db:seed",
-    "db:migrate": "pnpm --dir apps/api prisma migrate deploy",
+
     "setup:dev": "pnpm install && docker compose up -d"
   }
 }
