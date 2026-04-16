@@ -331,13 +331,9 @@ export class InvitationsService {
       }
 
       if (invitation.expiresAt.getTime() <= Date.now()) {
-        await this.invitationRepository.update(
-          invitation.id,
-          {
-            status: OrganizationInvitationStatus.expired
-          },
-          trx
-        )
+        await this.invitationRepository.update(invitation.id, {
+          status: OrganizationInvitationStatus.expired
+        })
 
         throw new ConflictException('Invitation has expired')
       }
