@@ -24,23 +24,32 @@ export class OrganizationService {
       const baseSlug = slugifyOrganizationName(name)
 
       let attempt = 0
-      let slug: string
 
       while (true) {
-        slug = uniqueOrganizationSlug(baseSlug, attempt)
+        const slug = uniqueOrganizationSlug(baseSlug, attempt)
 
         const exists = await this.organizationRepository.findBySlug(slug, trx)
 
-        if (!exists) break
+        if (exists) {
+          attempt++
+          continue
+        }
 
-        attempt++
+        try {
+          const organization = await this.organizationRepository.create({ name, slug }, trx)
+
+          await this.billingService.initializeOrganizationBilling(organization.id, trx)
+
+          return organization
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            attempt++
+            continue
+          }
+
+          throw error
+        }
       }
-
-      const organization = await this.organizationRepository.create({ name, slug }, trx)
-
-      await this.billingService.initializeOrganizationBilling(organization.id, trx)
-
-      return organization
     }
 
     if (tx) {
