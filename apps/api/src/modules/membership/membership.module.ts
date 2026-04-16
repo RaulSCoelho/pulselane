@@ -1,5 +1,6 @@
 import { BillingModule } from '@/modules/billing/billing.module'
 import { OrganizationModule } from '@/modules/organization/organization.module'
+import { TasksModule } from '@/modules/tasks/tasks.module'
 import { forwardRef, Module } from '@nestjs/common'
 
 import { AuditLogsModule } from '../audit-logs/audit-logs.module'
@@ -8,7 +9,12 @@ import { MembershipRepository } from './membership.repository'
 import { MembershipService } from './membership.service'
 
 @Module({
-  imports: [forwardRef(() => OrganizationModule), forwardRef(() => AuditLogsModule), BillingModule],
+  imports: [
+    forwardRef(() => OrganizationModule),
+    forwardRef(() => AuditLogsModule),
+    BillingModule,
+    forwardRef(() => TasksModule)
+  ],
   controllers: [MembershipController],
   providers: [MembershipService, MembershipRepository],
   exports: [MembershipService]

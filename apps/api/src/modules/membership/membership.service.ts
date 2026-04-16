@@ -2,6 +2,7 @@ import { SuccessResponseDto } from '@/common/dto/success-response.dto'
 import { PrismaService } from '@/infra/prisma/prisma.service'
 import { AuditLogsService } from '@/modules/audit-logs/audit-logs.service'
 import { UsagePolicyService } from '@/modules/billing/usage-policy.service'
+import { TaskAssignmentService } from '@/modules/tasks/task-assignment.service'
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { AuditLogAction, MembershipRole, Prisma } from '@prisma/client'
 
@@ -27,7 +28,8 @@ export class MembershipService {
     private readonly prisma: PrismaService,
     private readonly membershipRepository: MembershipRepository,
     private readonly usagePolicyService: UsagePolicyService,
-    private readonly auditLogsService: AuditLogsService
+    private readonly auditLogsService: AuditLogsService,
+    private readonly taskAssignmentService: TaskAssignmentService
   ) {}
 
   async create(data: CreateMembershipInput, tx?: Prisma.TransactionClient) {
@@ -197,15 +199,11 @@ export class MembershipService {
         }
       }
 
-      const unassignedTasks = await trx.task.updateMany({
-        where: {
-          organizationId,
-          assigneeUserId: targetMembership.userId
-        },
-        data: {
-          assigneeUserId: null
-        }
-      })
+      const unassignedTasks = await this.taskAssignmentService.unassignAllByUser(
+        organizationId,
+        targetMembership.userId,
+        trx
+      )
 
       await this.membershipRepository.delete(membershipId, trx)
 

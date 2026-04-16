@@ -3,16 +3,23 @@ import { BillingModule } from '@/modules/billing/billing.module'
 import { MembershipModule } from '@/modules/membership/membership.module'
 import { OrganizationModule } from '@/modules/organization/organization.module'
 import { ProjectsModule } from '@/modules/projects/projects.module'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 
+import { TaskAssignmentService } from './task-assignment.service'
 import { TaskRepository } from './task.repository'
 import { TasksController } from './tasks.controller'
 import { TasksService } from './tasks.service'
 
 @Module({
-  imports: [OrganizationModule, MembershipModule, ProjectsModule, AuditLogsModule, BillingModule],
+  imports: [
+    forwardRef(() => OrganizationModule),
+    forwardRef(() => MembershipModule),
+    ProjectsModule,
+    forwardRef(() => AuditLogsModule),
+    BillingModule
+  ],
   controllers: [TasksController],
-  providers: [TasksService, TaskRepository],
-  exports: [TasksService]
+  providers: [TasksService, TaskAssignmentService, TaskRepository],
+  exports: [TasksService, TaskAssignmentService]
 })
 export class TasksModule {}

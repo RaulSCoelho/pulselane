@@ -217,4 +217,16 @@ export class TaskRepository {
       include: taskInclude
     })
   }
+
+  async unassignAllByAssignee(organizationId: string, assigneeUserId: string, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).task.updateMany({
+      where: {
+        organizationId,
+        assigneeUserId
+      },
+      data: {
+        assigneeUserId: null
+      }
+    })
+  }
 }
