@@ -9,6 +9,8 @@ import { type EnvConfig, configuration } from './config/env.config'
 import { envValidationSchema } from './config/env.validation'
 import { AppLoggerModule } from './infra/logger/logger.module'
 import { SlowRequestInterceptor } from './infra/logger/slow-request.interceptor'
+import { ObservabilityModule } from './infra/observability/observability.module'
+import { SentryRequestContextInterceptor } from './infra/observability/sentry-request-context.interceptor'
 import { PrismaModule } from './infra/prisma/prisma.module'
 import { RedisModule } from './infra/redis/redis.module'
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module'
@@ -48,6 +50,7 @@ import { TasksModule } from './modules/tasks/tasks.module'
     }),
     PrismaModule,
     RedisModule,
+    ObservabilityModule,
     AppLoggerModule,
     HealthModule,
     BillingModule,
@@ -85,6 +88,10 @@ import { TasksModule } from './modules/tasks/tasks.module'
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SentryRequestContextInterceptor
     },
     {
       provide: APP_INTERCEPTOR,

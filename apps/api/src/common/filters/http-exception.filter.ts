@@ -1,3 +1,4 @@
+import { ObservabilityService } from '@/infra/observability/observability.service'
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import type { FastifyReply, FastifyRequest } from 'fastify'
@@ -14,7 +15,10 @@ type HttpExceptionResponse =
 @Injectable()
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: PinoLogger) {
+  constructor(
+    private readonly logger: PinoLogger,
+    private readonly observabilityService: ObservabilityService
+  ) {
     this.logger.setContext(HttpExceptionFilter.name)
   }
 
@@ -50,6 +54,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
           status_code: statusCode,
           stack: exception.stack
         })
+
+        this.observabilityService.captureHttpException({
+          request,
+          exception,
+          level: 'error',
+          extras: {
+            statusCode
+          }
+        })
       }
 
       reply.status(statusCode).send({
@@ -63,6 +76,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       const prismaResponse = this.mapPrismaError(exception)
+
+      if (prismaResponse.statusCode >= 500) {
+        this.observabilityService.captureHttpException({
+          request,
+          exception,
+          level: 'error',
+          extras: {
+            prismaCode: exception.code
+          }
+        })
+      }
 
       reply.status(prismaResponse.statusCode).send({
         ...prismaResponse,
@@ -80,6 +104,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       path: request.url,
       request_id: request.id,
       stack: exception instanceof Error ? exception.stack : undefined
+    })
+
+    this.observabilityService.captureHttpException({
+      request,
+      exception,
+      level: 'error'
     })
 
     reply.status(HttpStatus.INTERNAL_SERVER_ERROR).send({

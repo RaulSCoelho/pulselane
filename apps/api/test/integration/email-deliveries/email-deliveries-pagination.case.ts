@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-
 import request from 'supertest'
 import { expect, it } from 'vitest'
 
+import { waitForSentEmailDeliveries } from '../../support/email/wait-for-email-deliveries'
 import { getCurrentUser, signupUser } from '../../support/factories/auth.factory'
 import { withOrgAuth } from '../../support/http/request-helpers'
 import type { CursorPageResponse, EmailDeliveryResponse } from '../../support/http/response.types'
@@ -19,11 +17,12 @@ export function registerEmailDeliveriesPaginationCase(): void {
       organizationName: 'Email Deliveries Workspace'
     })
 
-    const ownerMe = await getCurrentUser(app, ownerSignup.body.accessToken)
+    const ownerAccessToken = ownerSignup.body.accessToken
+    const ownerMe = await getCurrentUser(app, ownerAccessToken)
     const organizationId = ownerMe.memberships[0].organization.id
 
     await withOrgAuth(request(app.getHttpServer()).post('/api/invitations'), {
-      accessToken: ownerSignup.body.accessToken,
+      accessToken: ownerAccessToken,
       organizationId
     })
       .send({
@@ -33,7 +32,7 @@ export function registerEmailDeliveriesPaginationCase(): void {
       .expect(201)
 
     await withOrgAuth(request(app.getHttpServer()).post('/api/invitations'), {
-      accessToken: ownerSignup.body.accessToken,
+      accessToken: ownerAccessToken,
       organizationId
     })
       .send({
@@ -42,32 +41,16 @@ export function registerEmailDeliveriesPaginationCase(): void {
       })
       .expect(201)
 
-    await expect
-      .poll(
-        async () => {
-          const response = await withOrgAuth(
-            request(app.getHttpServer()).get('/api/email-deliveries').query({
-              limit: 10,
-              status: 'sent'
-            }),
-            {
-              accessToken: ownerSignup.body.accessToken,
-              organizationId
-            }
-          )
-
-          return response.body.items?.length ?? 0
-        },
-        {
-          timeout: 5000,
-          interval: 100
-        }
-      )
-      .toBe(2)
+    await waitForSentEmailDeliveries({
+      app,
+      accessToken: ownerAccessToken,
+      organizationId,
+      expectedCount: 2
+    })
 
     const firstPage = await expectTyped<CursorPageResponse<EmailDeliveryResponse>>(
       withOrgAuth(request(app.getHttpServer()).get('/api/email-deliveries').query({ limit: 1 }), {
-        accessToken: ownerSignup.body.accessToken,
+        accessToken: ownerAccessToken,
         organizationId
       }),
       200
@@ -92,7 +75,7 @@ export function registerEmailDeliveriesPaginationCase(): void {
             cursor: firstPage.body.meta.nextCursor ?? ''
           }),
         {
-          accessToken: ownerSignup.body.accessToken,
+          accessToken: ownerAccessToken,
           organizationId
         }
       ),
@@ -112,7 +95,7 @@ export function registerEmailDeliveriesPaginationCase(): void {
           status: 'sent'
         }),
         {
-          accessToken: ownerSignup.body.accessToken,
+          accessToken: ownerAccessToken,
           organizationId
         }
       ),

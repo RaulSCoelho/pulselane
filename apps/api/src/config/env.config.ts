@@ -16,6 +16,12 @@ export function configuration() {
     logLevel: process.env.LOG_LEVEL ?? (nodeEnv === 'production' ? 'info' : 'debug'),
     slowRequestThresholdMs: Number(process.env.SLOW_REQUEST_THRESHOLD_MS ?? 1000),
 
+    sentryEnabled: process.env.SENTRY_ENABLED === 'true',
+    sentryDsn: process.env.SENTRY_DSN,
+    sentryEnvironment: process.env.SENTRY_ENVIRONMENT ?? nodeEnv,
+    sentryRelease: process.env.SENTRY_RELEASE,
+    sentryTracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
+
     // throttling
     throttlingEnabled: process.env.THROTTLING_ENABLED ? process.env.THROTTLING_ENABLED === 'true' : nodeEnv !== 'test',
     rateLimitTtlMs: Number(process.env.RATE_LIMIT_TTL_MS ?? 60_000),

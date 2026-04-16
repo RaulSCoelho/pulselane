@@ -1,6 +1,7 @@
 import request from 'supertest'
 import { expect, it } from 'vitest'
 
+import { waitForSentEmailDeliveries } from '../../support/email/wait-for-email-deliveries'
 import { getCurrentUser, signupUser } from '../../support/factories/auth.factory'
 import { withOrgAuth } from '../../support/http/request-helpers'
 import type { CursorPageResponse, EmailDeliveryResponse, InvitationResponse } from '../../support/http/response.types'
@@ -16,12 +17,13 @@ export function registerInvitationResendCase(): void {
       organizationName: 'Pulselane Resend Workspace'
     })
 
-    const ownerMe = await getCurrentUser(app, ownerSignup.body.accessToken)
+    const ownerAccessToken = ownerSignup.body.accessToken
+    const ownerMe = await getCurrentUser(app, ownerAccessToken)
     const organizationId = ownerMe.memberships[0].organization.id
 
     const createInvitationResponse = await expectTyped<InvitationResponse & { token: string }>(
       withOrgAuth(request(app.getHttpServer()).post('/api/invitations'), {
-        accessToken: ownerSignup.body.accessToken,
+        accessToken: ownerAccessToken,
         organizationId
       }).send({
         email: 'invitations-resend-invitee@example.com',
@@ -34,7 +36,7 @@ export function registerInvitationResendCase(): void {
 
     const resendResponse = await expectTyped<InvitationResponse & { token: string }>(
       withOrgAuth(request(app.getHttpServer()).post(`/api/invitations/${createInvitationResponse.body.id}/resend`), {
-        accessToken: ownerSignup.body.accessToken,
+        accessToken: ownerAccessToken,
         organizationId
       }),
       201
@@ -44,9 +46,17 @@ export function registerInvitationResendCase(): void {
     expect(resendResponse.body.token).toBeDefined()
     expect(resendResponse.body.token).not.toBe(originalToken)
 
+    await waitForSentEmailDeliveries({
+      app,
+      accessToken: ownerAccessToken,
+      organizationId,
+      expectedCount: 2,
+      to: 'invitations-resend-invitee@example.com'
+    })
+
     const emailDeliveriesResponse = await expectTyped<CursorPageResponse<EmailDeliveryResponse>>(
       withOrgAuth(request(app.getHttpServer()).get('/api/email-deliveries').query({ limit: 10 }), {
-        accessToken: ownerSignup.body.accessToken,
+        accessToken: ownerAccessToken,
         organizationId
       }),
       200

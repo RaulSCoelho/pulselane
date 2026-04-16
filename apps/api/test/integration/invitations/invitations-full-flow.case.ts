@@ -1,6 +1,7 @@
 import request from 'supertest'
 import { expect, it } from 'vitest'
 
+import { waitForSentEmailDeliveries } from '../../support/email/wait-for-email-deliveries'
 import { getCurrentUser, signupUser } from '../../support/factories/auth.factory'
 import { withAccessToken, withOrgAuth } from '../../support/http/request-helpers'
 import type {
@@ -74,6 +75,13 @@ export function registerInvitationsFullFlowCase(): void {
     expect(previewResponse.body.status).toBe('pending')
     expect(previewResponse.body.canAccept).toBe(true)
     expect(previewResponse.body.organizationName).toBe('Pulselane Labs')
+
+    await waitForSentEmailDeliveries({
+      app,
+      accessToken: ownerAccessToken,
+      organizationId,
+      expectedCount: 2
+    })
 
     const emailDeliveriesFirstPage = await expectTyped<CursorPageResponse<EmailDeliveryResponse>>(
       withOrgAuth(request(app.getHttpServer()).get('/api/email-deliveries').query({ limit: 1 }), {

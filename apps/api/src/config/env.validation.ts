@@ -10,6 +10,16 @@ export const envValidationSchema = Joi.object({
   LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('debug'),
   SLOW_REQUEST_THRESHOLD_MS: Joi.number().integer().positive().default(1000),
 
+  SENTRY_ENABLED: Joi.boolean().default(false),
+  SENTRY_DSN: Joi.when('SENTRY_ENABLED', {
+    is: true,
+    then: Joi.string().required(),
+    otherwise: Joi.string().allow('', null).optional()
+  }),
+  SENTRY_ENVIRONMENT: Joi.string().optional(),
+  SENTRY_RELEASE: Joi.string().allow('', null).optional(),
+  SENTRY_TRACES_SAMPLE_RATE: Joi.number().min(0).max(1).default(0),
+
   THROTTLING_ENABLED: Joi.boolean().optional(),
   RATE_LIMIT_TTL_MS: Joi.number().integer().positive().default(60_000),
   RATE_LIMIT_LIMIT: Joi.number().integer().positive().default(120),
