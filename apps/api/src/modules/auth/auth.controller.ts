@@ -46,7 +46,7 @@ const authThrottle = {
 @ApiTags('Auth')
 @ApiCookieAuth(REFRESH_COOKIE_NAME)
 @ApiCookieAuth(DEVICE_COOKIE_NAME)
-@Controller('auth')
+@Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(
     private readonly authService: AuthService,

@@ -31,7 +31,7 @@ import { OrganizationService } from './organization.service'
   description: 'Unauthorized',
   type: ErrorResponseDto
 })
-@Controller('organizations')
+@Controller({ path: 'organizations', version: '1' })
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 

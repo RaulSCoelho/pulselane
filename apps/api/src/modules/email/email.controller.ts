@@ -36,7 +36,7 @@ import { EmailService } from './email.service'
   type: ErrorResponseDto
 })
 @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
-@Controller('email-deliveries')
+@Controller({ path: 'email-deliveries', version: '1' })
 export class EmailController {
   constructor(private readonly emailService: EmailService) {}
 

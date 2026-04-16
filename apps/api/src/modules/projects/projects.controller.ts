@@ -45,7 +45,7 @@ import { ProjectsService } from './projects.service'
   type: ErrorResponseDto
 })
 @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
-@Controller('projects')
+@Controller({ path: 'projects', version: '1' })
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 

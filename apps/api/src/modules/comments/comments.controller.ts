@@ -47,7 +47,7 @@ import { ListCommentsResponseDto } from './dto/responses/list-comments-response.
   type: ErrorResponseDto
 })
 @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
-@Controller('comments')
+@Controller({ path: 'comments', version: '1' })
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 

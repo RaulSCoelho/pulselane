@@ -31,7 +31,7 @@ import { PreviewInvitationResponseDto } from './dto/responses/preview-invitation
 import { InvitationsService } from './invitations.service'
 
 @ApiTags('Invitations')
-@Controller('invitations')
+@Controller({ path: 'invitations', version: '1' })
 export class InvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
 

@@ -45,7 +45,7 @@ import { ListClientsResponseDto } from './dto/responses/list-clients-response.dt
   type: ErrorResponseDto
 })
 @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
-@Controller('clients')
+@Controller({ path: 'clients', version: '1' })
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 

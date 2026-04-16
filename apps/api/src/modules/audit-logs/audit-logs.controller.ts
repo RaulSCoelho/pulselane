@@ -36,7 +36,7 @@ import { ListAuditLogsResponseDto } from './dto/responses/list-audit-logs-respon
   type: ErrorResponseDto
 })
 @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
-@Controller('audit-logs')
+@Controller({ path: 'audit-logs', version: '1' })
 export class AuditLogsController {
   constructor(private readonly auditLogsService: AuditLogsService) {}
 

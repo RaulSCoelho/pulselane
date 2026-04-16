@@ -43,7 +43,7 @@ import { StripeWebhookResponseDto } from './dto/responses/stripe-webhook-respons
 import { StripeBillingService } from './stripe-billing.service'
 
 @ApiTags('Billing')
-@Controller('billing')
+@Controller({ path: 'billing', version: '1' })
 export class BillingController {
   constructor(
     private readonly billingService: BillingService,

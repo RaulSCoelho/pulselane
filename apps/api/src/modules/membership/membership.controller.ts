@@ -43,7 +43,7 @@ import { MembershipService } from './membership.service'
   type: ErrorResponseDto
 })
 @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
-@Controller('memberships')
+@Controller({ path: 'memberships', version: '1' })
 export class MembershipController {
   constructor(private readonly membershipService: MembershipService) {}
 

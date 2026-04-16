@@ -45,7 +45,7 @@ import { TasksService } from './tasks.service'
   type: ErrorResponseDto
 })
 @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
-@Controller('tasks')
+@Controller({ path: 'tasks', version: '1' })
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
