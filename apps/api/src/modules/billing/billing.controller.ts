@@ -11,6 +11,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
@@ -33,7 +34,9 @@ import {
 import { MembershipRole } from '@prisma/client'
 import type { FastifyRequest } from 'fastify'
 
+import { BillingService } from './billing.service'
 import { CreateCheckoutSessionDto } from './dto/requests/create-checkout-session.dto'
+import { BillingPlansResponseDto } from './dto/responses/billing-plans-response.dto'
 import { CreateBillingPortalSessionResponseDto } from './dto/responses/create-billing-portal-session-response.dto'
 import { CreateCheckoutSessionResponseDto } from './dto/responses/create-checkout-session-response.dto'
 import { StripeWebhookResponseDto } from './dto/responses/stripe-webhook-response.dto'
@@ -43,9 +46,36 @@ import { StripeBillingService } from './stripe-billing.service'
 @Controller('billing')
 export class BillingController {
   constructor(
+    private readonly billingService: BillingService,
     private readonly stripeBillingService: StripeBillingService,
     private readonly metricsService: MetricsService
   ) {}
+
+  @Get('plans')
+  @ApiBearerAuth()
+  @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
+  @OrganizationRoles(MembershipRole.owner, MembershipRole.admin, MembershipRole.member, MembershipRole.viewer)
+  @ApiHeader({
+    name: 'x-organization-id',
+    required: true,
+    description: 'Current organization context'
+  })
+  @ApiOperation({ summary: 'List commercial plan catalog for the current organization' })
+  @ApiOkResponse({
+    description: 'Billing plan catalog returned successfully',
+    type: BillingPlansResponseDto
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+    type: ErrorResponseDto
+  })
+  @ApiForbiddenResponse({
+    description: 'Forbidden',
+    type: ErrorResponseDto
+  })
+  getPlans(@CurrentOrganization('id') organizationId: string): Promise<BillingPlansResponseDto> {
+    return this.billingService.getPlansCatalogForOrganization(organizationId)
+  }
 
   @Post('checkout-session')
   @ApiBearerAuth()
