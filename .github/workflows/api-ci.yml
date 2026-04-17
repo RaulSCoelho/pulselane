@@ -61,7 +61,7 @@ jobs:
       REFRESH_TOKEN_TTL_DAYS: "30"
       APP_WEB_URL: http://localhost:3000
       EMAIL_FROM_NAME: Pulselane
-      EMAIL_FROM_ADDRESS: no-reply@pulselane.local
+      EMAIL_FROM_ADDRESS: no-reply@pulselane.com
       EMAIL_TRANSPORT: logger
       LOG_LEVEL: silent
       SLOW_REQUEST_THRESHOLD_MS: "1000"
