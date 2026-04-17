@@ -1,0 +1,100 @@
+name: API CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/api/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/api-ci.yml"
+      - ".github/workflows/api-deploy.yml"
+      - "infra/docker/api/**"
+      - "infra/scripts/deploy-api.sh"
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/api-ci.yml"
+      - ".github/workflows/api-deploy.yml"
+      - "infra/docker/api/**"
+      - "infra/scripts/deploy-api.sh"
+
+jobs:
+  api-ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/pulselane_ci?schema=public
+      PORT: "3001"
+      NODE_ENV: test
+      ALLOWED_CORS_ORIGINS: http://localhost:3000
+      COOKIE_SECRET: test-cookie-secret
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: lax
+      JWT_ACCESS_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
+      ACCESS_TOKEN_TTL_SECONDS: "900"
+      REFRESH_TOKEN_TTL_DAYS: "30"
+      APP_WEB_URL: http://localhost:3000
+      EMAIL_FROM_NAME: Pulselane
+      EMAIL_FROM_ADDRESS: no-reply@pulselane.local
+      EMAIL_TRANSPORT: logger
+      LOG_LEVEL: silent
+      SLOW_REQUEST_THRESHOLD_MS: "1000"
+      SENTRY_ENABLED: "false"
+      STRIPE_ENABLED: "false"
+      REDIS_ENABLED: "false"
+      REDIS_REQUIRED: "false"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --dir apps/api db:generate
+
+      - name: Lint API
+        run: pnpm --dir apps/api lint:check
+
+      - name: Typecheck API
+        run: pnpm --dir apps/api typecheck
+
+      - name: Build API
+        run: pnpm --dir apps/api build
+
+      - name: Test API
+        run: pnpm --dir apps/api test
