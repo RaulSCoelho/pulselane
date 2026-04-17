@@ -3,7 +3,10 @@ import Joi from 'joi'
 export const envValidationSchema = Joi.object({
   PORT: Joi.number().default(3001),
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
-  ALLOWED_CORS_ORIGINS: Joi.string().required(),
+  ALLOWED_CORS_ORIGINS: Joi.string()
+    .trim()
+    .pattern(/^(\*|(\.[a-z0-9.-]+)|(https?:\/\/[^,\s]+)(\s*,\s*https?:\/\/[^,\s]+)*)$/i)
+    .required(),
 
   DATABASE_URL: Joi.string().uri().required(),
 

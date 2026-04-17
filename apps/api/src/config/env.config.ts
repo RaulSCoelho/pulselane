@@ -1,5 +1,49 @@
 export type EmailTransport = 'logger' | 'smtp'
+export type CorsOriginResolver =
+  | string[]
+  | ((origin: string | undefined, callback: (error: Error | null, allow: boolean) => void) => void)
 export type EnvConfig = ReturnType<typeof configuration>
+
+function parseAllowedCorsOrigins(rawValue: string): CorsOriginResolver {
+  const value = rawValue.trim()
+
+  if (!value) {
+    return []
+  }
+
+  if (value === '*') {
+    return ['*']
+  }
+
+  if (value.startsWith('.')) {
+    const baseDomain = value.slice(1).trim().toLowerCase()
+
+    return function resolveCorsOrigin(origin, callback) {
+      if (!origin) {
+        callback(null, true)
+        return
+      }
+
+      try {
+        const url = new URL(origin)
+        const hostname = url.hostname.toLowerCase()
+
+        const isHttps = url.protocol === 'https:'
+        const isRootDomain = hostname === baseDomain
+        const isSubdomain = hostname.endsWith(`.${baseDomain}`)
+
+        callback(null, isHttps && (isRootDomain || isSubdomain))
+      } catch {
+        callback(null, false)
+      }
+    }
+  }
+
+  return value
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean)
+}
 
 export function configuration() {
   const nodeEnv = process.env.NODE_ENV ?? 'development'
@@ -8,9 +52,7 @@ export function configuration() {
     // app
     port: Number(process.env.PORT ?? 3001),
     nodeEnv,
-    allowedCorsOrigins: process.env.ALLOWED_CORS_ORIGINS
-      ? process.env.ALLOWED_CORS_ORIGINS.split(',').map(origin => origin.trim())
-      : [],
+    allowedCorsOrigins: parseAllowedCorsOrigins(process.env.ALLOWED_CORS_ORIGINS ?? ''),
 
     // observability
     logLevel: process.env.LOG_LEVEL ?? (nodeEnv === 'production' ? 'info' : 'debug'),
