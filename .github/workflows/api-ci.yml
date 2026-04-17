@@ -61,9 +61,9 @@ jobs:
       LOG_LEVEL: info
       SLOW_REQUEST_THRESHOLD_MS: "1000"
       SENTRY_ENABLED: "false"
-      SENTRY_DSN: ""
+      SENTRY_DSN: dummy-dsn-for-tests
       SENTRY_ENVIRONMENT: test
-      SENTRY_RELEASE: ""
+      SENTRY_RELEASE: test
       SENTRY_TRACES_SAMPLE_RATE: "0"
 
       COOKIE_SECRET: test-cookie-secret
@@ -81,17 +81,12 @@ jobs:
       EMAIL_FROM_NAME: Pulselane
       EMAIL_FROM_ADDRESS: no-reply@pulselane.com
       EMAIL_TRANSPORT: logger
-      EMAIL_SMTP_HOST: ""
-      EMAIL_SMTP_PORT: "587"
-      EMAIL_SMTP_SECURE: "false"
-      EMAIL_SMTP_USER: ""
-      EMAIL_SMTP_PASSWORD: ""
 
       STRIPE_ENABLED: "false"
-      STRIPE_SECRET_KEY: ""
-      STRIPE_WEBHOOK_SECRET: ""
-      STRIPE_PRICE_STARTER: ""
-      STRIPE_PRICE_GROWTH: ""
+      STRIPE_SECRET_KEY: dummy-stripe-secret
+      STRIPE_WEBHOOK_SECRET: dummy-stripe-webhook-secret
+      STRIPE_PRICE_STARTER: dummy-price-starter
+      STRIPE_PRICE_GROWTH: dummy-price-growth
 
       REDIS_ENABLED: "true"
       REDIS_REQUIRED: "true"
