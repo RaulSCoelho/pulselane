@@ -25,17 +25,17 @@ ENV NODE_ENV=production
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
-RUN corepack enable
+RUN corepack enable \
+  && apk add --no-cache openssl
 
 WORKDIR /app
 
 RUN addgroup -S pulselane \
   && adduser -S pulselane -G pulselane
 
-COPY --from=build /app /app
+COPY --from=build --chown=pulselane:pulselane /app /app
 
-RUN chmod +x /app/apps/api/docker-entrypoint.sh \
-  && chown -R pulselane:pulselane /app
+RUN chmod +x /app/apps/api/docker-entrypoint.sh
 
 USER pulselane
 

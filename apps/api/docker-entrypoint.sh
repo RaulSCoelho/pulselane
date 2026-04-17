@@ -7,4 +7,4 @@ echo "Running Prisma migrations..."
 pnpm prisma migrate deploy
 
 echo "Starting Pulselane API..."
-exec node dist/main.js
+exec node dist/src/main.js
