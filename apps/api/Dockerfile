@@ -29,7 +29,8 @@ RUN corepack enable
 
 WORKDIR /app
 
-RUN addgroup -S pulselane && adduser -S pulselane -G pulselane
+RUN addgroup -S pulselane \
+  && adduser -S pulselane -G pulselane
 
 COPY --from=build /app /app
 
@@ -37,7 +38,5 @@ RUN chmod +x /app/apps/api/docker-entrypoint.sh \
   && chown -R pulselane:pulselane /app
 
 USER pulselane
-
-EXPOSE 3001
 
 CMD ["sh", "/app/apps/api/docker-entrypoint.sh"]

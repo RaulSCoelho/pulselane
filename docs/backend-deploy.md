@@ -1,135 +1,219 @@
-# Backend deploy do Pulselane
+# Backend deploy do Pulselane no Render
 
-Este fluxo versiona o deploy do `apps/api` com:
+Este documento descreve o fluxo real de deploy do `apps/api` usando:
 
-- CI em GitHub Actions
-- build e push da imagem para GHCR
-- deploy remoto por SSH
-- execução via Docker Compose no servidor
+- GitHub Actions para CI
+- Render como runtime da API
+- Dockerfile versionado no repositório
+- auto-deploy no Render em modo **After CI Checks Pass**
 
-## 1. Pré-requisitos do servidor
+---
 
-O servidor de produção precisa ter:
+## 1. Arquitetura de deploy
 
-- Docker
-- Docker Compose plugin
-- acesso de rede ao banco PostgreSQL
-- acesso de rede ao Redis, se Redis estiver habilitado
-- porta da API liberada no firewall ou reverse proxy já configurado
+O backend do Pulselane roda como **Web Service Docker** no Render.
 
-## 2. Arquivos que devem existir no servidor
+O fluxo correto é:
 
-No diretório configurado em `DEPLOY_PATH`, o workflow envia:
+1. commit sobe para o GitHub
+2. o workflow `API CI` roda no GitHub Actions
+3. o Render aguarda os checks do commit
+4. se os checks passarem, o Render faz build e deploy da API
 
-- `docker-compose.prod.yml`
-- `deploy-api.sh`
+O Render deve estar configurado com:
 
-Você precisa criar manualmente o arquivo:
+- **Environment**: `Production`
+- **Branch**: `main`
+- **Auto-Deploy**: `After CI Checks Pass`
+- **Dockerfile Path**: `apps/api/Dockerfile`
 
-- `.env`
+---
 
-Use `infra/docker/api/.env.example` como base.
+## 2. O que o Render usa do repositório
 
-## 3. Secrets necessários no GitHub
+O Render precisa destes arquivos:
 
-Configurar estes secrets no repositório:
+- `apps/api/Dockerfile`
+- `apps/api/docker-entrypoint.sh`
+- `.dockerignore`
 
-- `DEPLOY_HOST`
-- `DEPLOY_USER`
-- `DEPLOY_SSH_KEY`
-- `DEPLOY_PATH`
-- `GHCR_USERNAME`
-- `GHCR_TOKEN`
+---
 
-### Observações
+## 3. Serviço no Render
 
-`GHCR_TOKEN` deve ter pelo menos permissão de leitura em packages no GHCR.
-`DEPLOY_SSH_KEY` deve ser a chave privada com acesso ao servidor.
+Criar um **Web Service** no Render e conectar ao repositório `pulselane`.
 
-## 4. Comportamento da pipeline
+### Configuração recomendada
 
-### API CI
+- **Runtime**: Docker
+- **Branch**: `main`
+- **Dockerfile Path**: `apps/api/Dockerfile`
+- **Auto-Deploy**: `After CI Checks Pass`
 
-Executa:
+### Observação importante
 
-- install
-- prisma generate
-- lint
-- typecheck
-- build
-- tests
+O Render injeta `PORT` em runtime.  
+O backend do Pulselane já lê `process.env.PORT`, então o serviço precisa ter:
 
-### API Deploy
+```dotenv
+PORT=10000
+```
 
-Dispara quando:
+ou o valor que o Render estiver usando no serviço.
 
-- `API CI` conclui com sucesso em `main`
-- ou manualmente por `workflow_dispatch`
+---
 
-O deploy faz:
+## 4. Variáveis de ambiente no Render
 
-1. build da imagem da API
-2. push para GHCR
-3. upload do compose e script para o servidor
-4. login no GHCR no servidor
-5. `docker compose pull`
-6. `docker compose up -d`
+Todas as envs de produção devem ser cadastradas no painel do Render.
 
-## 5. Estratégia de runtime
+## App
 
-A imagem da API executa:
+```dotenv
+PORT=10000
+NODE_ENV=production
+ALLOWED_CORS_ORIGINS=https://app.semicekinnovations.com
+APP_WEB_URL=https://app.semicekinnovations.com
+```
+
+## Database
+
+```dotenv
+DATABASE_URL=postgresql://***:***@***.neon.tech/pulselane?sslmode=require&schema=public
+```
+
+## Observability
+
+```dotenv
+LOG_LEVEL=info
+SLOW_REQUEST_THRESHOLD_MS=1000
+SENTRY_ENABLED=true
+SENTRY_DSN=***
+SENTRY_ENVIRONMENT=production
+SENTRY_RELEASE=<commit-sha-ou-versao>
+SENTRY_TRACES_SAMPLE_RATE=0.1
+```
+
+## Cookies
+
+```dotenv
+COOKIE_SECRET=***
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=none
+COOKIE_DOMAIN=.semicekinnovations.com
+```
+
+## Auth
+
+```dotenv
+JWT_ACCESS_SECRET=***
+JWT_REFRESH_SECRET=***
+ACCESS_TOKEN_TTL_SECONDS=900
+REFRESH_TOKEN_TTL_DAYS=30
+```
+
+## Email
+
+```dotenv
+EMAIL_FROM_NAME=Pulselane
+EMAIL_FROM_ADDRESS=no-reply@semicekinnovations.com
+EMAIL_TRANSPORT=smtp
+EMAIL_SMTP_HOST=***
+EMAIL_SMTP_PORT=587
+EMAIL_SMTP_SECURE=false
+EMAIL_SMTP_USER=***
+EMAIL_SMTP_PASSWORD=***
+```
+
+## Stripe
+
+Se o billing ainda não estiver ativo em produção:
+
+```dotenv
+STRIPE_ENABLED=false
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_STARTER=
+STRIPE_PRICE_GROWTH=
+```
+
+Se o billing Stripe estiver ativo:
+
+```dotenv
+STRIPE_ENABLED=true
+STRIPE_SECRET_KEY=***
+STRIPE_WEBHOOK_SECRET=***
+STRIPE_PRICE_STARTER=price_***
+STRIPE_PRICE_GROWTH=price_***
+```
+
+## Redis
+
+```dotenv
+REDIS_ENABLED=true
+REDIS_REQUIRED=true
+REDIS_URL=rediss://default:***@***.upstash.io:6379
+```
+
+---
+
+## 5. CI obrigatória antes do deploy
+
+O Render só deve deployar depois do workflow `API CI` passar.
+
+O workflow precisa validar pelo menos:
+
+* install
+* prisma generate
+* lint
+* typecheck
+* build
+* integration tests
+
+Se o CI falhar, o Render não deve deployar.
+
+---
+
+## 6. Estratégia de runtime
+
+O container da API faz:
 
 1. `prisma migrate deploy`
 2. `node dist/main.js`
 
-Isso garante que migrations pendentes sejam aplicadas antes do boot da aplicação.
-
-## 6. O que este deploy não faz
-
-Este passo não provisiona:
-
-- PostgreSQL
-- Redis
-- reverse proxy
-- TLS/HTTPS
-- backup de banco
-
-Isso é intencional. O deploy da API deve ser desacoplado da infra de dados.
-
-## 7. Validação pós-deploy
-
-Depois do deploy, validar:
-
-```bash
-curl http://<api-host>:3001/health
-curl http://<api-host>:3001/readiness
-curl http://<api-host>:3001/metrics
-```
-
-Se houver proxy reverso, validar pela URL pública final da API.
+Isso garante que migrations pendentes sejam aplicadas antes do boot da API.
 
 ---
 
-## 8. Após o código
+## 7. Validação pós-deploy
 
-### Como rodar e validar
-
-Validação local da imagem:
+Depois que o Render concluir o deploy, validar:
 
 ```bash
-docker build -f apps/api/Dockerfile -t pulselane-api:local .
-docker run --rm -p 3001:3001 --env-file infra/docker/api/.env.example pulselane-api:local
+curl https://<api-public-url>/health
+curl https://<api-public-url>/readiness
+curl https://<api-public-url>/metrics
 ```
 
-Validação local do container em ambiente real exige um `.env` com secrets e `DATABASE_URL` válido.
+Também validar:
 
-Validação da pipeline:
+* login
+* refresh token
+* endpoint autenticado simples
+* conexão com banco
+* readiness com Redis ativo
 
-1. subir os arquivos
-2. configurar os secrets no GitHub
-3. criar `.env` no servidor em `DEPLOY_PATH`
-4. fazer push em `main`
-5. confirmar execução de:
+---
 
-   * `API CI`
-   * `API Deploy`
+## 8. Checklist de produção
+
+Antes do primeiro deploy real, confirmar:
+
+* [ ] serviço Render criado
+* [ ] branch `main` conectada
+* [ ] auto-deploy em `After CI Checks Pass`
+* [ ] todas as envs cadastradas
+* [ ] Neon configurado
+* [ ] Upstash configurado
+* [ ] domínio do SMTP autenticado
+* [ ] CI verde no GitHub Actions

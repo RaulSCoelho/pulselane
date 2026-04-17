@@ -10,6 +10,8 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/api-ci.yml"
+      - "apps/api/Dockerfile"
+      - ".dockerignore"
   pull_request:
     paths:
       - "apps/api/**"
@@ -17,9 +19,12 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/api-ci.yml"
+      - "apps/api/Dockerfile"
+      - ".dockerignore"
 
 jobs:
   api-ci:
+    name: API CI
     runs-on: ubuntu-latest
 
     services:
@@ -52,21 +57,42 @@ jobs:
       PORT: "3001"
       NODE_ENV: test
       ALLOWED_CORS_ORIGINS: http://localhost:3000
+
+      LOG_LEVEL: info
+      SLOW_REQUEST_THRESHOLD_MS: "1000"
+      SENTRY_ENABLED: "false"
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: test
+      SENTRY_RELEASE: ""
+      SENTRY_TRACES_SAMPLE_RATE: "0"
+
       COOKIE_SECRET: test-cookie-secret
       COOKIE_SECURE: "false"
       COOKIE_SAME_SITE: lax
+      COOKIE_DOMAIN: ""
+
       JWT_ACCESS_SECRET: test-access-secret
       JWT_REFRESH_SECRET: test-refresh-secret
       ACCESS_TOKEN_TTL_SECONDS: "900"
       REFRESH_TOKEN_TTL_DAYS: "30"
+
       APP_WEB_URL: http://localhost:3000
+
       EMAIL_FROM_NAME: Pulselane
       EMAIL_FROM_ADDRESS: no-reply@pulselane.com
       EMAIL_TRANSPORT: logger
-      LOG_LEVEL: silent
-      SLOW_REQUEST_THRESHOLD_MS: "1000"
-      SENTRY_ENABLED: "false"
+      EMAIL_SMTP_HOST: ""
+      EMAIL_SMTP_PORT: "587"
+      EMAIL_SMTP_SECURE: "false"
+      EMAIL_SMTP_USER: ""
+      EMAIL_SMTP_PASSWORD: ""
+
       STRIPE_ENABLED: "false"
+      STRIPE_SECRET_KEY: ""
+      STRIPE_WEBHOOK_SECRET: ""
+      STRIPE_PRICE_STARTER: ""
+      STRIPE_PRICE_GROWTH: ""
+
       REDIS_ENABLED: "true"
       REDIS_REQUIRED: "true"
       REDIS_URL: redis://127.0.0.1:6379
