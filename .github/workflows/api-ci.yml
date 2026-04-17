@@ -10,9 +10,6 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/api-ci.yml"
-      - ".github/workflows/api-deploy.yml"
-      - "infra/docker/api/**"
-      - "infra/scripts/deploy-api.sh"
   pull_request:
     paths:
       - "apps/api/**"
@@ -20,9 +17,6 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/api-ci.yml"
-      - ".github/workflows/api-deploy.yml"
-      - "infra/docker/api/**"
-      - "infra/scripts/deploy-api.sh"
 
 jobs:
   api-ci:
@@ -39,6 +33,16 @@ jobs:
           - "5432:5432"
         options: >-
           --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - "6379:6379"
+        options: >-
+          --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -63,8 +67,9 @@ jobs:
       SLOW_REQUEST_THRESHOLD_MS: "1000"
       SENTRY_ENABLED: "false"
       STRIPE_ENABLED: "false"
-      REDIS_ENABLED: "false"
-      REDIS_REQUIRED: "false"
+      REDIS_ENABLED: "true"
+      REDIS_REQUIRED: "true"
+      REDIS_URL: redis://127.0.0.1:6379
 
     steps:
       - name: Checkout repository
