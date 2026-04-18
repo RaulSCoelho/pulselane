@@ -91,6 +91,8 @@ export function configuration() {
     emailFromName: process.env.EMAIL_FROM_NAME!,
     emailFromAddress: process.env.EMAIL_FROM_ADDRESS!,
     emailTransport: process.env.EMAIL_TRANSPORT as EmailTransport,
+    emailQueueDrainDelayMs: Number(process.env.EMAIL_QUEUE_DRAIN_DELAY_MS ?? 30_000),
+    emailQueueStalledIntervalMs: Number(process.env.EMAIL_QUEUE_STALLED_INTERVAL_MS ?? 120_000),
     emailSmtpHost: process.env.EMAIL_SMTP_HOST,
     emailSmtpPort: Number(process.env.EMAIL_SMTP_PORT ?? 587),
     emailSmtpSecure: process.env.EMAIL_SMTP_SECURE === 'true',

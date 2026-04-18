@@ -46,6 +46,8 @@ export const envValidationSchema = Joi.object({
   EMAIL_FROM_NAME: Joi.string().required(),
   EMAIL_FROM_ADDRESS: Joi.string().email().required(),
   EMAIL_TRANSPORT: Joi.string().valid('logger', 'smtp').default('logger'),
+  EMAIL_QUEUE_DRAIN_DELAY_MS: Joi.number().integer().positive().default(30_000),
+  EMAIL_QUEUE_STALLED_INTERVAL_MS: Joi.number().integer().positive().default(120_000),
   EMAIL_SMTP_HOST: Joi.when('EMAIL_TRANSPORT', {
     is: 'smtp',
     then: Joi.string().required(),
