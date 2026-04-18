@@ -154,7 +154,20 @@ Redis is available for runtime support, dependency checks, and future operationa
 * Node.js 20.9+
 * pnpm 10.x
 * Docker
-* Docker Compose
+
+### Environment files
+
+API:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+```
+
+Web:
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
 
 ### Setup
 
@@ -164,37 +177,31 @@ Redis is available for runtime support, dependency checks, and future operationa
 pnpm install
 ```
 
-2. Copy environment variables
-
-```bash
-cp .env.example .env
-```
-
-3. Start local dependencies
+2. Start local dependencies
 
 ```bash
 docker compose up -d
 ```
 
-4. Run Prisma migrations
+3. Run Prisma migrations
 
 ```bash
-pnpm --filter api prisma migrate deploy
+pnpm db:migrate:dev
 ```
 
-5. Seed the database
+4. Seed the database
 
 ```bash
-pnpm --filter api db:seed
+pnpm db:seed
 ```
 
-6. Start the API
+5. Start the API
 
 ```bash
 pnpm dev:api
 ```
 
-7. Start the web app
+6. Start the web app
 
 ```bash
 pnpm dev:web
@@ -205,28 +212,42 @@ pnpm dev:web
 ### Root
 
 ```bash
+pnpm dev
 pnpm dev:api
 pnpm dev:web
+pnpm build
 pnpm build:api
 pnpm build:web
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:coverage
+pnpm db:generate
+pnpm db:migrate:dev
+pnpm db:migrate:prod
+pnpm db:seed
 ```
 
 ### API
 
 ```bash
-pnpm --filter api start:dev
-pnpm --filter api build
-pnpm --filter api test
-pnpm --filter api test:integration
-pnpm --filter api db:seed
-pnpm --filter api prisma migrate deploy
+pnpm --dir apps/api start:dev
+pnpm --dir apps/api build
+pnpm --dir apps/api test
+pnpm --dir apps/api test:watch
+pnpm --dir apps/api test:coverage
+pnpm --dir apps/api db:generate
+pnpm --dir apps/api db:migrate:dev
+pnpm --dir apps/api db:migrate:prod
+pnpm --dir apps/api db:seed
 ```
 
 ### Web
 
 ```bash
-pnpm --filter web dev
-pnpm --filter web build
+pnpm --dir apps/web dev
+pnpm --dir apps/web build
+pnpm --dir apps/web start
 ```
 
 ## API docs
@@ -237,9 +258,46 @@ When the API is running, Swagger is available at:
 http://localhost:3001/docs
 ```
 
-## Environment variables
+## Production environment review
 
-See `.env.example` in `apps/api`.
+### API variables
+
+The API environment file lives at:
+
+```txt
+apps/api/.env
+```
+
+Critical production rules:
+
+* `NODE_ENV=production`
+* `ALLOWED_CORS_ORIGINS` must contain only trusted HTTPS origins, or a single root domain pattern like `.example.com`
+* `COOKIE_SECURE=true` in production
+* `COOKIE_SAME_SITE=none` only when the web app is hosted on a different site and HTTPS is enabled
+* `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be long random secrets
+* `SENTRY_ENABLED=true` requires a valid `SENTRY_DSN`
+* `STRIPE_ENABLED=true` requires all Stripe keys and price IDs
+* `EMAIL_TRANSPORT=smtp` requires SMTP host, port, user, and password
+* `REDIS_ENABLED=true` requires a valid `REDIS_URL`
+* `REDIS_REQUIRED=true` should be used only when Redis is considered a hard production dependency
+
+### Web variables
+
+The web environment file lives at:
+
+```txt
+apps/web/.env.local
+```
+
+Current public variable:
+
+* `NEXT_PUBLIC_API_URL`
+
+Production example:
+
+```txt
+NEXT_PUBLIC_API_URL=https://api.your-domain.com
+```
 
 ## Platform guarantees
 
@@ -251,20 +309,3 @@ Pulselane enforces:
 * refresh session revocation and rotation
 * explicit health and readiness checks
 * provider-compatible database heartbeat support through persisted `system_heartbeats`
-
-## 7. Após o código
-
-### Como rodar e validar
-
-1. Criar a migration SQL na pasta indicada.
-2. Adicionar o model no `schema.prisma`.
-3. Substituir `main.ts`, `health.controller.ts`, `health.service.ts` e `README.md`.
-4. Rodar:
-
-```bash
-pnpm --filter api prisma generate
-pnpm --filter api prisma migrate dev --name add-system-heartbeats
-pnpm --filter api test
-pnpm --filter api build
-pnpm --filter web build
-```
