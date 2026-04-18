@@ -60,6 +60,7 @@ jobs:
 
       LOG_LEVEL: info
       SLOW_REQUEST_THRESHOLD_MS: "1000"
+      METRICS_BEARER_TOKEN: test-metrics-bearer-token-with-at-least-32-characters
       SENTRY_ENABLED: "false"
       SENTRY_DSN: dummy-dsn-for-tests
       SENTRY_ENVIRONMENT: test

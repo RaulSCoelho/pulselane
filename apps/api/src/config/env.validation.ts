@@ -12,6 +12,7 @@ export const envValidationSchema = Joi.object({
 
   LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('debug'),
   SLOW_REQUEST_THRESHOLD_MS: Joi.number().integer().positive().default(1000),
+  METRICS_BEARER_TOKEN: Joi.string().trim().min(32).required(),
 
   SENTRY_ENABLED: Joi.boolean().default(false),
   SENTRY_DSN: Joi.when('SENTRY_ENABLED', {

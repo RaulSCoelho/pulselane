@@ -57,6 +57,7 @@ export function configuration() {
     // observability
     logLevel: process.env.LOG_LEVEL ?? (nodeEnv === 'production' ? 'info' : 'debug'),
     slowRequestThresholdMs: Number(process.env.SLOW_REQUEST_THRESHOLD_MS ?? 1000),
+    metricsBearerToken: process.env.METRICS_BEARER_TOKEN!,
 
     sentryEnabled: process.env.SENTRY_ENABLED === 'true',
     sentryDsn: process.env.SENTRY_DSN,
