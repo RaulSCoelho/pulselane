@@ -16,6 +16,18 @@ export class HealthController {
   }
 
   @Auth({ mode: 'public' })
+  @Get('db-warmup')
+  async getDatabaseWarmup() {
+    return this.healthService.getDatabaseWarmup()
+  }
+
+  @Auth({ mode: 'public' })
+  @Get('db-heartbeat')
+  async getDatabaseHeartbeat() {
+    return this.healthService.touchDatabaseHeartbeat()
+  }
+
+  @Auth({ mode: 'public' })
   @Get('readiness')
   async getReadiness() {
     const readiness = await this.healthService.getReadiness()
@@ -25,5 +37,17 @@ export class HealthController {
     }
 
     return readiness
+  }
+
+  @Auth({ mode: 'public' })
+  @Get('redis-health')
+  async getRedisHealth() {
+    const redisHealth = await this.healthService.getRedisHealth()
+
+    if (redisHealth.status === 'error') {
+      throw new ServiceUnavailableException(redisHealth)
+    }
+
+    return redisHealth
   }
 }

@@ -81,6 +81,16 @@ enum BillingSubscriptionStatus {
   incomplete
 }
 
+model SystemHeartbeat {
+  id         String   @id @default(cuid())
+  serviceKey String   @unique @map("service_key")
+  lastSeenAt DateTime @map("last_seen_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("system_heartbeats")
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
