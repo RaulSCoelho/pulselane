@@ -125,20 +125,8 @@ export class SessionService {
       throw new UnauthorizedException('Session revoked')
     }
 
-    if (session.expiresAt.getTime() <= Date.now()) {
-      await this.sessionRepository.updateById(session.id, {
-        revokedAt: new Date()
-      })
-
-      throw new UnauthorizedException('Session expired')
-    }
-
     if (options?.deviceId && session.deviceId !== options.deviceId) {
-      await this.sessionRepository.updateById(session.id, {
-        revokedAt: new Date(),
-        compromisedAt: new Date()
-      })
-
+      await this.markSessionCompromised(session.id)
       throw new UnauthorizedException('Invalid device')
     }
 
@@ -146,16 +134,32 @@ export class SessionService {
       const isValid = this.cryptoService.compareToken(options.refreshToken, session.refreshTokenHash)
 
       if (!isValid) {
-        await this.sessionRepository.updateById(session.id, {
-          revokedAt: new Date(),
-          compromisedAt: new Date()
-        })
-
+        await this.markSessionCompromised(session.id)
         throw new UnauthorizedException('Invalid refresh token')
       }
     }
 
+    if (session.expiresAt.getTime() <= Date.now()) {
+      await this.markSessionExpired(session.id)
+      throw new UnauthorizedException('Session expired')
+    }
+
     return session
+  }
+
+  private async markSessionExpired(sessionId: string) {
+    await this.sessionRepository.updateById(sessionId, {
+      revokedAt: new Date()
+    })
+  }
+
+  private async markSessionCompromised(sessionId: string) {
+    const now = new Date()
+
+    await this.sessionRepository.updateById(sessionId, {
+      revokedAt: now,
+      compromisedAt: now
+    })
   }
 
   private async acquireSessionLock(sessionId: string, tx: Prisma.TransactionClient) {
