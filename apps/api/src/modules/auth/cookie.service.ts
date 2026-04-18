@@ -21,6 +21,10 @@ export class CookieService {
     return this.configService.get('cookieDomain', { infer: true })
   }
 
+  private get authCookiePath(): string {
+    return this.configService.getOrThrow('authCookiePath', { infer: true })
+  }
+
   private get refreshMaxAgeSeconds(): number {
     return this.configService.getOrThrow('refreshTokenTtlDays', { infer: true }) * 24 * 60 * 60
   }
@@ -30,8 +34,7 @@ export class CookieService {
       httpOnly: true,
       secure: this.cookieSecure,
       sameSite: this.cookieSameSite,
-      // Keeping the refresh cookie under /api/auth narrows where browsers send it.
-      path: '/api/auth',
+      path: this.authCookiePath,
       domain: this.cookieDomain,
       maxAge: this.refreshMaxAgeSeconds
     })
@@ -39,7 +42,7 @@ export class CookieService {
 
   clearRefreshCookie(reply: FastifyReply) {
     reply.clearCookie(REFRESH_COOKIE_NAME, {
-      path: '/api/auth',
+      path: this.authCookiePath,
       domain: this.cookieDomain
     })
   }

@@ -76,6 +76,7 @@ export function configuration() {
     cookieSecure: process.env.COOKIE_SECURE === 'true',
     cookieSameSite: process.env.COOKIE_SAME_SITE ?? 'lax',
     cookieDomain: process.env.COOKIE_DOMAIN?.trim() || undefined,
+    authCookiePath: process.env.AUTH_COOKIE_PATH?.trim() || '/api/v1/auth',
 
     // auth
     jwtAccessSecret: process.env.JWT_ACCESS_SECRET!,
