@@ -1,6 +1,6 @@
-"use client";
+'use client'
 
-import { Button } from "@heroui/react";
+import { Button } from '@heroui/react'
 
 export function HeroDemo() {
   return (
@@ -17,9 +17,8 @@ export function HeroDemo() {
             </h1>
 
             <p className="max-w-2xl text-base leading-7 text-zinc-600 sm:text-lg">
-              Base setup finished on top of Next.js 16, React 19 and Tailwind CSS
-              v4. This is only the foundation layer, without fake providers or old
-              v2 setup.
+              Base setup finished on top of Next.js 16, React 19 and Tailwind CSS v4. This is only the foundation layer,
+              without fake providers or old v2 setup.
             </p>
           </div>
         </div>
@@ -37,20 +36,12 @@ export function HeroDemo() {
         </div>
 
         <div className="flex flex-wrap gap-2 text-sm text-zinc-600">
-          <span className="rounded-full border border-black/10 px-3 py-1">
-            Next 16
-          </span>
-          <span className="rounded-full border border-black/10 px-3 py-1">
-            React 19
-          </span>
-          <span className="rounded-full border border-black/10 px-3 py-1">
-            Tailwind 4
-          </span>
-          <span className="rounded-full border border-black/10 px-3 py-1">
-            HeroUI v3
-          </span>
+          <span className="rounded-full border border-black/10 px-3 py-1">Next 16</span>
+          <span className="rounded-full border border-black/10 px-3 py-1">React 19</span>
+          <span className="rounded-full border border-black/10 px-3 py-1">Tailwind 4</span>
+          <span className="rounded-full border border-black/10 px-3 py-1">HeroUI v3</span>
         </div>
       </div>
     </section>
-  );
+  )
 }
