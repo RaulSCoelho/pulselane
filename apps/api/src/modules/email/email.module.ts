@@ -1,5 +1,5 @@
 import { EnvConfig } from '@/config/env.config'
-import { Module } from '@nestjs/common'
+import { DynamicModule, Module, type Provider } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 
 import { EmailQueueProcessor } from '../queue/processors/email-queue.processor'
@@ -12,34 +12,50 @@ import { EmailService } from './email.service'
 import { LoggerEmailProvider } from './providers/logger-email-provider'
 import { SmtpEmailProvider } from './providers/smtp-email-provider'
 
-@Module({
-  imports: [ConfigModule, QueueModule],
-  controllers: [EmailController],
-  providers: [
-    EmailService,
-    EmailDeliveryExecutorService,
-    EmailRepository,
-    EmailQueueProcessor,
-    LoggerEmailProvider,
-    SmtpEmailProvider,
-    {
-      provide: EMAIL_PROVIDER,
-      inject: [ConfigService, LoggerEmailProvider, SmtpEmailProvider],
-      useFactory: (
-        configService: ConfigService<EnvConfig, true>,
-        loggerProvider: LoggerEmailProvider,
-        smtpProvider: SmtpEmailProvider
-      ) => {
-        const transport = configService.get('emailTransport', { infer: true })
+function isRedisEnabledFromEnv(): boolean {
+  return process.env.REDIS_ENABLED === 'true'
+}
 
-        if (transport === 'smtp') {
-          return smtpProvider
+@Module({})
+export class EmailModule {
+  static register(): DynamicModule {
+    const redisEnabled = isRedisEnabledFromEnv()
+
+    const providers: Provider[] = [
+      EmailService,
+      EmailDeliveryExecutorService,
+      EmailRepository,
+      LoggerEmailProvider,
+      SmtpEmailProvider,
+      {
+        provide: EMAIL_PROVIDER,
+        inject: [ConfigService, LoggerEmailProvider, SmtpEmailProvider],
+        useFactory: (
+          configService: ConfigService<EnvConfig, true>,
+          loggerProvider: LoggerEmailProvider,
+          smtpProvider: SmtpEmailProvider
+        ) => {
+          const transport = configService.get('emailTransport', { infer: true })
+
+          if (transport === 'smtp') {
+            return smtpProvider
+          }
+
+          return loggerProvider
         }
-
-        return loggerProvider
       }
+    ]
+
+    if (redisEnabled) {
+      providers.push(EmailQueueProcessor)
     }
-  ],
-  exports: [EmailService, EmailDeliveryExecutorService]
-})
-export class EmailModule {}
+
+    return {
+      module: EmailModule,
+      imports: [ConfigModule, QueueModule.register()],
+      controllers: [EmailController],
+      providers,
+      exports: [EmailService, EmailDeliveryExecutorService]
+    }
+  }
+}

@@ -6,6 +6,7 @@ import { EmailDeliveryStatus, Prisma } from '@prisma/client'
 import { EmailQueueService } from '../queue/email-queue.service'
 import { SendEmailInput } from './contracts/send-email.input'
 import { ListEmailDeliveriesQueryDto } from './dto/requests/list-email-deliveries-query.dto'
+import { EmailDeliveryExecutorService } from './email-delivery-executor.service'
 import { EmailRepository } from './email.repository'
 
 @Injectable()
@@ -13,7 +14,8 @@ export class EmailService {
   constructor(
     private readonly configService: ConfigService<EnvConfig, true>,
     private readonly emailRepository: EmailRepository,
-    private readonly emailQueueService: EmailQueueService
+    private readonly emailQueueService: EmailQueueService,
+    private readonly emailDeliveryExecutorService: EmailDeliveryExecutorService
   ) {}
 
   private get env() {
@@ -45,15 +47,27 @@ export class EmailService {
     )
 
     try {
-      await this.emailQueueService.enqueueSendEmail({
-        deliveryId: delivery.id
-      })
+      if (this.emailQueueService.isEnabled()) {
+        await this.emailQueueService.enqueueSendEmail({
+          deliveryId: delivery.id
+        })
 
-      return delivery
+        return delivery
+      }
+
+      await this.emailDeliveryExecutorService.processQueuedDelivery(delivery.id)
+
+      const processedDelivery = await this.emailRepository.findById(delivery.id, tx)
+
+      if (!processedDelivery) {
+        throw new Error('Email delivery not found after direct processing')
+      }
+
+      return processedDelivery
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unexpected email enqueue error'
+      const message = error instanceof Error ? error.message : 'Unexpected email delivery error'
 
-      return this.emailRepository.markFailed(delivery.id, `Failed to enqueue email delivery: ${message}`, tx)
+      return this.emailRepository.markFailed(delivery.id, `Failed to send email delivery: ${message}`, tx)
     }
   }
 

@@ -12,7 +12,7 @@ import { InvitationsController } from './invitations.controller'
 import { InvitationsService } from './invitations.service'
 
 @Module({
-  imports: [OrganizationModule, MembershipModule, BillingModule, AuditLogsModule, UserModule, EmailModule],
+  imports: [OrganizationModule, MembershipModule, BillingModule, AuditLogsModule, UserModule, EmailModule.register()],
   controllers: [InvitationsController],
   providers: [InvitationsService, InvitationRepository, InvitationLinksService]
 })

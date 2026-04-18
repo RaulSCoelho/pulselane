@@ -1,10 +1,14 @@
 import type { EnvConfig } from '@/config/env.config'
-import { BullModule } from '@nestjs/bullmq'
-import { Module } from '@nestjs/common'
+import { BullModule, getQueueToken } from '@nestjs/bullmq'
+import { DynamicModule, Module, type Provider } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 
 import { EmailQueueService } from './email-queue.service'
-import { EMAIL_DELIVERY_QUEUE } from './queue.constants'
+import { EMAIL_DELIVERY_QUEUE, EMAIL_DELIVERY_QUEUE_TOKEN } from './queue.constants'
+
+function isRedisEnabledFromEnv(): boolean {
+  return process.env.REDIS_ENABLED === 'true'
+}
 
 function buildBullRedisConnection(redisUrl: string) {
   const parsed = new URL(redisUrl)
@@ -29,31 +33,52 @@ function buildBullRedisConnection(redisUrl: string) {
   }
 }
 
-@Module({
-  imports: [
-    ConfigModule,
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService<EnvConfig, true>) => {
-        const redisEnabled = configService.getOrThrow('redisEnabled', { infer: true })
+@Module({})
+export class QueueModule {
+  static register(): DynamicModule {
+    const redisEnabled = isRedisEnabledFromEnv()
 
-        if (!redisEnabled) {
-          throw new Error('QueueModule requires REDIS_ENABLED=true')
-        }
+    const imports = redisEnabled
+      ? [
+          ConfigModule,
+          BullModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService<EnvConfig, true>) => {
+              const redisUrl = configService.getOrThrow('redisUrl', { infer: true })
 
-        const redisUrl = configService.getOrThrow('redisUrl', { infer: true })
+              return {
+                connection: buildBullRedisConnection(redisUrl),
+                prefix: 'pulselane'
+              }
+            }
+          }),
+          BullModule.registerQueue({
+            name: EMAIL_DELIVERY_QUEUE
+          })
+        ]
+      : [ConfigModule]
 
-        return {
-          connection: buildBullRedisConnection(redisUrl),
-          prefix: 'pulselane'
-        }
-      }
-    }),
-    BullModule.registerQueue({
-      name: EMAIL_DELIVERY_QUEUE
-    })
-  ],
-  providers: [EmailQueueService],
-  exports: [BullModule, EmailQueueService]
-})
-export class QueueModule {}
+    const providers: Provider[] = redisEnabled
+      ? [
+          {
+            provide: EMAIL_DELIVERY_QUEUE_TOKEN,
+            useExisting: getQueueToken(EMAIL_DELIVERY_QUEUE)
+          },
+          EmailQueueService
+        ]
+      : [
+          {
+            provide: EMAIL_DELIVERY_QUEUE_TOKEN,
+            useValue: null
+          },
+          EmailQueueService
+        ]
+
+    return {
+      module: QueueModule,
+      imports,
+      providers,
+      exports: [EmailQueueService]
+    }
+  }
+}
