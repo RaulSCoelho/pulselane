@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server'
+
 export function getSetCookieHeaders({ headers }: Response) {
   if (typeof headers.getSetCookie === 'function') {
     return headers.getSetCookie()
@@ -37,6 +39,16 @@ export function getCookieFromResponse(response: Response, cookieName: string) {
   }
 
   return null
+}
+
+export function appendSetCookies(from: Response, to: NextResponse) {
+  const setCookies = getSetCookieHeaders(from)
+
+  for (const cookie of setCookies) {
+    to.headers.append('set-cookie', cookie)
+  }
+
+  return to
 }
 
 export function getCookieValue(cookieHeader: string | null, cookieName: string) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { api } from '@/http/api-client'
+import { nextApi } from '@/http/api-client'
 import { DEFAULT_AUTHENTICATED_PATH, SIGNUP_PATH } from '@/lib/auth/auth-constants'
 import { sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
 import { Button, Card, Input, Label, TextField } from '@heroui/react'
@@ -37,7 +37,7 @@ export function LoginForm() {
     setErrorMessage(null)
 
     startTransition(async function submitLogin() {
-      const response = await api<AuthResponse>('/api/v1/auth/login', {
+      const response = await nextApi<AuthResponse>('/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

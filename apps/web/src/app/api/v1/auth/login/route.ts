@@ -1,11 +1,11 @@
 import { api } from '@/http/api-client'
 import { setAuthCookie } from '@/lib/auth/auth-cookie'
-import { getCookieFromResponse } from '@/lib/http/set-cookie'
+import { appendSetCookies, getCookieFromResponse } from '@/lib/http/set-cookie'
 import { AuthResponse } from '@pulselane/contracts'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  const backendResponse = await api<AuthResponse>('api/v1/auth/login', {
+  const backendResponse = await api<AuthResponse>('/api/v1/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -35,5 +35,5 @@ export async function POST(request: NextRequest) {
     deviceId
   })
 
-  return new NextResponse(null, { status: 204 })
+  return appendSetCookies(backendResponse, new NextResponse(null, { status: 204 }))
 }

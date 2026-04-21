@@ -4,8 +4,7 @@ import { setForwardedHeaders } from '@/lib/http/forwarded-headers'
 import { setSessionHeaders } from '@/lib/http/session-headers'
 import ky, { KyResponse, type Options } from 'ky'
 
-const apiClient = ky.create({
-  baseUrl: `${getApiBaseUrl()}/`,
+const defaultOptions = {
   retry: 0,
   throwHttpErrors: false,
   hooks: {
@@ -33,11 +32,31 @@ const apiClient = ky.create({
       }
     ]
   }
+} satisfies Options
+
+const externalApiClient = ky.create({
+  baseUrl: `${getApiBaseUrl()}/`,
+  ...defaultOptions
+})
+
+const internalApiClient = ky.create({
+  ...defaultOptions
 })
 
 export async function api<T>(path: string, init?: Options): Promise<KyResponse<T>> {
   const normalizedPath = path.replace(/^\/+/, '')
-  return apiClient(normalizedPath, {
+
+  return externalApiClient(normalizedPath, {
+    credentials: 'include',
+    cache: 'no-store',
+    ...init
+  })
+}
+
+export async function nextApi<T>(path: string, init?: Options): Promise<KyResponse<T>> {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+
+  return internalApiClient(normalizedPath, {
     credentials: 'include',
     cache: 'no-store',
     ...init
