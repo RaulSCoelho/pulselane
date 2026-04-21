@@ -1,33 +1,39 @@
-import { badRequestResponse, proxyErrorResponse, parseRequestJson } from '@/app/api/v1/auth/utils'
-import { serverApiFetch } from '@/http/server-api-client'
-import { setAccessTokenCookie } from '@/lib/auth/auth-cookies'
-import { AuthResponse, loginRequestSchema } from '@pulselane/contracts/auth'
+import { api } from '@/http/api-client'
+import { setAuthCookie } from '@/lib/auth/auth-cookie'
+import { getCookieFromResponse } from '@/lib/http/set-cookie'
+import { AuthResponse } from '@pulselane/contracts'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  let body: ReturnType<typeof loginRequestSchema.parse>
-
-  try {
-    body = await parseRequestJson(request, loginRequestSchema.parse)
-  } catch {
-    return badRequestResponse('Invalid login payload')
-  }
-
-  const backendResponse = await serverApiFetch<AuthResponse>('auth/login', {
+  const backendResponse = await api<AuthResponse>('api/v1/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(body)
+    body: await request.text()
   })
 
   if (!backendResponse.ok) {
-    return proxyErrorResponse(backendResponse)
+    return new NextResponse(await backendResponse.text(), {
+      status: backendResponse.status,
+      statusText: backendResponse.statusText
+    })
   }
 
-  const payload = await backendResponse.json()
+  const data = await backendResponse.json()
+  const refreshToken = getCookieFromResponse(backendResponse, 'refresh_token')
+  const deviceId = getCookieFromResponse(backendResponse, 'device_id') ?? undefined
 
-  setAccessTokenCookie(payload.accessToken, payload.expiresIn)
+  if (!refreshToken) {
+    return NextResponse.json({ message: 'Missing refresh token from backend login response.' }, { status: 500 })
+  }
+
+  await setAuthCookie({
+    accessToken: data.accessToken,
+    accessTokenExpiresAt: new Date(Date.now() + data.expiresIn * 1000).toISOString(),
+    refreshToken,
+    deviceId
+  })
 
   return new NextResponse(null, { status: 204 })
 }

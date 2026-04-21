@@ -1,15 +1,18 @@
-import { proxyErrorResponse } from '@/app/api/v1/auth/utils'
-import { serverApiFetch } from '@/http/server-api-client'
+import { api } from '@/http/api-client'
+import { clearAuthCookie } from '@/lib/auth/auth-cookie'
 import { NextResponse } from 'next/server'
 
 export async function POST() {
-  const backendResponse = await serverApiFetch('auth/logout', { method: 'POST' })
+  const backendResponse = await api('/api/v1/auth/logout', { method: 'POST' })
 
   if (!backendResponse.ok) {
-    return await proxyErrorResponse(backendResponse)
+    return new NextResponse(await backendResponse.text(), {
+      status: backendResponse.status,
+      statusText: backendResponse.statusText
+    })
   }
 
-  const payload = await backendResponse.json()
+  await clearAuthCookie()
 
-  return NextResponse.json(payload, { status: 200 })
+  return new NextResponse(null, { status: 204 })
 }

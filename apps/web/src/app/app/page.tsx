@@ -1,9 +1,8 @@
-import { requireServerSession } from '@/lib/auth/server-session'
+import { requireAuth } from '@/lib/auth/auth-guard'
 import { Card } from '@heroui/react'
 
 export default async function AppHomePage() {
-  const me = await requireServerSession('/app')
-
+  const me = await requireAuth({ redirectTo: '/app' })
   const organizationNames = me.memberships.map(membership => membership.organization.name).join(', ')
 
   return (

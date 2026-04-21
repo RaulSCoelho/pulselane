@@ -1,4 +1,4 @@
-export const ACCESS_TOKEN_COOKIE_NAME = 'pl_access_token'
+export const AUTH_COOKIE_NAME = 'auth_cookie'
 
 export const LOGIN_PATH = '/login'
 export const SIGNUP_PATH = '/signup'

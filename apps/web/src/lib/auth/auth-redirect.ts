@@ -1,4 +1,4 @@
-import { DEFAULT_AUTHENTICATED_PATH, LOGIN_PATH, NEXT_AUTH_API_PREFIX } from '@/lib/auth/auth.constants'
+import { DEFAULT_AUTHENTICATED_PATH, LOGIN_PATH, NEXT_AUTH_API_PREFIX } from '@/lib/auth/auth-constants'
 
 export function sanitizeRedirectTo(value: string | null | undefined): string {
   if (!value || !value.startsWith('/')) {

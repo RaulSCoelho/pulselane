@@ -1,9 +1,11 @@
 'use client'
 
+import { api } from '@/http/api-client'
+import { DEFAULT_AUTHENTICATED_PATH, LOGIN_PATH } from '@/lib/auth/auth-constants'
 import { sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
-import { DEFAULT_AUTHENTICATED_PATH, LOGIN_PATH } from '@/lib/auth/auth.constants'
 import { Button, Card, Input, Label, TextField } from '@heroui/react'
-import { signupRequestSchema } from '@pulselane/contracts/auth'
+import { ErrorResponse } from '@pulselane/contracts'
+import { AuthResponse, signupRequestSchema } from '@pulselane/contracts/auth'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
@@ -16,7 +18,7 @@ export function SignupForm() {
 
   const redirectTo = useMemo(() => sanitizeRedirectTo(searchParams.get('redirectTo')), [searchParams])
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const formData = new FormData(event.currentTarget)
@@ -37,19 +39,19 @@ export function SignupForm() {
     setErrorMessage(null)
 
     startTransition(async function submitSignup() {
-      const response = await fetch('/api/v1/auth/signup', {
+      const response = await api<AuthResponse>('/api/v1/auth/signup', {
         method: 'POST',
         headers: {
-          'content-type': 'application/json'
+          'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(result.data)
       })
 
       if (!response.ok) {
-        const body = await response.json().catch(() => null)
-
-        setErrorMessage(body?.message ?? 'Unable to create the account')
+        const body = (await response.json()) as ErrorResponse
+        setErrorMessage(
+          Array.isArray(body?.message) ? body.message.join('\n') : (body.message ?? 'Unable to create the account')
+        )
         return
       }
 
@@ -89,7 +91,7 @@ export function SignupForm() {
           </TextField>
 
           {errorMessage ? (
-            <p role="alert" className="text-sm text-danger">
+            <p role="alert" className="text-sm text-danger whitespace-pre-wrap">
               {errorMessage}
             </p>
           ) : null}

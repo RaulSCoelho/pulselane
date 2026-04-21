@@ -1,9 +1,11 @@
 'use client'
 
+import { api } from '@/http/api-client'
+import { DEFAULT_AUTHENTICATED_PATH, SIGNUP_PATH } from '@/lib/auth/auth-constants'
 import { sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
-import { DEFAULT_AUTHENTICATED_PATH, SIGNUP_PATH } from '@/lib/auth/auth.constants'
 import { Button, Card, Input, Label, TextField } from '@heroui/react'
-import { loginRequestSchema } from '@pulselane/contracts/auth'
+import { ErrorResponse } from '@pulselane/contracts'
+import { AuthResponse, loginRequestSchema } from '@pulselane/contracts/auth'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
@@ -14,11 +16,9 @@ export function LoginForm() {
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const redirectTo = useMemo(() => {
-    return sanitizeRedirectTo(searchParams.get('redirectTo'))
-  }, [searchParams])
+  const redirectTo = useMemo(() => sanitizeRedirectTo(searchParams.get('redirectTo')), [searchParams])
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const formData = new FormData(event.currentTarget)
@@ -37,19 +37,17 @@ export function LoginForm() {
     setErrorMessage(null)
 
     startTransition(async function submitLogin() {
-      const response = await fetch('/api/v1/auth/login', {
+      const response = await api<AuthResponse>('/api/v1/auth/login', {
         method: 'POST',
         headers: {
-          'content-type': 'application/json'
+          'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(result.data)
       })
 
       if (!response.ok) {
-        const body = await response.json().catch(() => null)
-
-        setErrorMessage(body?.message ?? 'Unable to login')
+        const body = (await response.json()) as ErrorResponse
+        setErrorMessage(Array.isArray(body?.message) ? body.message.join('\n') : (body.message ?? 'Unable to login'))
         return
       }
 
@@ -79,7 +77,7 @@ export function LoginForm() {
           </TextField>
 
           {errorMessage ? (
-            <p role="alert" className="text-sm text-danger">
+            <p role="alert" className="text-sm text-danger whitespace-pre-wrap">
               {errorMessage}
             </p>
           ) : null}
