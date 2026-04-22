@@ -3,6 +3,7 @@ import { MeResponse, meResponseSchema } from '@pulselane/contracts'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
 
+import { readRequestSnapshot } from '../http/request-snapshot/server'
 import { DEFAULT_AUTHENTICATED_PATH } from './auth-constants'
 import { buildLoginRedirectPath, buildRefreshRedirectPath } from './auth-redirect'
 import { getAuthSession } from './auth-session'
@@ -29,6 +30,28 @@ async function getSessionStatus(refreshBufferInSeconds: number): Promise<Session
   return { status: 'authenticated' }
 }
 
+async function resolveCurrentUserOrSnapshot(redirectTo: string | undefined): Promise<MeResponse> {
+  const meResponse = await api<MeResponse>('/api/v1/auth/me')
+
+  if (meResponse.ok) {
+    return meResponseSchema.parse(await meResponse.json())
+  }
+
+  if (meResponse.status === 429) {
+    const snapshot = await readRequestSnapshot('/api/v1/auth/me', meResponseSchema)
+
+    if (snapshot) {
+      return snapshot
+    }
+  }
+
+  if (meResponse.status === 401) {
+    redirect(buildRefreshRedirectPath(redirectTo))
+  }
+
+  redirect(buildLoginRedirectPath(redirectTo))
+}
+
 export const requireAuth = cache(async (options: AuthOptions = {}) => {
   const { redirectTo, refreshBufferInSeconds = 60 } = options
 
@@ -42,13 +65,7 @@ export const requireAuth = cache(async (options: AuthOptions = {}) => {
     redirect(buildRefreshRedirectPath(redirectTo))
   }
 
-  const meResponse = await api<MeResponse>('/api/v1/auth/me')
-
-  if (!meResponse.ok) {
-    redirect(buildLoginRedirectPath(redirectTo))
-  }
-
-  return meResponseSchema.parse(await meResponse.json())
+  return resolveCurrentUserOrSnapshot(redirectTo)
 })
 
 export const redirectIfAuthenticated = cache(async (options: AuthOptions = {}) => {
@@ -65,12 +82,7 @@ export const redirectIfAuthenticated = cache(async (options: AuthOptions = {}) =
   }
 
   if (sessionStatus.status === 'authenticated') {
-    const meResponse = await api<MeResponse>('/api/v1/auth/me')
-
-    if (!meResponse.ok) {
-      return
-    }
-
+    await resolveCurrentUserOrSnapshot(redirectTo)
     redirect(redirectTo ?? DEFAULT_AUTHENTICATED_PATH)
   }
 })

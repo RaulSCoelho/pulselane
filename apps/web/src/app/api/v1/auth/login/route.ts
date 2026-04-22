@@ -23,8 +23,16 @@ export async function POST(request: NextRequest) {
   const data = await backendResponse.json()
   const response = new NextResponse(null, { status: 204 })
 
-  appendSetCookies(backendResponse, response)
   setAccessTokenCookie(response, data.accessToken)
+  appendSetCookies(backendResponse, response)
+
+  await api('/api/v1/auth/me', {
+    headers: {
+      Authorization: `Bearer ${data.accessToken}`
+    },
+    saveSnapshot: true,
+    snapshotTarget: response
+  })
 
   return response
 }

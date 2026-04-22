@@ -2,6 +2,7 @@ import { api } from '@/http/api-client'
 import { buildLoginRedirectPath, sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
 import { getAuthSession } from '@/lib/auth/auth-session'
 import { clearAccessTokenCookie, setAccessTokenCookie } from '@/lib/auth/auth-token'
+import { clearRequestSnapshotsFromResponse } from '@/lib/http/request-snapshot/cookies'
 import { appendSetCookies } from '@/lib/http/set-cookie'
 import { AuthResponse } from '@pulselane/contracts'
 import { NextRequest, NextResponse } from 'next/server'
@@ -21,7 +22,8 @@ async function performRefresh() {
   if (!backendResponse.ok) {
     return {
       ok: false as const,
-      status: backendResponse.status
+      status: backendResponse.status,
+      backendResponse
     }
   }
 
@@ -40,15 +42,26 @@ export async function GET(request: NextRequest) {
   if (!result.ok) {
     const response = NextResponse.redirect(new URL(buildLoginRedirectPath(redirectTo), request.url))
 
-    clearAccessTokenCookie(response)
+    if (result.status === 401) {
+      clearAccessTokenCookie(response)
+      clearRequestSnapshotsFromResponse(response)
+    }
 
     return response
   }
 
   const response = NextResponse.redirect(new URL(redirectTo, request.url))
 
-  appendSetCookies(result.backendResponse, response)
   setAccessTokenCookie(response, result.data.accessToken)
+  appendSetCookies(result.backendResponse, response)
+
+  await api('/api/v1/auth/me', {
+    headers: {
+      Authorization: `Bearer ${result.data.accessToken}`
+    },
+    saveSnapshot: true,
+    snapshotTarget: response
+  })
 
   return response
 }
@@ -61,6 +74,7 @@ export async function POST() {
 
     if (result.status === 401) {
       clearAccessTokenCookie(response)
+      clearRequestSnapshotsFromResponse(response)
     }
 
     return response
@@ -68,8 +82,16 @@ export async function POST() {
 
   const response = new NextResponse(null, { status: 204 })
 
-  appendSetCookies(result.backendResponse, response)
   setAccessTokenCookie(response, result.data.accessToken)
+  appendSetCookies(result.backendResponse, response)
+
+  await api('/api/v1/auth/me', {
+    headers: {
+      Authorization: `Bearer ${result.data.accessToken}`
+    },
+    saveSnapshot: true,
+    snapshotTarget: response
+  })
 
   return response
 }

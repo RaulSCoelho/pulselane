@@ -1,25 +1,29 @@
-import { decodeJwt, jwtVerify } from 'jose'
+import { decodeJwt } from 'jose'
 import type { NextResponse } from 'next/server'
 
 import { ACCESS_TOKEN_COOKIE_NAME } from './auth-constants'
 
-export function isAccessTokenExpired(accessToken: string, bufferInSeconds = 60): boolean {
+export function getTokenExpiry(accessToken: string, bufferInSeconds = 60) {
   try {
     const { exp } = decodeJwt(accessToken)
-    if (!exp) return true
-    return Date.now() >= exp * 1000 - bufferInSeconds * 1000
+    if (!exp) return null
+
+    return {
+      expiresAt: new Date(exp * 1000),
+      expiresAtWithBuffer: new Date(exp * 1000 - bufferInSeconds * 1000)
+    }
   } catch {
-    return true
+    return null
   }
 }
 
-export async function verifyAccessToken(accessToken: string) {
+export function isAccessTokenExpired(accessToken: string, bufferInSeconds = 60): boolean {
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET)
-    const { payload } = await jwtVerify(accessToken, secret)
-    return payload
+    const expiry = getTokenExpiry(accessToken, bufferInSeconds)
+    if (!expiry) return true
+    return Date.now() >= expiry.expiresAtWithBuffer.getTime()
   } catch {
-    return null
+    return true
   }
 }
 
