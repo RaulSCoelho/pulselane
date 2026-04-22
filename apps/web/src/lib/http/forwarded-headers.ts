@@ -1,6 +1,3 @@
-import { AUTH_COOKIE_NAME } from '../auth/auth-constants'
-import { getCookieValue, mergeCookieHeader } from './set-cookie'
-
 export async function setForwardedHeaders(request: Request): Promise<void> {
   if (typeof window !== 'undefined') {
     return
@@ -9,16 +6,6 @@ export async function setForwardedHeaders(request: Request): Promise<void> {
   const { headers } = await import('next/headers')
   const incoming = await headers()
   const outgoing = request.headers
-
-  const incomingHasAuthCookie = incoming.get('cookie')?.includes(AUTH_COOKIE_NAME)
-  const outgoingHasAuthCookie = outgoing.get('cookie')?.includes(AUTH_COOKIE_NAME)
-
-  if (incomingHasAuthCookie && !outgoingHasAuthCookie) {
-    const newCookie = mergeCookieHeader(outgoing.get('cookie'), {
-      [AUTH_COOKIE_NAME]: getCookieValue(incoming.get('cookie'), AUTH_COOKIE_NAME) ?? ''
-    })
-    outgoing.set('cookie', newCookie)
-  }
 
   const userAgent = incoming.get('user-agent')
   const forwardedFor = incoming.get('x-forwarded-for')

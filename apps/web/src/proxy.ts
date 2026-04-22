@@ -1,4 +1,4 @@
-import { AUTH_COOKIE_NAME, PROTECTED_PATH_PREFIXES } from '@/lib/auth/auth-constants'
+import { ACCESS_TOKEN_COOKIE_NAME, PROTECTED_PATH_PREFIXES } from '@/lib/auth/auth-constants'
 import { buildLoginRedirectPath } from '@/lib/auth/auth-redirect'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -15,9 +15,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const authCookie = request.cookies.get(AUTH_COOKIE_NAME)?.value
+  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE_NAME)?.value
 
-  if (authCookie) {
+  if (accessToken) {
     return NextResponse.next()
   }
 

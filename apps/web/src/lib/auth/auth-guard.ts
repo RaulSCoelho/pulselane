@@ -4,9 +4,9 @@ import { redirect } from 'next/navigation'
 import { cache } from 'react'
 
 import { DEFAULT_AUTHENTICATED_PATH } from './auth-constants'
-import { getAuthCookie } from './auth-cookie'
 import { buildLoginRedirectPath, buildRefreshRedirectPath } from './auth-redirect'
-import { isAccessTokenExpired } from './auth-session'
+import { getAuthSession } from './auth-session'
+import { isAccessTokenExpired } from './auth-token'
 
 type AuthOptions = {
   redirectTo?: string
@@ -16,13 +16,13 @@ type AuthOptions = {
 type SessionCheckResult = { status: 'authenticated' } | { status: 'unauthenticated' } | { status: 'expired' }
 
 async function getSessionStatus(refreshBufferInSeconds: number): Promise<SessionCheckResult> {
-  const session = await getAuthCookie()
+  const session = await getAuthSession()
 
   if (!session) {
     return { status: 'unauthenticated' }
   }
 
-  if (isAccessTokenExpired(session.accessTokenExpiresAt, refreshBufferInSeconds)) {
+  if (isAccessTokenExpired(session.accessToken, refreshBufferInSeconds)) {
     return { status: 'expired' }
   }
 

@@ -1,4 +1,4 @@
-import { refreshAuthCookieSession } from '@/lib/auth/auth-refresh'
+import { refreshAuthSession } from '@/lib/auth/auth-refresh'
 import { getApiBaseUrl } from '@/lib/http/api-base-url'
 import { setForwardedHeaders } from '@/lib/http/forwarded-headers'
 import { setSessionHeaders } from '@/lib/http/session-headers'
@@ -24,7 +24,7 @@ const defaultOptions = {
           return response
         }
 
-        if (!(await refreshAuthCookieSession())) {
+        if (!(await refreshAuthSession())) {
           return response
         }
 

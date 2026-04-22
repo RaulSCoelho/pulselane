@@ -1,5 +1,6 @@
 import { api } from '@/http/api-client'
-import { clearAuthCookie } from '@/lib/auth/auth-cookie'
+import { clearAccessTokenCookie } from '@/lib/auth/auth-token'
+import { appendSetCookies } from '@/lib/http/set-cookie'
 import { NextResponse } from 'next/server'
 
 export async function POST() {
@@ -12,7 +13,10 @@ export async function POST() {
     })
   }
 
-  await clearAuthCookie()
+  const response = new NextResponse(null, { status: 204 })
 
-  return new NextResponse(null, { status: 204 })
+  appendSetCookies(backendResponse, response)
+  clearAccessTokenCookie(response)
+
+  return response
 }

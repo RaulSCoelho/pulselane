@@ -1,14 +1,15 @@
 import { api } from '@/http/api-client'
-import { clearAuthCookie, getAuthCookie, setAuthCookie } from '@/lib/auth/auth-cookie'
 import { buildLoginRedirectPath, sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
-import { getCookieFromResponse } from '@/lib/http/set-cookie'
+import { getAuthSession } from '@/lib/auth/auth-session'
+import { clearAccessTokenCookie, setAccessTokenCookie } from '@/lib/auth/auth-token'
+import { appendSetCookies } from '@/lib/http/set-cookie'
 import { AuthResponse } from '@pulselane/contracts'
 import { NextRequest, NextResponse } from 'next/server'
 
 async function performRefresh() {
-  const session = await getAuthCookie()
+  const session = await getAuthSession()
 
-  if (!session) {
+  if (!session?.refreshToken) {
     return {
       ok: false as const,
       status: 401
@@ -24,21 +25,11 @@ async function performRefresh() {
     }
   }
 
-  const data = await backendResponse.json()
-  const refreshToken = getCookieFromResponse(backendResponse, 'refresh_token') ?? session.refreshToken
-  const deviceId = getCookieFromResponse(backendResponse, 'device_id') ?? session.deviceId
-
-  await setAuthCookie({
-    ...session,
-    accessToken: data.accessToken,
-    accessTokenExpiresAt: new Date(Date.now() + data.expiresIn * 1000).toISOString(),
-    refreshToken,
-    deviceId
-  })
-
   return {
     ok: true as const,
-    status: backendResponse.status
+    status: backendResponse.status,
+    backendResponse,
+    data: await backendResponse.json()
   }
 }
 
@@ -47,24 +38,38 @@ export async function GET(request: NextRequest) {
   const result = await performRefresh()
 
   if (!result.ok) {
-    if (result.status === 401) {
-      await clearAuthCookie()
-    }
-    return NextResponse.redirect(new URL(buildLoginRedirectPath(redirectTo), request.url))
+    const response = NextResponse.redirect(new URL(buildLoginRedirectPath(redirectTo), request.url))
+
+    clearAccessTokenCookie(response)
+
+    return response
   }
 
-  return NextResponse.redirect(new URL(redirectTo, request.url))
+  const response = NextResponse.redirect(new URL(redirectTo, request.url))
+
+  appendSetCookies(result.backendResponse, response)
+  setAccessTokenCookie(response, result.data.accessToken, result.data.expiresIn)
+
+  return response
 }
 
 export async function POST() {
   const result = await performRefresh()
 
   if (!result.ok) {
+    const response = NextResponse.json({ message: 'Failed to refresh session.' }, { status: result.status })
+
     if (result.status === 401) {
-      await clearAuthCookie()
+      clearAccessTokenCookie(response)
     }
-    return NextResponse.json({ message: 'Failed to refresh session.' }, { status: result.status })
+
+    return response
   }
 
-  return new NextResponse(null, { status: 204 })
+  const response = new NextResponse(null, { status: 204 })
+
+  appendSetCookies(result.backendResponse, response)
+  setAccessTokenCookie(response, result.data.accessToken, result.data.expiresIn)
+
+  return response
 }

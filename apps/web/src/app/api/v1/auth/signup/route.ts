@@ -1,6 +1,6 @@
 import { api } from '@/http/api-client'
-import { setAuthCookie } from '@/lib/auth/auth-cookie'
-import { getCookieFromResponse } from '@/lib/http/set-cookie'
+import { setAccessTokenCookie } from '@/lib/auth/auth-token'
+import { appendSetCookies } from '@/lib/http/set-cookie'
 import { AuthResponse } from '@pulselane/contracts/auth'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -21,19 +21,10 @@ export async function POST(request: NextRequest) {
   }
 
   const data = await backendResponse.json()
-  const refreshToken = getCookieFromResponse(backendResponse, 'refresh_token')
-  const deviceId = getCookieFromResponse(backendResponse, 'device_id') ?? undefined
+  const response = new NextResponse(null, { status: 204 })
 
-  if (!refreshToken) {
-    return NextResponse.json({ message: 'Missing refresh token from backend signup response.' }, { status: 500 })
-  }
+  appendSetCookies(backendResponse, response)
+  setAccessTokenCookie(response, data.accessToken, data.expiresIn)
 
-  await setAuthCookie({
-    accessToken: data.accessToken,
-    accessTokenExpiresAt: new Date(Date.now() + data.expiresIn * 1000).toISOString(),
-    refreshToken,
-    deviceId
-  })
-
-  return new NextResponse(null, { status: 204 })
+  return response
 }
