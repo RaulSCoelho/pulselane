@@ -1,6 +1,6 @@
 import { api } from '@/http/api-client'
 import { setAuthCookie } from '@/lib/auth/auth-cookie'
-import { appendSetCookies, getCookieFromResponse } from '@/lib/http/set-cookie'
+import { getCookieFromResponse } from '@/lib/http/set-cookie'
 import { AuthResponse } from '@pulselane/contracts'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -35,5 +35,5 @@ export async function POST(request: NextRequest) {
     deviceId
   })
 
-  return appendSetCookies(backendResponse, new NextResponse(null, { status: 204 }))
+  return new NextResponse(null, { status: 204 })
 }

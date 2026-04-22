@@ -1,7 +1,7 @@
 import { api } from '@/http/api-client'
 import { clearAuthCookie, getAuthCookie, setAuthCookie } from '@/lib/auth/auth-cookie'
 import { buildLoginRedirectPath, sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
-import { appendSetCookies, getCookieFromResponse } from '@/lib/http/set-cookie'
+import { getCookieFromResponse } from '@/lib/http/set-cookie'
 import { AuthResponse } from '@pulselane/contracts'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -20,7 +20,7 @@ async function performRefresh() {
   if (!backendResponse.ok) {
     return {
       ok: false as const,
-      response: backendResponse
+      status: backendResponse.status
     }
   }
 
@@ -38,7 +38,7 @@ async function performRefresh() {
 
   return {
     ok: true as const,
-    response: backendResponse
+    status: backendResponse.status
   }
 }
 
@@ -50,17 +50,10 @@ export async function GET(request: NextRequest) {
     if (result.status === 401) {
       await clearAuthCookie()
     }
-
-    const response = NextResponse.redirect(new URL(buildLoginRedirectPath(redirectTo), request.url))
-
-    if (result.response) {
-      return appendSetCookies(result.response, response)
-    }
-
-    return response
+    return NextResponse.redirect(new URL(buildLoginRedirectPath(redirectTo), request.url))
   }
 
-  return appendSetCookies(result.response, NextResponse.redirect(new URL(redirectTo, request.url)))
+  return NextResponse.redirect(new URL(redirectTo, request.url))
 }
 
 export async function POST() {
@@ -70,15 +63,8 @@ export async function POST() {
     if (result.status === 401) {
       await clearAuthCookie()
     }
-
-    const response = NextResponse.json({ message: 'Failed to refresh session.' }, { status: result.status })
-
-    if (result.response) {
-      return appendSetCookies(result.response, response)
-    }
-
-    return response
+    return NextResponse.json({ message: 'Failed to refresh session.' }, { status: result.status })
   }
 
-  return appendSetCookies(result.response, new NextResponse(null, { status: 204 }))
+  return new NextResponse(null, { status: 204 })
 }
