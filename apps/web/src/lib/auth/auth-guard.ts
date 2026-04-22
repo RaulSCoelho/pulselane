@@ -17,7 +17,7 @@ type AuthOptions = {
 type SessionCheckResult = { status: 'authenticated' } | { status: 'unauthenticated' } | { status: 'expired' }
 
 async function getSessionStatus(refreshBufferInSeconds: number): Promise<SessionCheckResult> {
-  const session = await getAuthSession()
+  const session = await getAuthSession({ accessTokenRequired: true })
 
   if (!session) {
     return { status: 'unauthenticated' }
