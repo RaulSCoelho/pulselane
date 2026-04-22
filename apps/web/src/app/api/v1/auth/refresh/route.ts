@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(new URL(redirectTo, request.url))
 
   appendSetCookies(result.backendResponse, response)
-  setAccessTokenCookie(response, result.data.accessToken, result.data.expiresIn)
+  setAccessTokenCookie(response, result.data.accessToken)
 
   return response
 }
@@ -69,7 +69,7 @@ export async function POST() {
   const response = new NextResponse(null, { status: 204 })
 
   appendSetCookies(result.backendResponse, response)
-  setAccessTokenCookie(response, result.data.accessToken, result.data.expiresIn)
+  setAccessTokenCookie(response, result.data.accessToken)
 
   return response
 }

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   const response = new NextResponse(null, { status: 204 })
 
   appendSetCookies(backendResponse, response)
-  setAccessTokenCookie(response, data.accessToken, data.expiresIn)
+  setAccessTokenCookie(response, data.accessToken)
 
   return response
 }

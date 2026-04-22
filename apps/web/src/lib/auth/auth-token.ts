@@ -15,7 +15,7 @@ export function isAccessTokenExpired(accessToken: string, bufferInSeconds = 60):
 
 export async function verifyAccessToken(accessToken: string) {
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET)
+    const secret = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET)
     const { payload } = await jwtVerify(accessToken, secret)
     return payload
   } catch {
@@ -23,13 +23,13 @@ export async function verifyAccessToken(accessToken: string) {
   }
 }
 
-export function setAccessTokenCookie(response: NextResponse, accessToken: string, expiresIn: number) {
+export function setAccessTokenCookie(response: NextResponse, accessToken: string) {
   response.cookies.set(ACCESS_TOKEN_COOKIE_NAME, accessToken, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    expires: new Date(Date.now() + expiresIn * 1000)
+    maxAge: 60 * 60 * 24 * 365 * 10 // 10 years
   })
   return response
 }
