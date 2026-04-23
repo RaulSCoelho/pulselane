@@ -3,7 +3,7 @@ import { getApiBaseUrl } from '@/lib/http/api-base-url'
 import { setForwardedHeaders } from '@/lib/http/forwarded-headers'
 import { setOrganizationHeaders } from '@/lib/http/organization-headers'
 import { persistRequestSnapshotOnServer } from '@/lib/http/request-snapshot/persist'
-import { writeRequestSnapshotToResponse } from '@/lib/http/request-snapshot/server'
+import { writeRequestSnapshot } from '@/lib/http/request-snapshot/server'
 import { REQUEST_SNAPSHOT_ENDPOINT } from '@/lib/http/request-snapshot/shared'
 import { setSessionHeaders } from '@/lib/http/session-headers'
 import ky, { KyResponse, type Options } from 'ky'
@@ -34,7 +34,7 @@ async function maybePersistSnapshot(
   const payload = await clonedResponse.json()
 
   if (snapshotTarget && typeof window === 'undefined') {
-    await writeRequestSnapshotToResponse(snapshotTarget, request.url, payload, method)
+    await writeRequestSnapshot(snapshotTarget, request.url, payload, method)
     return
   }
 
@@ -47,10 +47,7 @@ async function maybePersistSnapshot(
   }
 }
 
-const defaultOptions = {
-  retry: {
-    limit: 1
-  },
+const sharedOptions = {
   throwHttpErrors: false,
   hooks: {
     beforeRequest: [
@@ -59,7 +56,17 @@ const defaultOptions = {
         await setOrganizationHeaders(request)
         await setForwardedHeaders(request)
       }
-    ],
+    ]
+  }
+} satisfies Options
+
+const externalApiOptions = {
+  ...sharedOptions,
+  retry: {
+    limit: 1
+  },
+  hooks: {
+    ...sharedOptions.hooks,
     afterResponse: [
       async ({ request, response, options }) => {
         const typedOptions = options as ApiOptions
@@ -86,13 +93,32 @@ const defaultOptions = {
   }
 } satisfies Options
 
+const internalApiOptions = {
+  ...sharedOptions,
+  retry: 0,
+  hooks: {
+    ...sharedOptions.hooks,
+    afterResponse: [
+      async ({ request, response, options }) => {
+        const typedOptions = options as ApiOptions
+
+        if (!request.url.includes(REQUEST_SNAPSHOT_ENDPOINT)) {
+          await maybePersistSnapshot(request, response, typedOptions.saveSnapshot, typedOptions.snapshotTarget)
+        }
+
+        return response
+      }
+    ]
+  }
+} satisfies Options
+
 const externalApiClient = ky.create({
   baseUrl: `${getApiBaseUrl()}/`,
-  ...defaultOptions
+  ...externalApiOptions
 })
 
 const internalApiClient = ky.create({
-  ...defaultOptions
+  ...internalApiOptions
 })
 
 export async function api<T>(path: string, init?: ApiOptions): Promise<KyResponse<T>> {

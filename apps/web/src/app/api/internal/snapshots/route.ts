@@ -1,4 +1,4 @@
-import { writeRequestSnapshotToResponse } from '@/lib/http/request-snapshot/server'
+import { writeRequestSnapshot } from '@/lib/http/request-snapshot/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const body = persistSnapshotRequestSchema.parse(await request.json())
   const response = new NextResponse(null, { status: 204 })
 
-  await writeRequestSnapshotToResponse(response, body.requestUrl, body.payload, body.method)
+  await writeRequestSnapshot(response, body.requestUrl, body.payload, body.method)
 
   return response
 }

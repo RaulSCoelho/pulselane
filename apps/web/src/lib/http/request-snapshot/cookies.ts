@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { REQUEST_SNAPSHOT_COOKIE_NAME, REQUEST_SNAPSHOT_MAX_AGE_SECONDS } from './shared'
 
-export function setRequestSnapshotsToResponse(response: NextResponse, encoded: string) {
+export function setRequestSnapshots(response: NextResponse, encoded: string) {
   response.cookies.set(REQUEST_SNAPSHOT_COOKIE_NAME, encoded, {
     httpOnly: true,
     sameSite: 'lax',
@@ -12,7 +12,7 @@ export function setRequestSnapshotsToResponse(response: NextResponse, encoded: s
   })
 }
 
-export function clearRequestSnapshotsFromResponse(response: NextResponse) {
+export function clearRequestSnapshots(response: NextResponse) {
   response.cookies.set(REQUEST_SNAPSHOT_COOKIE_NAME, '', {
     httpOnly: true,
     sameSite: 'lax',

@@ -2,7 +2,7 @@ import { api } from '@/http/api-client'
 import { buildLoginRedirectPath, sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
 import { getAuthSession } from '@/lib/auth/auth-session'
 import { clearAccessTokenCookie, setAccessTokenCookie } from '@/lib/auth/auth-token'
-import { clearRequestSnapshotsFromResponse } from '@/lib/http/request-snapshot/cookies'
+import { clearRequestSnapshots } from '@/lib/http/request-snapshot/cookies'
 import { appendSetCookies } from '@/lib/http/set-cookie'
 import { AuthResponse } from '@pulselane/contracts'
 import { NextRequest, NextResponse } from 'next/server'
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     if (result.status === 401) {
       clearAccessTokenCookie(response)
-      clearRequestSnapshotsFromResponse(response)
+      clearRequestSnapshots(response)
     }
 
     return response
@@ -74,7 +74,7 @@ export async function POST() {
 
     if (result.status === 401) {
       clearAccessTokenCookie(response)
-      clearRequestSnapshotsFromResponse(response)
+      clearRequestSnapshots(response)
     }
 
     return response

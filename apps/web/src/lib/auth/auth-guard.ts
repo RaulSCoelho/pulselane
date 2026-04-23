@@ -16,6 +16,12 @@ type AuthOptions = {
 
 type SessionCheckResult = { status: 'authenticated' } | { status: 'unauthenticated' } | { status: 'expired' }
 
+type MeResult =
+  | { status: 'ok'; data: MeResponse }
+  | { status: 'rate_limited_no_snapshot' }
+  | { status: 'unauthorized' }
+  | { status: 'error' }
+
 async function getSessionStatus(refreshBufferInSeconds: number): Promise<SessionCheckResult> {
   const session = await getAuthSession({ accessTokenRequired: true })
 
@@ -30,26 +36,45 @@ async function getSessionStatus(refreshBufferInSeconds: number): Promise<Session
   return { status: 'authenticated' }
 }
 
-async function resolveCurrentUserOrSnapshot(redirectTo: string | undefined): Promise<MeResponse> {
+async function fetchMe(): Promise<MeResult> {
   const meResponse = await api<MeResponse>('/api/v1/auth/me')
 
   if (meResponse.ok) {
-    return meResponseSchema.parse(await meResponse.json())
+    return { status: 'ok', data: meResponseSchema.parse(await meResponse.json()) }
   }
 
   if (meResponse.status === 429) {
     const snapshot = await readRequestSnapshot('/api/v1/auth/me', meResponseSchema)
-
     if (snapshot) {
-      return snapshot
+      return { status: 'ok', data: snapshot }
     }
+    return { status: 'rate_limited_no_snapshot' }
   }
 
   if (meResponse.status === 401) {
+    return { status: 'unauthorized' }
+  }
+
+  return { status: 'error' }
+}
+
+async function resolveCurrentUserOrSnapshot(redirectTo: string | undefined): Promise<MeResponse> {
+  const result = await fetchMe()
+
+  if (result.status === 'ok') {
+    return result.data
+  }
+
+  if (result.status === 'unauthorized') {
     redirect(buildRefreshRedirectPath(redirectTo))
   }
 
   redirect(buildLoginRedirectPath(redirectTo))
+}
+
+async function isAuthenticatedServerSide(): Promise<boolean> {
+  const result = await fetchMe()
+  return result.status === 'ok'
 }
 
 export const requireAuth = cache(async (options: AuthOptions = {}) => {
@@ -81,8 +106,9 @@ export const redirectIfAuthenticated = cache(async (options: AuthOptions = {}) =
     redirect(buildRefreshRedirectPath(redirectTo))
   }
 
-  if (sessionStatus.status === 'authenticated') {
-    await resolveCurrentUserOrSnapshot(redirectTo)
-    redirect(redirectTo ?? DEFAULT_AUTHENTICATED_PATH)
+  if (!(await isAuthenticatedServerSide())) {
+    return
   }
+
+  redirect(redirectTo ?? DEFAULT_AUTHENTICATED_PATH)
 })

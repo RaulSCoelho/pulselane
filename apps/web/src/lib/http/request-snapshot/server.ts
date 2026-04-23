@@ -5,7 +5,7 @@ import type { NextResponse } from 'next/server'
 import { gunzipSync, gzipSync } from 'node:zlib'
 import { z } from 'zod'
 
-import { setRequestSnapshotsToResponse } from './cookies'
+import { setRequestSnapshots } from './cookies'
 import { REQUEST_SNAPSHOT_COOKIE_NAME, buildRequestSnapshotKey } from './shared'
 
 const requestSnapshotStoreSchema = z.record(z.string(), z.unknown())
@@ -66,7 +66,7 @@ export async function readRequestSnapshot<T>(
   }
 }
 
-export async function writeRequestSnapshotToResponse(
+export async function writeRequestSnapshot(
   response: NextResponse,
   requestUrl: string,
   value: unknown,
@@ -86,7 +86,7 @@ export async function writeRequestSnapshotToResponse(
 
   const encoded = encodeSnapshotStore(nextStore)
 
-  setRequestSnapshotsToResponse(response, encoded)
+  setRequestSnapshots(response, encoded)
 
   return true
 }

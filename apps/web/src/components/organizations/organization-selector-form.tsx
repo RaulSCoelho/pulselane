@@ -21,23 +21,29 @@ export function OrganizationSelectorForm({ memberships, activeOrganizationId }: 
     setErrorMessage(null)
 
     startTransition(async function submitOrganizationContext() {
-      const response = await nextApi<{ ok: boolean }>('/api/organization-context', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          organizationId
+      try {
+        const response = await nextApi<{ ok: boolean; message?: string }>('/api/organization-context', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            organizationId
+          })
         })
-      })
 
-      if (!response.ok) {
-        setErrorMessage('Unable to set the active organization')
-        return
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { message?: string } | null
+
+          setErrorMessage(body?.message ?? 'Unable to set the active organization')
+          return
+        }
+
+        router.replace(APP_HOME_PATH)
+        router.refresh()
+      } catch {
+        setErrorMessage('Unable to set the active organization right now')
       }
-
-      router.replace(APP_HOME_PATH)
-      router.refresh()
     })
   }
 
@@ -69,7 +75,7 @@ export function OrganizationSelectorForm({ memberships, activeOrganizationId }: 
       })}
 
       {errorMessage ? (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="text-sm text-danger whitespace-pre-wrap">
           {errorMessage}
         </p>
       ) : null}

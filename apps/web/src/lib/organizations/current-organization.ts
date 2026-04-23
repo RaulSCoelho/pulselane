@@ -1,4 +1,5 @@
 import { api } from '@/http/api-client'
+import { readRequestSnapshot } from '@/lib/http/request-snapshot/server'
 import { CurrentOrganizationResponse, currentOrganizationResponseSchema } from '@pulselane/contracts'
 import { cache } from 'react'
 
@@ -13,13 +14,23 @@ export const getCurrentOrganization = cache(async (): Promise<CurrentOrganizatio
 
   const response = await api<CurrentOrganizationResponse>('/api/v1/organizations/current')
 
-  if (!response.ok) {
-    if ([400, 401, 403, 404].includes(response.status)) {
-      return null
-    }
-
-    throw new Error(`Unable to load current organization. Status: ${response.status}`)
+  if (response.ok) {
+    return currentOrganizationResponseSchema.parse(await response.json())
   }
 
-  return currentOrganizationResponseSchema.parse(await response.json())
+  if ([400, 401, 403, 404].includes(response.status)) {
+    return null
+  }
+
+  if (response.status === 429) {
+    const snapshot = await readRequestSnapshot('/api/v1/organizations/current', currentOrganizationResponseSchema)
+
+    if (snapshot) {
+      return snapshot
+    }
+
+    return null
+  }
+
+  throw new Error(`Unable to load current organization. Status: ${response.status}`)
 })
