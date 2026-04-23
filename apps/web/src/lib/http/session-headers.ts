@@ -23,7 +23,7 @@ export async function setSessionHeaders(request: Request) {
     request.headers.set('cookie', mergeCookieHeader(request.headers.get('cookie'), cookieOverrides))
   }
 
-  if (!request.headers.has('Authorization')) {
+  if (session.accessToken && !request.headers.has('Authorization')) {
     request.headers.set('Authorization', `Bearer ${session.accessToken}`)
   }
 }

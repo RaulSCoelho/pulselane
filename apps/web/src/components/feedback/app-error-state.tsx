@@ -22,10 +22,10 @@ export function AppErrorState({
 }: AppErrorStateProps) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <Card className="border border-black/5 shadow-sm">
+      <Card className="border border-black/5">
         <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-          <Card.Title className="text-2xl font-semibold tracking-tight text-zinc-950">{title}</Card.Title>
-          <Card.Description className="text-sm leading-6 text-zinc-600">{description}</Card.Description>
+          <Card.Title className="text-2xl font-semibold tracking-tight">{title}</Card.Title>
+          <Card.Description className="text-sm leading-6 text-muted">{description}</Card.Description>
         </Card.Header>
 
         <Card.Content className="flex flex-col gap-4 p-8">
@@ -40,10 +40,12 @@ export function AppErrorState({
           </Alert>
 
           {digest ? (
-            <div className="rounded-xl border border-black/5 bg-zinc-100 px-4 py-3">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">Error reference</p>
-              <p className="mt-1 font-mono text-xs text-zinc-700">{digest}</p>
-            </div>
+            <Card className="border border-black/5">
+              <Card.Content className="px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Error reference</p>
+                <p className="mt-1 font-mono text-xs text-foreground">{digest}</p>
+              </Card.Content>
+            </Card>
           ) : null}
         </Card.Content>
 

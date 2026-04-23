@@ -2,7 +2,7 @@
 
 import { nextApi } from '@/http/api-client'
 import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
-import { Button, Card } from '@heroui/react'
+import { Alert, Button, Card, toast } from '@heroui/react'
 import { MeMembership } from '@pulselane/contracts/auth'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
@@ -35,14 +35,19 @@ export function OrganizationSelectorForm({ memberships, activeOrganizationId }: 
         if (!response.ok) {
           const body = (await response.json().catch(() => null)) as { message?: string } | null
 
-          setErrorMessage(body?.message ?? 'Unable to set the active organization')
+          const nextMessage = body?.message ?? 'Unable to set the active organization'
+          setErrorMessage(nextMessage)
+          toast.danger(nextMessage)
           return
         }
 
+        toast.success('Organization context updated.')
         router.replace(APP_HOME_PATH)
         router.refresh()
       } catch {
-        setErrorMessage('Unable to set the active organization right now')
+        const nextMessage = 'Unable to set the active organization right now'
+        setErrorMessage(nextMessage)
+        toast.danger(nextMessage)
       }
     })
   }
@@ -53,12 +58,12 @@ export function OrganizationSelectorForm({ memberships, activeOrganizationId }: 
         const isActive = membership.organization.id === activeOrganizationId
 
         return (
-          <Card key={membership.id} className="border border-black/5 shadow-sm">
+          <Card key={membership.id} className="border border-black/5">
             <Card.Content className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-col gap-1">
-                <h2 className="text-lg font-semibold tracking-tight text-zinc-950">{membership.organization.name}</h2>
-                <p className="text-sm text-zinc-600">Role: {membership.role}</p>
-                <p className="text-sm text-zinc-500">Slug: {membership.organization.slug}</p>
+                <h2 className="text-lg font-semibold tracking-tight">{membership.organization.name}</h2>
+                <p className="text-sm text-muted">Role: {membership.role}</p>
+                <p className="text-sm text-muted">Slug: {membership.organization.slug}</p>
               </div>
 
               <Button
@@ -75,9 +80,13 @@ export function OrganizationSelectorForm({ memberships, activeOrganizationId }: 
       })}
 
       {errorMessage ? (
-        <p role="alert" className="text-sm text-danger whitespace-pre-wrap">
-          {errorMessage}
-        </p>
+        <Alert status="danger">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Unable to switch organization</Alert.Title>
+            <Alert.Description>{errorMessage}</Alert.Description>
+          </Alert.Content>
+        </Alert>
       ) : null}
     </div>
   )

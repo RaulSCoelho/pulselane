@@ -3,22 +3,26 @@
 import { nextApi } from '@/http/api-client'
 import { DEFAULT_AUTHENTICATED_PATH, SIGNUP_PATH } from '@/lib/auth/auth-constants'
 import { sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
-import { Button, Card, Input, Label, TextField } from '@heroui/react'
+import { Button, Card, FieldError, Form, Input, Label, TextField, toast } from '@heroui/react'
 import { ErrorResponse } from '@pulselane/contracts'
 import { AuthResponse, loginRequestSchema } from '@pulselane/contracts/auth'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
+import z from 'zod'
+
+type LoginFieldErrors = Partial<Record<'email' | 'password', string>>
 
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({})
 
-  const redirectTo = useMemo(() => sanitizeRedirectTo(searchParams.get('redirectTo')), [searchParams])
+  const redirectTo = sanitizeRedirectTo(searchParams.get('redirectTo'))
 
-  function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const formData = new FormData(event.currentTarget)
@@ -30,11 +34,16 @@ export function LoginForm() {
     const result = loginRequestSchema.safeParse(payload)
 
     if (!result.success) {
-      setErrorMessage('Invalid email or password format')
+      const flattened = z.treeifyError(result.error).properties
+      setFieldErrors({
+        email: flattened?.email?.errors[0],
+        password: flattened?.password?.errors[0]
+      })
       return
     }
 
     setErrorMessage(null)
+    setFieldErrors({})
 
     startTransition(async function submitLogin() {
       const response = await nextApi<AuthResponse>('/api/v1/auth/login', {
@@ -47,47 +56,54 @@ export function LoginForm() {
 
       if (!response.ok) {
         const body = (await response.json()) as ErrorResponse
-        setErrorMessage(Array.isArray(body?.message) ? body.message.join('\n') : (body.message ?? 'Unable to login'))
+        const nextMessage = Array.isArray(body?.message) ? body.message.join('\n') : (body.message ?? 'Unable to login')
+
+        setErrorMessage(nextMessage)
+        toast.danger(nextMessage)
         return
       }
 
+      toast.success('Signed in successfully.')
       router.replace(redirectTo || DEFAULT_AUTHENTICATED_PATH)
       router.refresh()
     })
   }
 
   return (
-    <Card className="w-full max-w-md border border-black/5 shadow-sm">
+    <Card className="w-full max-w-md border border-black/5">
       <Card.Content className="flex flex-col gap-6 p-8">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Login</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Login</h1>
 
-          <p className="text-sm text-zinc-600">Enter your account and continue to the operational workspace.</p>
+          <p className="text-sm text-muted">Enter your account and continue to the operational workspace.</p>
         </div>
 
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <TextField className="flex flex-col gap-2" isRequired name="email">
+        <Form className="flex flex-col gap-4" onSubmit={handleSubmit} validationBehavior="aria">
+          <TextField className="flex flex-col gap-2" isInvalid={Boolean(fieldErrors.email)} isRequired name="email">
             <Label>Email</Label>
             <Input autoComplete="email" type="email" variant="secondary" />
+            <FieldError>{fieldErrors.email}</FieldError>
           </TextField>
 
-          <TextField className="flex flex-col gap-2" isRequired name="password">
+          <TextField
+            className="flex flex-col gap-2"
+            isInvalid={Boolean(fieldErrors.password)}
+            isRequired
+            name="password"
+          >
             <Label>Password</Label>
             <Input autoComplete="current-password" type="password" variant="secondary" />
+            <FieldError>{fieldErrors.password}</FieldError>
           </TextField>
 
-          {errorMessage ? (
-            <p role="alert" className="text-sm text-danger whitespace-pre-wrap">
-              {errorMessage}
-            </p>
-          ) : null}
+          {errorMessage ? <p className="text-sm whitespace-pre-wrap text-danger">{errorMessage}</p> : null}
 
           <Button type="submit" isPending={isPending} size="lg" className="mt-2">
             Sign in
           </Button>
-        </form>
+        </Form>
 
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-muted">
           No account yet?{' '}
           <Link
             href={`${SIGNUP_PATH}?redirectTo=${encodeURIComponent(redirectTo)}`}

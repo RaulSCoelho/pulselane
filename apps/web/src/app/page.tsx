@@ -1,5 +1,5 @@
-import { HeroDemo } from '@/components/ui/hero-demo'
+import { PublicHomePage } from '@/components/marketing/public-home-page'
 
-export default function Home() {
-  return <HeroDemo />
+export default async function HomePage() {
+  return <PublicHomePage />
 }

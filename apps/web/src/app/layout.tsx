@@ -1,5 +1,6 @@
 import './globals.css'
 
+import { AppToastProvider } from '@/components/providers/app-toast-provider'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
@@ -25,7 +26,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground font-sans">{children}</body>
+      <body className="min-h-full bg-background text-foreground font-sans">
+        {children}
+        <AppToastProvider />
+      </body>
     </html>
   )
 }

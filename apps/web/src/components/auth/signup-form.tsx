@@ -3,22 +3,26 @@
 import { nextApi } from '@/http/api-client'
 import { DEFAULT_AUTHENTICATED_PATH, LOGIN_PATH } from '@/lib/auth/auth-constants'
 import { sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
-import { Button, Card, Input, Label, TextField } from '@heroui/react'
+import { Button, Card, FieldError, Form, Input, Label, TextField, toast } from '@heroui/react'
 import { ErrorResponse } from '@pulselane/contracts'
 import { AuthResponse, signupRequestSchema } from '@pulselane/contracts/auth'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useMemo, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
+import z from 'zod'
+
+type SignupFieldErrors = Partial<Record<'name' | 'email' | 'password' | 'organizationName', string>>
 
 export function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<SignupFieldErrors>({})
 
-  const redirectTo = useMemo(() => sanitizeRedirectTo(searchParams.get('redirectTo')), [searchParams])
+  const redirectTo = sanitizeRedirectTo(searchParams.get('redirectTo'))
 
-  function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const formData = new FormData(event.currentTarget)
@@ -32,11 +36,18 @@ export function SignupForm() {
     const result = signupRequestSchema.safeParse(payload)
 
     if (!result.success) {
-      setErrorMessage('Check the fields and try again')
+      const flattened = z.treeifyError(result.error).properties
+      setFieldErrors({
+        name: flattened?.name?.errors[0],
+        email: flattened?.email?.errors[0],
+        password: flattened?.password?.errors[0],
+        organizationName: flattened?.organizationName?.errors[0]
+      })
       return
     }
 
     setErrorMessage(null)
+    setFieldErrors({})
 
     startTransition(async function submitSignup() {
       const response = await nextApi<AuthResponse>('/api/v1/auth/signup', {
@@ -49,59 +60,73 @@ export function SignupForm() {
 
       if (!response.ok) {
         const body = (await response.json()) as ErrorResponse
-        setErrorMessage(
-          Array.isArray(body?.message) ? body.message.join('\n') : (body.message ?? 'Unable to create the account')
-        )
+        const nextMessage = Array.isArray(body?.message)
+          ? body.message.join('\n')
+          : (body.message ?? 'Unable to create the account')
+
+        setErrorMessage(nextMessage)
+        toast.danger(nextMessage)
         return
       }
 
+      toast.success('Account created successfully.')
       router.replace(redirectTo || DEFAULT_AUTHENTICATED_PATH)
       router.refresh()
     })
   }
 
   return (
-    <Card className="w-full max-w-md border border-black/5 shadow-sm">
+    <Card className="w-full max-w-md border border-black/5">
       <Card.Content className="flex flex-col gap-6 p-8">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">Signup</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Signup</h1>
 
-          <p className="text-sm text-zinc-600">Create the account and start with your organization already created.</p>
+          <p className="text-sm text-muted">Create the account and start with your organization already created.</p>
         </div>
 
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <TextField className="flex flex-col gap-2" isRequired name="name">
+        <Form className="flex flex-col gap-4" onSubmit={handleSubmit} validationBehavior="aria">
+          <TextField className="flex flex-col gap-2" isInvalid={Boolean(fieldErrors.name)} isRequired name="name">
             <Label>Full name</Label>
             <Input autoComplete="name" type="text" variant="secondary" />
+            <FieldError>{fieldErrors.name}</FieldError>
           </TextField>
 
-          <TextField className="flex flex-col gap-2" isRequired name="organizationName">
+          <TextField
+            className="flex flex-col gap-2"
+            isInvalid={Boolean(fieldErrors.organizationName)}
+            isRequired
+            name="organizationName"
+          >
             <Label>Organization name</Label>
             <Input autoComplete="organization" type="text" variant="secondary" />
+            <FieldError>{fieldErrors.organizationName}</FieldError>
           </TextField>
 
-          <TextField className="flex flex-col gap-2" isRequired name="email">
+          <TextField className="flex flex-col gap-2" isInvalid={Boolean(fieldErrors.email)} isRequired name="email">
             <Label>Email</Label>
             <Input autoComplete="email" type="email" variant="secondary" />
+            <FieldError>{fieldErrors.email}</FieldError>
           </TextField>
 
-          <TextField className="flex flex-col gap-2" isRequired name="password">
+          <TextField
+            className="flex flex-col gap-2"
+            isInvalid={Boolean(fieldErrors.password)}
+            isRequired
+            name="password"
+          >
             <Label>Password</Label>
             <Input autoComplete="new-password" type="password" variant="secondary" />
+            <FieldError>{fieldErrors.password}</FieldError>
           </TextField>
 
-          {errorMessage ? (
-            <p role="alert" className="text-sm text-danger whitespace-pre-wrap">
-              {errorMessage}
-            </p>
-          ) : null}
+          {errorMessage ? <p className="text-sm whitespace-pre-wrap text-danger">{errorMessage}</p> : null}
 
           <Button type="submit" isPending={isPending} size="lg" className="mt-2">
             Create account
           </Button>
-        </form>
+        </Form>
 
-        <p className="text-sm text-zinc-600">
+        <p className="text-sm text-muted">
           Already have an account?{' '}
           <Link
             href={`${LOGIN_PATH}?redirectTo=${encodeURIComponent(redirectTo)}`}

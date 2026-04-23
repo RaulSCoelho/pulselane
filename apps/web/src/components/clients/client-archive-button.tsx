@@ -1,0 +1,68 @@
+'use client'
+
+import { archiveClientAction } from '@/app/app/clients/actions'
+import { AlertDialog, Button, toast } from '@heroui/react'
+import { useRouter } from 'next/navigation'
+import { useActionState, useEffect } from 'react'
+
+import { initialArchiveClientState } from './client-form-state'
+
+type ClientArchiveButtonProps = {
+  clientId: string
+  isDisabled?: boolean
+}
+
+export function ClientArchiveButton({ clientId, isDisabled = false }: ClientArchiveButtonProps) {
+  const router = useRouter()
+  const [state, formAction, pending] = useActionState(archiveClientAction, initialArchiveClientState)
+
+  useEffect(() => {
+    if (state.status === 'success' && state.message && state.archivedClientId === clientId) {
+      toast.success(state.message)
+      router.refresh()
+      return
+    }
+
+    if (state.status === 'error' && state.message) {
+      toast.danger(state.message)
+    }
+  }, [clientId, router, state.archivedClientId, state.message, state.status])
+
+  return (
+    <AlertDialog>
+      <AlertDialog.Trigger>
+        <Button isDisabled={isDisabled} size="sm" variant="danger">
+          Archive
+        </Button>
+      </AlertDialog.Trigger>
+
+      <AlertDialog.Backdrop>
+        <AlertDialog.Container>
+          <AlertDialog.Dialog>
+            <AlertDialog.Header>
+              <AlertDialog.Heading>Archive client</AlertDialog.Heading>
+            </AlertDialog.Header>
+
+            <AlertDialog.Body>
+              Existing data stays preserved, but this client should stop receiving new operational work.
+            </AlertDialog.Body>
+
+            <AlertDialog.Footer>
+              <Button slot="close" variant="ghost">
+                Cancel
+              </Button>
+
+              <form action={formAction}>
+                <input type="hidden" name="clientId" value={clientId} />
+
+                <Button isPending={pending} size="sm" type="submit" variant="danger">
+                  Confirm archive
+                </Button>
+              </form>
+            </AlertDialog.Footer>
+          </AlertDialog.Dialog>
+        </AlertDialog.Container>
+      </AlertDialog.Backdrop>
+    </AlertDialog>
+  )
+}

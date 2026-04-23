@@ -1,0 +1,222 @@
+'use server'
+
+import {
+  ClientFormValues,
+  ArchiveClientState,
+  ClientFieldErrors,
+  ClientFormState,
+  initialClientFormState
+} from '@/components/clients/client-form-state'
+import { api } from '@/http/api-client'
+import { readErrorMessage } from '@/lib/clients/clients'
+import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
+import { successResponseSchema } from '@pulselane/contracts'
+import {
+  createClientRequestSchema,
+  type CreateClientRequest,
+  updateClientRequestSchema,
+  type UpdateClientRequest
+} from '@pulselane/contracts/clients'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+
+function optionalString(value: FormDataEntryValue | null): string {
+  const normalized = String(value ?? '').trim()
+  return normalized
+}
+
+function getStatus(value: FormDataEntryValue | null): ClientFormValues['status'] {
+  const normalized = String(value ?? '').trim()
+
+  if (normalized === 'inactive' || normalized === 'archived') {
+    return normalized
+  }
+
+  return 'active'
+}
+
+function toOptionalValue(value: string): string | undefined {
+  return value.length > 0 ? value : undefined
+}
+
+function buildClientFormValues(formData: FormData): ClientFormValues {
+  return {
+    name: String(formData.get('name') ?? '').trim(),
+    email: optionalString(formData.get('email')),
+    companyName: optionalString(formData.get('companyName')),
+    status: getStatus(formData.get('status'))
+  }
+}
+
+function mapClientFieldErrors(error: z.ZodError<CreateClientRequest | UpdateClientRequest>): ClientFieldErrors {
+  const flattened = error.flatten().fieldErrors
+
+  return {
+    name: flattened.name?.[0],
+    email: flattened.email?.[0],
+    companyName: flattened.companyName?.[0],
+    status: flattened.status?.[0]
+  }
+}
+
+export async function createClientAction(previousState: ClientFormState, formData: FormData): Promise<ClientFormState> {
+  const fields = buildClientFormValues(formData)
+  const payload: CreateClientRequest = {
+    name: fields.name,
+    email: toOptionalValue(fields.email),
+    companyName: toOptionalValue(fields.companyName),
+    status: fields.status as CreateClientRequest['status']
+  }
+
+  const parsed = createClientRequestSchema.safeParse(payload)
+
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Invalid client data. Review the fields and try again.',
+      fields,
+      fieldErrors: mapClientFieldErrors(parsed.error),
+      formKey: previousState.formKey + 1
+    }
+  }
+
+  const response = await api('/api/v1/clients', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(parsed.data)
+  })
+
+  if (!response.ok) {
+    return {
+      status: 'error',
+      message: await readErrorMessage(response, 'Unable to create client.'),
+      fields,
+      fieldErrors: {},
+      formKey: previousState.formKey + 1
+    }
+  }
+
+  revalidatePath('/app/clients')
+  revalidatePath(APP_HOME_PATH)
+
+  return {
+    status: 'success',
+    message: 'Client created successfully.',
+    fields: initialClientFormState.fields,
+    fieldErrors: {},
+    formKey: previousState.formKey + 1
+  }
+}
+
+export async function updateClientAction(previousState: ClientFormState, formData: FormData): Promise<ClientFormState> {
+  const clientId = String(formData.get('clientId') ?? '').trim()
+  const fields = buildClientFormValues(formData)
+
+  if (!clientId) {
+    return {
+      status: 'error',
+      message: 'Missing client id.',
+      fields,
+      fieldErrors: {},
+      formKey: previousState.formKey + 1
+    }
+  }
+
+  const payload: UpdateClientRequest = {
+    name: fields.name,
+    email: toOptionalValue(fields.email),
+    companyName: toOptionalValue(fields.companyName),
+    status: fields.status as UpdateClientRequest['status'],
+    expectedUpdatedAt: String(formData.get('expectedUpdatedAt') ?? '').trim()
+  }
+
+  const parsed = updateClientRequestSchema.safeParse(payload)
+
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Invalid update payload. Refresh the page and try again.',
+      fields,
+      fieldErrors: mapClientFieldErrors(parsed.error),
+      formKey: previousState.formKey + 1
+    }
+  }
+
+  const response = await api(`/api/v1/clients/${clientId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(parsed.data)
+  })
+
+  if (!response.ok) {
+    return {
+      status: 'error',
+      message: await readErrorMessage(response, 'Unable to update client.'),
+      fields,
+      fieldErrors: {},
+      formKey: previousState.formKey + 1
+    }
+  }
+
+  revalidatePath('/app/clients')
+  revalidatePath(`/app/clients/${clientId}`)
+  revalidatePath(APP_HOME_PATH)
+
+  return {
+    status: 'success',
+    message: 'Client updated successfully.',
+    fields,
+    fieldErrors: {},
+    formKey: previousState.formKey + 1
+  }
+}
+
+export async function archiveClientAction(
+  _previousState: ArchiveClientState,
+  formData: FormData
+): Promise<ArchiveClientState> {
+  const clientId = String(formData.get('clientId') ?? '').trim()
+
+  if (!clientId) {
+    return {
+      status: 'error',
+      message: 'Missing client id.',
+      archivedClientId: null
+    }
+  }
+
+  const response = await api(`/api/v1/clients/${clientId}`, {
+    method: 'DELETE'
+  })
+
+  if (!response.ok) {
+    return {
+      status: 'error',
+      message: await readErrorMessage(response, 'Unable to archive client.'),
+      archivedClientId: null
+    }
+  }
+
+  const body = successResponseSchema.safeParse(await response.json().catch(() => null))
+
+  if (!body.success || !body.data.success) {
+    return {
+      status: 'error',
+      message: 'Unable to archive client.',
+      archivedClientId: null
+    }
+  }
+
+  revalidatePath('/app/clients')
+  revalidatePath(APP_HOME_PATH)
+
+  return {
+    status: 'success',
+    message: 'Client archived successfully.',
+    archivedClientId: clientId
+  }
+}

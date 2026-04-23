@@ -14,6 +14,21 @@ export type ApiOptions = Options & {
   snapshotTarget?: NextResponse
 }
 
+const safeFetch: typeof fetch = async (input, init) => {
+  if (input instanceof Request) {
+    const body = input.bodyUsed || !input.body ? undefined : await input.arrayBuffer()
+
+    return fetch(input.url, {
+      method: input.method,
+      headers: input.headers,
+      signal: input.signal,
+      body: body ?? undefined,
+      ...init
+    })
+  }
+  return fetch(input, init)
+}
+
 async function maybePersistSnapshot(
   request: Request,
   response: Response,
@@ -48,6 +63,7 @@ async function maybePersistSnapshot(
 }
 
 const sharedOptions = {
+  fetch: safeFetch,
   throwHttpErrors: false,
   hooks: {
     beforeRequest: [
