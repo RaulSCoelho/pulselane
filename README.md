@@ -291,12 +291,12 @@ apps/web/.env.local
 
 Current public variable:
 
-* `NEXT_PUBLIC_API_URL`
+* `NEXT_PUBLIC_API_BASE_URL`
 
 Production example:
 
 ```txt
-NEXT_PUBLIC_API_URL=https://api.your-domain.com
+NEXT_PUBLIC_API_BASE_URL=https://api.your-domain.com
 ```
 
 ## Platform guarantees

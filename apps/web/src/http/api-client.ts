@@ -1,6 +1,7 @@
 import { refreshAuthSession } from '@/lib/auth/auth-refresh'
 import { getApiBaseUrl } from '@/lib/http/api-base-url'
 import { setForwardedHeaders } from '@/lib/http/forwarded-headers'
+import { setOrganizationHeaders } from '@/lib/http/organization-headers'
 import { persistRequestSnapshotOnServer } from '@/lib/http/request-snapshot/persist'
 import { writeRequestSnapshotToResponse } from '@/lib/http/request-snapshot/server'
 import { REQUEST_SNAPSHOT_ENDPOINT } from '@/lib/http/request-snapshot/shared'
@@ -47,12 +48,15 @@ async function maybePersistSnapshot(
 }
 
 const defaultOptions = {
-  retry: 0,
+  retry: {
+    limit: 1
+  },
   throwHttpErrors: false,
   hooks: {
     beforeRequest: [
       async ({ request }) => {
         await setSessionHeaders(request)
+        await setOrganizationHeaders(request)
         await setForwardedHeaders(request)
       }
     ],
@@ -76,7 +80,7 @@ const defaultOptions = {
           return response
         }
 
-        return ky.retry({ request: new Request(request) })
+        return ky.retry()
       }
     ]
   }
