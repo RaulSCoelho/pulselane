@@ -1,7 +1,9 @@
+'use client'
+
 import { canArchiveClients, canEditClients } from '@/lib/clients/client-permissions'
-import { Card, buttonVariants } from '@heroui/react'
+import { Card, Table, buttonVariants } from '@heroui/react'
 import type { MembershipRole } from '@pulselane/contracts'
-import { ClientResponse } from '@pulselane/contracts/clients'
+import type { ClientResponse } from '@pulselane/contracts/clients'
 import Link from 'next/link'
 
 import { ClientArchiveButton } from './client-archive-button'
@@ -32,76 +34,73 @@ export function ClientsTable({ items, currentRole }: ClientsTableProps) {
       </Card.Header>
 
       <Card.Content className="p-8">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0">
-            <thead>
-              <tr>
-                <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+        <Table variant="secondary">
+          <Table.ScrollContainer>
+            <Table.Content aria-label="Clients list">
+              <Table.Header>
+                <Table.Column id="client" isRowHeader>
                   Client
-                </th>
-                <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Company
-                </th>
-                <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Email
-                </th>
-                <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Status
-                </th>
-                <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                  Updated
-                </th>
-                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                </Table.Column>
+                <Table.Column id="company">Company</Table.Column>
+                <Table.Column id="email">Email</Table.Column>
+                <Table.Column id="status">Status</Table.Column>
+                <Table.Column id="updated">Updated</Table.Column>
+                <Table.Column id="actions" className="text-right">
                   Actions
-                </th>
-              </tr>
-            </thead>
+                </Table.Column>
+              </Table.Header>
 
-            <tbody>
-              {items.map(client => (
-                <tr key={client.id} className="align-top">
-                  <td className="border-b px-4 py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium">{client.name}</span>
-                      <span className="text-xs text-muted">{client.id}</span>
-                    </div>
-                  </td>
+              <Table.Body
+                items={items}
+                renderEmptyState={() => (
+                  <span className="block px-4 py-8 text-center text-sm text-muted">No clients to display.</span>
+                )}
+              >
+                {client => (
+                  <Table.Row id={client.id} className="align-top">
+                    <Table.Cell>
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium">{client.name}</span>
+                        <span className="text-xs text-muted">{client.id}</span>
+                      </div>
+                    </Table.Cell>
 
-                  <td className="border-b px-4 py-4 text-sm text-foreground">{client.companyName || '—'}</td>
+                    <Table.Cell>{client.companyName || '—'}</Table.Cell>
 
-                  <td className="border-b px-4 py-4 text-sm text-foreground">{client.email || '—'}</td>
+                    <Table.Cell>{client.email || '—'}</Table.Cell>
 
-                  <td className="border-b px-4 py-4">
-                    <span className="inline-flex rounded-full border px-3 py-1 text-xs font-medium text-foreground">
-                      {client.status}
-                    </span>
-                  </td>
+                    <Table.Cell>
+                      <span className="inline-flex rounded-full border px-3 py-1 text-xs font-medium text-foreground">
+                        {client.status}
+                      </span>
+                    </Table.Cell>
 
-                  <td className="border-b px-4 py-4 text-sm text-foreground">{formatDatetime(client.updatedAt)}</td>
+                    <Table.Cell className="whitespace-nowrap">{formatDatetime(client.updatedAt)}</Table.Cell>
 
-                  <td className="border-b px-4 py-4">
-                    <div className="flex justify-end gap-2">
-                      <Link
-                        href={`/app/clients/${client.id}`}
-                        className={buttonVariants({
-                          variant: canEdit ? 'outline' : 'ghost',
-                          size: 'sm'
-                        })}
-                      >
-                        {canEdit ? 'Edit' : 'View'}
-                      </Link>
+                    <Table.Cell>
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/app/clients/${client.id}`}
+                          className={buttonVariants({
+                            variant: canEdit ? 'outline' : 'ghost',
+                            size: 'sm'
+                          })}
+                        >
+                          {canEdit ? 'Edit' : 'View'}
+                        </Link>
 
-                      <ClientArchiveButton
-                        clientId={client.id}
-                        isDisabled={!canArchive || client.status === 'archived'}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        <ClientArchiveButton
+                          clientId={client.id}
+                          isDisabled={!canArchive || client.status === 'archived'}
+                        />
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
+                )}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
+        </Table>
       </Card.Content>
     </Card>
   )

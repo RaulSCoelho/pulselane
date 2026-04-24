@@ -30,11 +30,9 @@ export function ClientArchiveButton({ clientId, isDisabled = false }: ClientArch
 
   return (
     <AlertDialog>
-      <AlertDialog.Trigger>
-        <Button isDisabled={isDisabled} size="sm" variant="danger">
-          Archive
-        </Button>
-      </AlertDialog.Trigger>
+      <Button isDisabled={isDisabled} size="sm" variant="danger">
+        Archive
+      </Button>
 
       <AlertDialog.Backdrop>
         <AlertDialog.Container>
