@@ -1,5 +1,5 @@
-import { SignupForm } from '@/components/auth/signup-form'
-import { redirectIfAuthenticated } from '@/lib/auth/auth-guard'
+import { redirectIfAuthenticated } from '@/features/auth/api/server-queries'
+import { SignupForm } from '@/features/auth/components/signup-form'
 
 export default async function SignupPage() {
   await redirectIfAuthenticated()

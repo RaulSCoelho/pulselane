@@ -1,8 +1,9 @@
 import './globals.css'
 
-import { AppToastProvider } from '@/components/providers/app-toast-provider'
+import { Providers } from '@/app/providers'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { Suspense } from 'react'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -27,8 +28,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       suppressHydrationWarning
     >
       <body className="min-h-full bg-background text-foreground font-sans">
-        {children}
-        <AppToastProvider />
+        <Providers>
+          <Suspense fallback={null}>{children}</Suspense>
+        </Providers>
       </body>
     </html>
   )

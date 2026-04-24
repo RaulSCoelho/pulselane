@@ -1,6 +1,6 @@
 'use client'
 
-import { updateClientAction } from '@/app/app/clients/actions'
+import { updateClientAction } from '@/features/clients/actions/client-actions'
 import { CLIENT_STATUS_OPTIONS } from '@/lib/clients/client-status'
 import { Card, FieldError, Form, Input, Label, ListBox, Select, TextField, buttonVariants, toast } from '@heroui/react'
 import { ClientResponse } from '@pulselane/contracts/clients'

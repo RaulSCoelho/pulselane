@@ -1,15 +1,17 @@
 'use server'
 
+import { clientsCacheTag, clientCacheTag } from '@/features/clients/api/cache-tags'
 import {
-  ClientFormValues,
   ArchiveClientState,
   ClientFieldErrors,
+  ClientFormValues,
   ClientFormState,
   initialClientFormState
-} from '@/components/clients/client-form-state'
-import { api } from '@/http/api-client'
-import { readErrorMessage } from '@/lib/clients/clients'
+} from '@/features/clients/components/client-form-state'
+import { readApiErrorMessage } from '@/http/api-error'
+import { serverApi } from '@/http/server-api-client'
 import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
+import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import { successResponseSchema } from '@pulselane/contracts'
 import {
   createClientRequestSchema,
@@ -17,7 +19,7 @@ import {
   updateClientRequestSchema,
   type UpdateClientRequest
 } from '@pulselane/contracts/clients'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
 
 function optionalString(value: FormDataEntryValue | null): string {
@@ -59,6 +61,20 @@ function mapClientFieldErrors(error: z.ZodError<CreateClientRequest | UpdateClie
   }
 }
 
+async function updateClientCacheTags(clientId?: string) {
+  const organizationId = await getActiveOrganizationIdFromServerCookies()
+
+  if (!organizationId) {
+    return
+  }
+
+  updateTag(clientsCacheTag(organizationId))
+
+  if (clientId) {
+    updateTag(clientCacheTag(organizationId, clientId))
+  }
+}
+
 export async function createClientAction(previousState: ClientFormState, formData: FormData): Promise<ClientFormState> {
   const fields = buildClientFormValues(formData)
   const payload: CreateClientRequest = {
@@ -80,7 +96,7 @@ export async function createClientAction(previousState: ClientFormState, formDat
     }
   }
 
-  const response = await api('/api/v1/clients', {
+  const response = await serverApi('/api/v1/clients', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -91,13 +107,14 @@ export async function createClientAction(previousState: ClientFormState, formDat
   if (!response.ok) {
     return {
       status: 'error',
-      message: await readErrorMessage(response, 'Unable to create client.'),
+      message: await readApiErrorMessage(response, 'Unable to create client.'),
       fields,
       fieldErrors: {},
       formKey: previousState.formKey + 1
     }
   }
 
+  await updateClientCacheTags()
   revalidatePath('/app/clients')
   revalidatePath(APP_HOME_PATH)
 
@@ -144,7 +161,7 @@ export async function updateClientAction(previousState: ClientFormState, formDat
     }
   }
 
-  const response = await api(`/api/v1/clients/${clientId}`, {
+  const response = await serverApi(`/api/v1/clients/${clientId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json'
@@ -155,13 +172,14 @@ export async function updateClientAction(previousState: ClientFormState, formDat
   if (!response.ok) {
     return {
       status: 'error',
-      message: await readErrorMessage(response, 'Unable to update client.'),
+      message: await readApiErrorMessage(response, 'Unable to update client.'),
       fields,
       fieldErrors: {},
       formKey: previousState.formKey + 1
     }
   }
 
+  await updateClientCacheTags(clientId)
   revalidatePath('/app/clients')
   revalidatePath(`/app/clients/${clientId}`)
   revalidatePath(APP_HOME_PATH)
@@ -189,14 +207,14 @@ export async function archiveClientAction(
     }
   }
 
-  const response = await api(`/api/v1/clients/${clientId}`, {
+  const response = await serverApi(`/api/v1/clients/${clientId}`, {
     method: 'DELETE'
   })
 
   if (!response.ok) {
     return {
       status: 'error',
-      message: await readErrorMessage(response, 'Unable to archive client.'),
+      message: await readApiErrorMessage(response, 'Unable to archive client.'),
       archivedClientId: null
     }
   }
@@ -211,6 +229,7 @@ export async function archiveClientAction(
     }
   }
 
+  await updateClientCacheTags(clientId)
   revalidatePath('/app/clients')
   revalidatePath(APP_HOME_PATH)
 

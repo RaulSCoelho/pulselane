@@ -1,4 +1,4 @@
-import { api } from '@/http/api-client'
+import { serverApi } from '@/http/server-api-client'
 import {
   ACTIVE_ORGANIZATION_COOKIE_MAX_AGE_IN_SECONDS,
   ACTIVE_ORGANIZATION_COOKIE_NAME
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     path: '/'
   })
 
-  await api('/api/v1/organizations/current', {
+  await serverApi('/api/v1/organizations/current', {
     headers: {
       'x-organization-id': parsedBody.data.organizationId
     },

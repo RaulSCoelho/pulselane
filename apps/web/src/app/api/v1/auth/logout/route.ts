@@ -1,11 +1,11 @@
-import { api } from '@/http/api-client'
+import { serverApi } from '@/http/server-api-client'
 import { clearAccessTokenCookie } from '@/lib/auth/auth-token'
 import { clearRequestSnapshots } from '@/lib/http/request-snapshot/cookies'
 import { appendSetCookies } from '@/lib/http/set-cookie'
 import { NextResponse } from 'next/server'
 
 export async function POST() {
-  const backendResponse = await api('/api/v1/auth/logout', { method: 'POST' })
+  const backendResponse = await serverApi('/api/v1/auth/logout', { method: 'POST' })
 
   if (!backendResponse.ok) {
     return new NextResponse(await backendResponse.text(), {

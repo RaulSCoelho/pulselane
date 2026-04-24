@@ -1,11 +1,11 @@
-import { api } from '@/http/api-client'
+import { serverApi } from '@/http/server-api-client'
 import { setAccessTokenCookie } from '@/lib/auth/auth-token'
 import { appendSetCookies } from '@/lib/http/set-cookie'
 import { AuthResponse } from '@pulselane/contracts/auth'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  const backendResponse = await api<AuthResponse>('/api/v1/auth/signup', {
+  const backendResponse = await serverApi<AuthResponse>('/api/v1/auth/signup', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   setAccessTokenCookie(response, data.accessToken)
   appendSetCookies(backendResponse, response)
 
-  await api('/api/v1/auth/me', {
+  await serverApi('/api/v1/auth/me', {
     headers: {
       Authorization: `Bearer ${data.accessToken}`
     },

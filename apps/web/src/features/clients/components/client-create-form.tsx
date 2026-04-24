@@ -1,6 +1,6 @@
 'use client'
 
-import { createClientAction } from '@/app/app/clients/actions'
+import { createClientAction } from '@/features/clients/actions/client-actions'
 import { CLIENT_STATUS_OPTIONS } from '@/lib/clients/client-status'
 import { Card, FieldError, Form, Input, Label, ListBox, Select, TextField, toast } from '@heroui/react'
 import { useActionState, useEffect } from 'react'

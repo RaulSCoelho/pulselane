@@ -1,6 +1,6 @@
-import { OrganizationContextEmptyState } from '@/components/organizations/organization-context-empty-state'
-import { requireAuth } from '@/lib/auth/auth-guard'
-import { getCurrentOrganization } from '@/lib/organizations/current-organization'
+import { requireAuth } from '@/features/auth/api/server-queries'
+import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
+import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
 import { Card } from '@heroui/react'
 
 export default async function AppHomePage() {

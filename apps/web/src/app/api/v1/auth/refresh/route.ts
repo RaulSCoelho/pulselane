@@ -1,4 +1,4 @@
-import { api } from '@/http/api-client'
+import { serverApi } from '@/http/server-api-client'
 import { buildLoginRedirectPath, sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
 import { getAuthSession } from '@/lib/auth/auth-session'
 import { clearAccessTokenCookie, setAccessTokenCookie } from '@/lib/auth/auth-token'
@@ -17,7 +17,7 @@ async function performRefresh() {
     }
   }
 
-  const backendResponse = await api<AuthResponse>('/api/v1/auth/refresh', { method: 'POST' })
+  const backendResponse = await serverApi<AuthResponse>('/api/v1/auth/refresh', { method: 'POST' })
 
   if (!backendResponse.ok) {
     return {
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
   setAccessTokenCookie(response, result.data.accessToken)
   appendSetCookies(result.backendResponse, response)
 
-  await api('/api/v1/auth/me', {
+  await serverApi('/api/v1/auth/me', {
     headers: {
       Authorization: `Bearer ${result.data.accessToken}`
     },
@@ -85,7 +85,7 @@ export async function POST() {
   setAccessTokenCookie(response, result.data.accessToken)
   appendSetCookies(result.backendResponse, response)
 
-  await api('/api/v1/auth/me', {
+  await serverApi('/api/v1/auth/me', {
     headers: {
       Authorization: `Bearer ${result.data.accessToken}`
     },

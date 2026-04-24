@@ -1,8 +1,8 @@
-import { ClientEditForm } from '@/components/clients/client-edit-form'
-import { OrganizationContextEmptyState } from '@/components/organizations/organization-context-empty-state'
+import { getClientById } from '@/features/clients/api/server-queries'
+import { ClientEditForm } from '@/features/clients/components/client-edit-form'
+import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
+import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
 import { canEditClients } from '@/lib/clients/client-permissions'
-import { getClientById } from '@/lib/clients/clients'
-import { getCurrentOrganization } from '@/lib/organizations/current-organization'
 import { Alert, Card } from '@heroui/react'
 
 type ClientDetailPageProps = {

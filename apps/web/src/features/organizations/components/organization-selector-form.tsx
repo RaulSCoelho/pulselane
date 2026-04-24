@@ -1,6 +1,6 @@
 'use client'
 
-import { nextApi } from '@/http/api-client'
+import { nextClientApi } from '@/http/client-api-client'
 import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
 import { Alert, Button, Card, toast } from '@heroui/react'
 import { MeMembership } from '@pulselane/contracts/auth'
@@ -22,7 +22,7 @@ export function OrganizationSelectorForm({ memberships, activeOrganizationId }: 
 
     startTransition(async function submitOrganizationContext() {
       try {
-        const response = await nextApi<{ ok: boolean; message?: string }>('/api/organization-context', {
+        const response = await nextClientApi<{ ok: boolean; message?: string }>('/api/organization-context', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

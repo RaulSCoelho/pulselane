@@ -1,5 +1,5 @@
-import { OrganizationSelectorForm } from '@/components/organizations/organization-selector-form'
-import { requireAuth } from '@/lib/auth/auth-guard'
+import { requireAuth } from '@/features/auth/api/server-queries'
+import { OrganizationSelectorForm } from '@/features/organizations/components/organization-selector-form'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import { Card } from '@heroui/react'
 

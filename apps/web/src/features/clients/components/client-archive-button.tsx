@@ -1,6 +1,6 @@
 'use client'
 
-import { archiveClientAction } from '@/app/app/clients/actions'
+import { archiveClientAction } from '@/features/clients/actions/client-actions'
 import { AlertDialog, Button, toast } from '@heroui/react'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect } from 'react'
