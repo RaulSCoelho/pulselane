@@ -21,9 +21,7 @@ const clientApiClient = ky.create({
   prefix: `${getClientApiUrl()}/`,
   credentials: 'include',
   throwHttpErrors: false,
-  retry: {
-    limit: 1
-  },
+  retry: 0,
   hooks: {
     beforeRequest: [
       state => {

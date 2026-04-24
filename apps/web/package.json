@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --fix",
-    "lint:check": "eslint"
+    "lint:check": "eslint",
+    "test:resilience": "node --test --experimental-strip-types --experimental-loader ./scripts/ts-extension-loader.mjs src/http/resilient-fetch.test.mjs"
   },
   "dependencies": {
     "@heroui/react": "^3.0.3",

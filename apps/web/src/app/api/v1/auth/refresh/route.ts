@@ -1,10 +1,11 @@
+import { resilientGet } from '@/http/resilient-fetch'
 import { serverApi } from '@/http/server-api-client'
 import { buildLoginRedirectPath, sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
 import { getAuthSession } from '@/lib/auth/auth-session'
 import { clearAccessTokenCookie, setAccessTokenCookie } from '@/lib/auth/auth-token'
 import { clearRequestSnapshots } from '@/lib/http/request-snapshot/cookies'
 import { appendSetCookies } from '@/lib/http/set-cookie'
-import { AuthResponse } from '@pulselane/contracts'
+import { AuthResponse, meResponseSchema } from '@pulselane/contracts'
 import { NextRequest, NextResponse } from 'next/server'
 
 async function performRefresh() {
@@ -55,11 +56,19 @@ export async function GET(request: NextRequest) {
   setAccessTokenCookie(response, result.data.accessToken)
   appendSetCookies(result.backendResponse, response)
 
-  await serverApi('/api/v1/auth/me', {
-    headers: {
-      Authorization: `Bearer ${result.data.accessToken}`
+  await resilientGet({
+    key: 'auth.me',
+    path: '/api/v1/auth/me',
+    schema: meResponseSchema,
+    maxAgeSeconds: 300,
+    staleIfErrorSeconds: 900,
+    staleIfRateLimitedSeconds: 3600,
+    userScoped: true,
+    request: {
+      headers: {
+        Authorization: `Bearer ${result.data.accessToken}`
+      }
     },
-    saveSnapshot: true,
     snapshotTarget: response
   })
 
@@ -85,11 +94,19 @@ export async function POST() {
   setAccessTokenCookie(response, result.data.accessToken)
   appendSetCookies(result.backendResponse, response)
 
-  await serverApi('/api/v1/auth/me', {
-    headers: {
-      Authorization: `Bearer ${result.data.accessToken}`
+  await resilientGet({
+    key: 'auth.me',
+    path: '/api/v1/auth/me',
+    schema: meResponseSchema,
+    maxAgeSeconds: 300,
+    staleIfErrorSeconds: 900,
+    staleIfRateLimitedSeconds: 3600,
+    userScoped: true,
+    request: {
+      headers: {
+        Authorization: `Bearer ${result.data.accessToken}`
+      }
     },
-    saveSnapshot: true,
     snapshotTarget: response
   })
 

@@ -4,8 +4,8 @@ import { getServerApiUrl } from '@/lib/env'
 import { setForwardedHeaders } from '@/lib/http/forwarded-headers'
 import { setOrganizationHeaders } from '@/lib/http/organization-headers'
 import { persistRequestSnapshotOnServer } from '@/lib/http/request-snapshot/persist'
-import { writeRequestSnapshot } from '@/lib/http/request-snapshot/server'
-import { REQUEST_SNAPSHOT_ENDPOINT } from '@/lib/http/request-snapshot/shared'
+import { resolveRequestSnapshotScope, writeRequestSnapshot } from '@/lib/http/request-snapshot/server'
+import { REQUEST_SNAPSHOT_ENDPOINT, type RequestSnapshotScope } from '@/lib/http/request-snapshot/shared'
 import { setSessionHeaders } from '@/lib/http/session-headers'
 import ky, { type KyResponse, type Options } from 'ky'
 import type { NextResponse } from 'next/server'
@@ -13,6 +13,11 @@ import type { NextResponse } from 'next/server'
 export type ServerApiOptions = Options & {
   saveSnapshot?: boolean
   snapshotTarget?: NextResponse
+  snapshotMaxAgeSeconds?: number
+  snapshotScope?: RequestSnapshotScope
+  snapshotTags?: string[]
+  snapshotTenantScoped?: boolean
+  snapshotUserScoped?: boolean
 }
 
 const safeFetch: typeof fetch = async (input, init) => {
@@ -31,13 +36,8 @@ const safeFetch: typeof fetch = async (input, init) => {
   return fetch(input, init)
 }
 
-async function maybePersistSnapshot(
-  request: Request,
-  response: Response,
-  saveSnapshot: boolean | undefined,
-  snapshotTarget: NextResponse | undefined
-) {
-  if (!saveSnapshot || !response.ok) {
+async function maybePersistSnapshot(request: Request, response: Response, options: ServerApiOptions) {
+  if (!options.saveSnapshot || !response.ok) {
     return
   }
 
@@ -47,18 +47,41 @@ async function maybePersistSnapshot(
     return
   }
 
-  const clonedResponse = response.clone()
-  const payload = await clonedResponse.json()
+  const payload = await response
+    .clone()
+    .json()
+    .catch(() => null)
 
-  if (snapshotTarget) {
-    await writeRequestSnapshot(snapshotTarget, request.url, payload, method)
+  if (payload === null) {
+    return
+  }
+
+  const scope = await resolveRequestSnapshotScope({
+    request,
+    scope: options.snapshotScope,
+    tenantScoped: options.snapshotTenantScoped,
+    userScoped: options.snapshotUserScoped
+  })
+
+  if (options.snapshotTarget) {
+    await writeRequestSnapshot(options.snapshotTarget, request.url, payload, {
+      method,
+      maxAgeSeconds: options.snapshotMaxAgeSeconds,
+      scope,
+      tags: options.snapshotTags,
+      tenantScoped: options.snapshotTenantScoped,
+      userScoped: options.snapshotUserScoped
+    })
     return
   }
 
   await persistRequestSnapshotOnServer({
     requestUrl: request.url,
     method,
-    payload
+    payload,
+    maxAgeSeconds: options.snapshotMaxAgeSeconds,
+    scope,
+    tags: options.snapshotTags
   })
 }
 
@@ -66,9 +89,7 @@ const serverApiClient = ky.create({
   prefix: `${getServerApiUrl()}/`,
   fetch: safeFetch,
   throwHttpErrors: false,
-  retry: {
-    limit: 1
-  },
+  retry: 0,
   hooks: {
     beforeRequest: [
       async state => {
@@ -85,7 +106,7 @@ const serverApiClient = ky.create({
         const typedOptions = options as ServerApiOptions
 
         if (!request.url.includes(REQUEST_SNAPSHOT_ENDPOINT)) {
-          await maybePersistSnapshot(request, response, typedOptions.saveSnapshot, typedOptions.snapshotTarget)
+          await maybePersistSnapshot(request, response, typedOptions).catch(() => undefined)
         }
 
         return response

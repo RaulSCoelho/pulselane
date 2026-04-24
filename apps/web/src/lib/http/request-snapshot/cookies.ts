@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { REQUEST_SNAPSHOT_COOKIE_NAME, REQUEST_SNAPSHOT_MAX_AGE_SECONDS } from './shared'
+import { REQUEST_SNAPSHOT_COOKIE_MAX_AGE_SECONDS, REQUEST_SNAPSHOT_COOKIE_NAME } from './shared'
 
 export function setRequestSnapshots(response: NextResponse, encoded: string) {
   response.cookies.set(REQUEST_SNAPSHOT_COOKIE_NAME, encoded, {
@@ -8,7 +8,7 @@ export function setRequestSnapshots(response: NextResponse, encoded: string) {
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: REQUEST_SNAPSHOT_MAX_AGE_SECONDS
+    maxAge: REQUEST_SNAPSHOT_COOKIE_MAX_AGE_SECONDS
   })
 }
 

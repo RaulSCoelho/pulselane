@@ -1,5 +1,8 @@
+import { clientCacheTag, clientsCacheTag } from '@/features/clients/api/cache-tags'
 import { readApiErrorMessage } from '@/http/api-error'
-import { serverApi } from '@/http/server-api-client'
+import { resilientResultHasData, type ResilientGetResult } from '@/http/api-result'
+import { resilientGet } from '@/http/resilient-fetch'
+import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import {
   ClientResponse,
   clientResponseSchema,
@@ -44,34 +47,72 @@ function toQueryString(query: Partial<ListClientsQuery>) {
   return serialized ? `?${serialized}` : ''
 }
 
+async function getClientSnapshotTags(clientId?: string) {
+  const organizationId = await getActiveOrganizationIdFromServerCookies()
+
+  if (!organizationId) {
+    return []
+  }
+
+  return clientId
+    ? [clientsCacheTag(organizationId), clientCacheTag(organizationId, clientId)]
+    : [clientsCacheTag(organizationId)]
+}
+
+function throwResilientClientsError(result: ResilientGetResult<unknown>, message: string): never {
+  if (result.status === 'unavailable') {
+    throw new Error(`${message} Status: ${result.statusCode ?? result.reason}`)
+  }
+
+  throw new Error(`${message} Status: ${result.status}`)
+}
+
 export const listClients = cache(async function listClients(
   query: Partial<ListClientsQuery>
 ): Promise<ListClientsResponse> {
-  const response = await serverApi<ListClientsResponse>(`/api/v1/clients${toQueryString(query)}`, {
-    saveSnapshot: true
+  const result = await resilientGet<ListClientsResponse>({
+    key: 'clients.list',
+    path: `/api/v1/clients${toQueryString(query)}`,
+    schema: listClientsResponseSchema,
+    fallback: 'last-valid',
+    tags: await getClientSnapshotTags(),
+    maxAgeSeconds: 120,
+    staleIfErrorSeconds: 900,
+    staleIfRateLimitedSeconds: 1800,
+    tenantScoped: true,
+    userScoped: true
   })
 
-  if (!response.ok) {
-    throw new Error(`Unable to load clients. Status: ${response.status}`)
+  if (resilientResultHasData(result)) {
+    return result.data
   }
 
-  return listClientsResponseSchema.parse(await response.json())
+  throwResilientClientsError(result, 'Unable to load clients.')
 })
 
 export const getClientById = cache(async function getClientById(clientId: string): Promise<ClientResponse> {
-  const response = await serverApi<ClientResponse>(`/api/v1/clients/${clientId}`, {
-    saveSnapshot: true
+  const result = await resilientGet<ClientResponse>({
+    key: 'clients.detail',
+    path: `/api/v1/clients/${clientId}`,
+    schema: clientResponseSchema,
+    fallback: 'last-valid',
+    tags: await getClientSnapshotTags(clientId),
+    maxAgeSeconds: 120,
+    staleIfErrorSeconds: 900,
+    staleIfRateLimitedSeconds: 1800,
+    tenantScoped: true,
+    userScoped: true
   })
 
-  if (response.status === 404) {
+  if (result.status === 'not_found') {
     notFound()
   }
 
-  if (!response.ok) {
-    throw new Error(`Unable to load client. Status: ${response.status}`)
+  if (resilientResultHasData(result)) {
+    return result.data
   }
 
-  return clientResponseSchema.parse(await response.json())
+  throwResilientClientsError(result, 'Unable to load client.')
 })
 
 export const readErrorMessage = readApiErrorMessage

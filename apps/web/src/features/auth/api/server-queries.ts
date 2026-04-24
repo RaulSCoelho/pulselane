@@ -1,9 +1,9 @@
-import { serverApi } from '@/http/server-api-client'
+import { resilientResultHasData } from '@/http/api-result'
+import { resilientGet } from '@/http/resilient-fetch'
 import { DEFAULT_AUTHENTICATED_PATH } from '@/lib/auth/auth-constants'
 import { buildLoginRedirectPath, buildRefreshRedirectPath } from '@/lib/auth/auth-redirect'
 import { getAuthSession } from '@/lib/auth/auth-session'
 import { isAccessTokenExpired } from '@/lib/auth/auth-token'
-import { readRequestSnapshot } from '@/lib/http/request-snapshot/server'
 import { MeResponse, meResponseSchema } from '@pulselane/contracts'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
@@ -36,24 +36,27 @@ async function getSessionStatus(refreshBufferInSeconds: number): Promise<Session
 }
 
 async function fetchMe(): Promise<MeResult> {
-  const meResponse = await serverApi<MeResponse>('/api/v1/auth/me')
+  const result = await resilientGet<MeResponse>({
+    key: 'auth.me',
+    path: '/api/v1/auth/me',
+    schema: meResponseSchema,
+    fallback: 'last-valid',
+    maxAgeSeconds: 300,
+    staleIfErrorSeconds: 900,
+    staleIfRateLimitedSeconds: 3600,
+    userScoped: true
+  })
 
-  if (meResponse.ok) {
-    return { status: 'ok', data: meResponseSchema.parse(await meResponse.json()) }
+  if (resilientResultHasData(result)) {
+    return { status: 'ok', data: result.data }
   }
 
-  if (meResponse.status === 429) {
-    const snapshot = await readRequestSnapshot('/api/v1/auth/me', meResponseSchema)
-
-    if (snapshot) {
-      return { status: 'ok', data: snapshot }
-    }
-
-    return { status: 'rate_limited_no_snapshot' }
-  }
-
-  if (meResponse.status === 401) {
+  if (result.status === 'unauthorized') {
     return { status: 'unauthorized' }
+  }
+
+  if (result.status === 'unavailable' && result.reason === 'rate_limited_no_snapshot') {
+    return { status: 'rate_limited_no_snapshot' }
   }
 
   return { status: 'error' }

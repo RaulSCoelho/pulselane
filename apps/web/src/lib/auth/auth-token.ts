@@ -27,6 +27,16 @@ export function isAccessTokenExpired(accessToken: string, bufferInSeconds = 60):
   }
 }
 
+export function getUserIdFromAccessToken(accessToken: string): string | null {
+  try {
+    const { sub } = decodeJwt(accessToken)
+
+    return typeof sub === 'string' && sub.length > 0 ? sub : null
+  } catch {
+    return null
+  }
+}
+
 export function setAccessTokenCookie(response: NextResponse, accessToken: string) {
   response.cookies.set(ACCESS_TOKEN_COOKIE_NAME, accessToken, {
     httpOnly: true,

@@ -1,5 +1,6 @@
 'use client'
 
+import { createApiHttpError } from '@/http/api-error'
 import { clientApi } from '@/http/client-api-client'
 import {
   ListClientsQuery,
@@ -35,7 +36,7 @@ export function clientsQueryOptions(query: Partial<ListClientsQuery> = {}) {
       const response = await clientApi<ListClientsResponse>(`/api/v1/clients${toQueryString(query)}`)
 
       if (!response.ok) {
-        throw new Error(`Unable to load clients. Status: ${response.status}`)
+        throw await createApiHttpError(response, `Unable to load clients. Status: ${response.status}`)
       }
 
       return listClientsResponseSchema.parse(await response.json())
