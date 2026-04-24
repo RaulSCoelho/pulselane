@@ -30,15 +30,22 @@ import { SessionResponseDto } from './dto/responses/session-response.dto'
 import { RefreshTokenGuard } from './guards/refresh-token.guard'
 
 const signupThrottle = {
-  auth: {
+  default: {
     limit: 3,
     ttl: 5 * 60_000
   }
 }
 
 const authThrottle = {
-  auth: {
+  default: {
     limit: 5,
+    ttl: 60_000
+  }
+}
+
+const criticalReadThrottle = {
+  default: {
+    limit: 300,
     ttl: 60_000
   }
 }
@@ -136,6 +143,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @Throttle(criticalReadThrottle)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get current user',

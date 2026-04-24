@@ -2,6 +2,7 @@ import { getClientById } from '@/features/clients/api/server-queries'
 import { ClientEditForm } from '@/features/clients/components/client-edit-form'
 import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
+import { OrganizationContextStatusState } from '@/features/organizations/components/organization-context-status-state'
 import { canEditClients } from '@/lib/clients/client-permissions'
 import { Alert, Card } from '@heroui/react'
 
@@ -13,11 +14,17 @@ type ClientDetailPageProps = {
 
 export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
   const { clientId } = await params
-  const currentOrganization = await getCurrentOrganization()
+  const currentOrganizationState = await getCurrentOrganization()
 
-  if (!currentOrganization) {
+  if (currentOrganizationState.status === 'not_selected') {
     return <OrganizationContextEmptyState />
   }
+
+  if (currentOrganizationState.status !== 'ready') {
+    return <OrganizationContextStatusState state={currentOrganizationState} />
+  }
+
+  const currentOrganization = currentOrganizationState.data
 
   const client = await getClientById(clientId)
   const canEdit = canEditClients(currentOrganization.currentRole)

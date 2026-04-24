@@ -14,6 +14,10 @@ import {
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
 
+import { clientsListResultToState, type ClientsListState } from './clients-list-state'
+
+export type { ClientsListState, ClientsUnavailableReason } from './clients-list-state'
+
 function toQueryString(query: Partial<ListClientsQuery>) {
   const parsed = listClientsQuerySchema.safeParse(query)
 
@@ -69,7 +73,7 @@ function throwResilientClientsError(result: ResilientGetResult<unknown>, message
 
 export const listClients = cache(async function listClients(
   query: Partial<ListClientsQuery>
-): Promise<ListClientsResponse> {
+): Promise<ClientsListState> {
   const result = await resilientGet<ListClientsResponse>({
     key: 'clients.list',
     path: `/api/v1/clients${toQueryString(query)}`,
@@ -84,10 +88,10 @@ export const listClients = cache(async function listClients(
   })
 
   if (resilientResultHasData(result)) {
-    return result.data
+    return clientsListResultToState(result)
   }
 
-  throwResilientClientsError(result, 'Unable to load clients.')
+  return clientsListResultToState(result)
 })
 
 export const getClientById = cache(async function getClientById(clientId: string): Promise<ClientResponse> {

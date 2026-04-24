@@ -16,6 +16,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse
 } from '@nestjs/swagger'
+import { Throttle } from '@nestjs/throttler'
 import { MembershipRole } from '@prisma/client'
 
 import { UpdateOrganizationDto } from './dto/requests/update-organization.dto'
@@ -24,6 +25,13 @@ import { ListOrganizationsResponseDto } from './dto/responses/list-organizations
 import { OrganizationContextGuard } from './guards/organization-context.guard'
 import { OrganizationRolesGuard } from './guards/organization-roles.guard'
 import { OrganizationService } from './organization.service'
+
+const criticalOrganizationReadThrottle = {
+  default: {
+    limit: 300,
+    ttl: 60_000
+  }
+}
 
 @ApiTags('Organizations')
 @ApiBearerAuth()
@@ -48,6 +56,7 @@ export class OrganizationController {
   }
 
   @Get('current')
+  @Throttle(criticalOrganizationReadThrottle)
   @UseGuards(OrganizationContextGuard, OrganizationRolesGuard)
   @OrganizationRoles(MembershipRole.owner, MembershipRole.admin, MembershipRole.member, MembershipRole.viewer)
   @ApiHeader({

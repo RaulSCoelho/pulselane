@@ -27,8 +27,6 @@ export const envValidationSchema = Joi.object({
   THROTTLING_ENABLED: Joi.boolean().optional(),
   RATE_LIMIT_TTL_MS: Joi.number().integer().positive().default(60_000),
   RATE_LIMIT_LIMIT: Joi.number().integer().positive().default(120),
-  AUTH_RATE_LIMIT_TTL_MS: Joi.number().integer().positive().default(60_000),
-  AUTH_RATE_LIMIT_LIMIT: Joi.number().integer().positive().default(5),
 
   COOKIE_SECRET: Joi.string().required(),
   COOKIE_SECURE: Joi.boolean().required(),

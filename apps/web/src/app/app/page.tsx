@@ -1,15 +1,23 @@
 import { requireAuth } from '@/features/auth/api/server-queries'
 import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
+import { OrganizationContextStatusState } from '@/features/organizations/components/organization-context-status-state'
+import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
 import { Card } from '@heroui/react'
 
 export default async function AppHomePage() {
-  const me = await requireAuth({ redirectTo: '/app' })
-  const currentOrganization = await getCurrentOrganization()
+  const me = await requireAuth({ redirectTo: APP_HOME_PATH })
+  const currentOrganizationState = await getCurrentOrganization()
 
-  if (!currentOrganization) {
+  if (currentOrganizationState.status === 'not_selected') {
     return <OrganizationContextEmptyState />
   }
+
+  if (currentOrganizationState.status !== 'ready') {
+    return <OrganizationContextStatusState state={currentOrganizationState} />
+  }
+
+  const currentOrganization = currentOrganizationState.data
 
   return (
     <div className="flex flex-col gap-6">
@@ -21,6 +29,9 @@ export default async function AppHomePage() {
             <p className="text-sm text-muted">
               Active workspace for {me.name}. The operational modules can now rely on a stable organization context.
             </p>
+            {currentOrganizationState.freshness === 'stale' ? (
+              <p className="text-sm font-medium text-warning">Using last synced context</p>
+            ) : null}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

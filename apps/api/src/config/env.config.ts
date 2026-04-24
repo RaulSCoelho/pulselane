@@ -69,8 +69,6 @@ export function configuration() {
     throttlingEnabled: process.env.THROTTLING_ENABLED ? process.env.THROTTLING_ENABLED === 'true' : nodeEnv !== 'test',
     rateLimitTtlMs: Number(process.env.RATE_LIMIT_TTL_MS ?? 60_000),
     rateLimitLimit: Number(process.env.RATE_LIMIT_LIMIT ?? 120),
-    authRateLimitTtlMs: Number(process.env.AUTH_RATE_LIMIT_TTL_MS ?? 60_000),
-    authRateLimitLimit: Number(process.env.AUTH_RATE_LIMIT_LIMIT ?? 5),
 
     // cookie
     cookieSecret: process.env.COOKIE_SECRET!,

@@ -50,7 +50,13 @@ type ResolveRequestSnapshotScopeOptions = {
   tenantScoped?: boolean
 }
 
+const REQUEST_SNAPSHOT_SERVER_MAX_ENTRIES = 512
+const requestSnapshotServerStoreSymbol = Symbol.for('pulselane.request-snapshot.server-store')
 const legacyRequestSnapshotStoreSchema = z.record(z.string(), z.unknown())
+
+type GlobalWithRequestSnapshotStore = typeof globalThis & {
+  [requestSnapshotServerStoreSymbol]?: RequestSnapshotStore
+}
 
 function encodeSnapshotStore(store: RequestSnapshotStore): string {
   const json = JSON.stringify(store)
@@ -91,14 +97,35 @@ function decodeSnapshotStore(rawValue: string, now = new Date()): RequestSnapsho
 }
 
 async function readSnapshotStore(now = new Date()): Promise<RequestSnapshotStore> {
-  const cookieStore = await cookies()
-  const rawValue = cookieStore.get(REQUEST_SNAPSHOT_COOKIE_NAME)?.value
+  let rawValue: string | undefined
+
+  try {
+    const cookieStore = await cookies()
+    rawValue = cookieStore.get(REQUEST_SNAPSHOT_COOKIE_NAME)?.value
+  } catch {
+    rawValue = undefined
+  }
 
   if (!rawValue) {
     return {}
   }
 
   return decodeSnapshotStore(rawValue, now) ?? {}
+}
+
+function getServerSnapshotStore(): RequestSnapshotStore {
+  const globalStore = globalThis as GlobalWithRequestSnapshotStore
+
+  globalStore[requestSnapshotServerStoreSymbol] ??= {}
+
+  return globalStore[requestSnapshotServerStoreSymbol]
+}
+
+function buildServerSnapshotStoreKey(snapshotKey: string, scope: RequestSnapshotScope | undefined): string {
+  return JSON.stringify({
+    key: snapshotKey,
+    scope: normalizeRequestSnapshotScope(scope)
+  })
 }
 
 function normalizeReadOptions(methodOrOptions: string | ReadRequestSnapshotOptions): ReadRequestSnapshotOptions {
@@ -203,8 +230,16 @@ export async function readRequestSnapshotResult<T>(
   }
 
   const store = await readSnapshotStore(options.now)
+  const cookieResult = evaluateRequestSnapshot(store[snapshotKey], schema, options)
 
-  return evaluateRequestSnapshot(store[snapshotKey], schema, options)
+  if (cookieResult.status === 'fresh' || cookieResult.status === 'stale') {
+    return cookieResult
+  }
+
+  const serverStore = getServerSnapshotStore()
+  const serverSnapshotKey = buildServerSnapshotStoreKey(snapshotKey, options.scope)
+
+  return evaluateRequestSnapshot(serverStore[serverSnapshotKey], schema, options)
 }
 
 export async function readRequestSnapshot<T>(
@@ -236,6 +271,7 @@ export async function writeRequestSnapshot(
     return false
   }
 
+  const wroteServerSnapshot = writeRequestSnapshotToServerStoreByKey(snapshotKey, value, options)
   const currentStore = await readSnapshotStore(options.now)
   const nextStore = compactRequestSnapshotStore(
     {
@@ -253,10 +289,61 @@ export async function writeRequestSnapshot(
   const encoded = encodeSnapshotStoreWithinCookieLimit(nextStore, snapshotKey)
 
   if (!encoded) {
-    return false
+    return wroteServerSnapshot
   }
 
   setRequestSnapshots(response, encoded)
+
+  return true
+}
+
+export async function writeRequestSnapshotToServerStore(
+  requestUrl: string,
+  value: unknown,
+  methodOrOptions: string | WriteRequestSnapshotOptions = 'GET'
+): Promise<boolean> {
+  const options = normalizeWriteOptions(methodOrOptions)
+  const snapshotKey = buildRequestSnapshotKey(requestUrl, options.method ?? 'GET')
+
+  if (!snapshotKey) {
+    return false
+  }
+
+  return writeRequestSnapshotToServerStoreByKey(snapshotKey, value, options)
+}
+
+function writeRequestSnapshotToServerStoreByKey(
+  snapshotKey: string,
+  value: unknown,
+  options: WriteRequestSnapshotOptions
+): boolean {
+  const scope = normalizeRequestSnapshotScope(options.scope)
+
+  if ((options.userScoped && !scope.userId) || (options.tenantScoped && !scope.organizationId)) {
+    return false
+  }
+
+  const serverStore = getServerSnapshotStore()
+  const serverSnapshotKey = buildServerSnapshotStoreKey(snapshotKey, scope)
+  const nextStore = compactRequestSnapshotStore(
+    {
+      ...serverStore,
+      [serverSnapshotKey]: buildRequestSnapshotEntry(value, {
+        maxAgeSeconds: options.maxAgeSeconds,
+        now: options.now,
+        scope,
+        tags: options.tags
+      })
+    },
+    {
+      maxEntries: REQUEST_SNAPSHOT_SERVER_MAX_ENTRIES,
+      now: options.now
+    }
+  )
+
+  const globalStore = globalThis as GlobalWithRequestSnapshotStore
+
+  globalStore[requestSnapshotServerStoreSymbol] = nextStore
 
   return true
 }

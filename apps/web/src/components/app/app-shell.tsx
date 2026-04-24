@@ -1,12 +1,15 @@
+import type { CurrentOrganizationState } from '@/features/organizations/api/server-queries'
 import { CLIENTS_PATH } from '@/lib/clients/client-constants'
 import { APP_HOME_PATH, SELECT_ORGANIZATION_PATH } from '@/lib/organizations/organization-context-constants'
 import { Card } from '@heroui/react'
-import type { CurrentOrganizationResponse, MeResponse } from '@pulselane/contracts'
+import type { MeResponse } from '@pulselane/contracts'
 import Link from 'next/link'
+
+import { getAppShellOrganizationContextView } from './app-shell-organization-context'
 
 type AppShellProps = {
   me: MeResponse
-  currentOrganization: CurrentOrganizationResponse | null
+  organizationState: CurrentOrganizationState
   children: React.ReactNode
 }
 
@@ -25,7 +28,9 @@ const navigationItems = [
   }
 ]
 
-export function AppShell({ me, currentOrganization, children }: AppShellProps) {
+export function AppShell({ me, organizationState, children }: AppShellProps) {
+  const organizationContext = getAppShellOrganizationContextView(organizationState)
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-6 py-6">
@@ -52,12 +57,11 @@ export function AppShell({ me, currentOrganization, children }: AppShellProps) {
               <Card className="border border-black/5">
                 <Card.Content className="p-4">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current organization</p>
-                  <p className="mt-2 font-medium">
-                    {currentOrganization ? currentOrganization.organization.name : 'No organization selected'}
-                  </p>
-                  <p className="mt-1 text-sm text-muted">
-                    {currentOrganization ? currentOrganization.currentRole : 'Choose one to unlock operational screens'}
-                  </p>
+                  <p className="mt-2 font-medium">{organizationContext.organizationName}</p>
+                  <p className="mt-1 text-sm text-muted">{organizationContext.organizationDetail}</p>
+                  {organizationContext.syncNotice ? (
+                    <p className="mt-2 text-xs font-medium text-warning">{organizationContext.syncNotice}</p>
+                  ) : null}
                 </Card.Content>
               </Card>
             </Card.Content>
@@ -87,9 +91,10 @@ export function AppShell({ me, currentOrganization, children }: AppShellProps) {
                   <Card className="border border-black/5">
                     <Card.Content className="p-4">
                       <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Active context</p>
-                      <p className="mt-2 text-sm font-medium">
-                        {currentOrganization ? currentOrganization.organization.slug : 'Missing'}
-                      </p>
+                      <p className="mt-2 text-sm font-medium">{organizationContext.activeContextValue}</p>
+                      {organizationContext.syncNotice ? (
+                        <p className="mt-1 text-xs font-medium text-warning">{organizationContext.syncNotice}</p>
+                      ) : null}
                     </Card.Content>
                   </Card>
                 </div>

@@ -41,11 +41,6 @@ import { TasksModule } from './modules/tasks/tasks.module'
           name: 'default',
           ttl: configService.getOrThrow('rateLimitTtlMs', { infer: true }),
           limit: configService.getOrThrow('rateLimitLimit', { infer: true })
-        },
-        {
-          name: 'auth',
-          ttl: configService.getOrThrow('authRateLimitTtlMs', { infer: true }),
-          limit: configService.getOrThrow('authRateLimitLimit', { infer: true })
         }
       ]
     }),

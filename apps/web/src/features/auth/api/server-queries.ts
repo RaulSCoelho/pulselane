@@ -35,7 +35,7 @@ async function getSessionStatus(refreshBufferInSeconds: number): Promise<Session
   return { status: 'authenticated' }
 }
 
-async function fetchMe(): Promise<MeResult> {
+const fetchMe = cache(async function fetchMe(): Promise<MeResult> {
   const result = await resilientGet<MeResponse>({
     key: 'auth.me',
     path: '/api/v1/auth/me',
@@ -60,7 +60,7 @@ async function fetchMe(): Promise<MeResult> {
   }
 
   return { status: 'error' }
-}
+})
 
 async function resolveCurrentUserOrSnapshot(redirectTo: string | undefined): Promise<MeResponse> {
   const result = await fetchMe()
@@ -81,9 +81,7 @@ async function isAuthenticatedServerSide(): Promise<boolean> {
   return result.status === 'ok'
 }
 
-export const requireAuth = cache(async (options: AuthOptions = {}) => {
-  const { redirectTo, refreshBufferInSeconds = 60 } = options
-
+const requireAuthCached = cache(async (redirectTo: string | undefined, refreshBufferInSeconds: number) => {
   const sessionStatus = await getSessionStatus(refreshBufferInSeconds)
 
   if (sessionStatus.status === 'unauthenticated') {
@@ -97,9 +95,7 @@ export const requireAuth = cache(async (options: AuthOptions = {}) => {
   return resolveCurrentUserOrSnapshot(redirectTo)
 })
 
-export const redirectIfAuthenticated = cache(async (options: AuthOptions = {}) => {
-  const { redirectTo, refreshBufferInSeconds = 60 } = options
-
+const redirectIfAuthenticatedCached = cache(async (redirectTo: string | undefined, refreshBufferInSeconds: number) => {
   const sessionStatus = await getSessionStatus(refreshBufferInSeconds)
 
   if (sessionStatus.status === 'unauthenticated') {
@@ -116,3 +112,15 @@ export const redirectIfAuthenticated = cache(async (options: AuthOptions = {}) =
 
   redirect(redirectTo ?? DEFAULT_AUTHENTICATED_PATH)
 })
+
+export function requireAuth(options: AuthOptions = {}) {
+  const { redirectTo, refreshBufferInSeconds = 60 } = options
+
+  return requireAuthCached(redirectTo, refreshBufferInSeconds)
+}
+
+export function redirectIfAuthenticated(options: AuthOptions = {}) {
+  const { redirectTo, refreshBufferInSeconds = 60 } = options
+
+  return redirectIfAuthenticatedCached(redirectTo, refreshBufferInSeconds)
+}

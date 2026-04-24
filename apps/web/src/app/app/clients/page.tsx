@@ -3,8 +3,10 @@ import { ClientCreateForm } from '@/features/clients/components/client-create-fo
 import { ClientFiltersForm } from '@/features/clients/components/client-filters-form'
 import { ClientsEmptyState } from '@/features/clients/components/clients-empty-state'
 import { ClientsTable } from '@/features/clients/components/clients-table'
+import { ClientsUnavailableState } from '@/features/clients/components/clients-unavailable-state'
 import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
+import { OrganizationContextStatusState } from '@/features/organizations/components/organization-context-status-state'
 import { canCreateClients } from '@/lib/clients/client-permissions'
 import { Card, buttonVariants } from '@heroui/react'
 import { listClientsQuerySchema } from '@pulselane/contracts/clients'
@@ -26,11 +28,17 @@ function readSearchParam(source: Record<string, string | string[] | undefined>, 
 
 export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
-  const currentOrganization = await getCurrentOrganization()
+  const currentOrganizationState = await getCurrentOrganization()
 
-  if (!currentOrganization) {
+  if (currentOrganizationState.status === 'not_selected') {
     return <OrganizationContextEmptyState />
   }
+
+  if (currentOrganizationState.status !== 'ready') {
+    return <OrganizationContextStatusState state={currentOrganizationState} />
+  }
+
+  const currentOrganization = currentOrganizationState.data
 
   const rawQuery = {
     search: readSearchParam(resolvedSearchParams, 'search'),
@@ -45,10 +53,11 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
 
   const parsedQuery = listClientsQuerySchema.safeParse(rawQuery)
   const query = parsedQuery.success ? parsedQuery.data : listClientsQuerySchema.parse({ limit: '20' })
-  const clients = await listClients(query)
+  const clientsState = await listClients(query)
 
   const hasFilters = Boolean(query.search || query.status || query.cursor || query.includeArchived)
   const allowCreate = canCreateClients(currentOrganization.currentRole)
+  const loadedNow = clientsState.status === 'ready' ? clientsState.data.items.length : 'Unavailable'
 
   return (
     <div className="flex flex-col gap-6">
@@ -84,7 +93,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
             <Card className="border border-black/5">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Loaded now</p>
-                <p className="mt-2 text-sm font-medium">{clients.items.length}</p>
+                <p className="mt-2 text-sm font-medium">{loadedNow}</p>
               </Card.Content>
             </Card>
           </div>
@@ -97,15 +106,29 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         includeArchived={Boolean(query.includeArchived)}
       />
 
-      {allowCreate ? <ClientCreateForm /> : null}
+      {clientsState.status === 'ready' && clientsState.freshness === 'stale' ? (
+        <Card className="border border-black/5">
+          <Card.Content className="p-4">
+            <p className="text-sm font-medium text-warning">Using last synced clients list</p>
+          </Card.Content>
+        </Card>
+      ) : null}
 
-      {clients.items.length > 0 ? (
-        <ClientsTable items={clients.items} currentRole={currentOrganization.currentRole} />
+      {clientsState.status === 'ready' ? (
+        <>
+          {allowCreate ? <ClientCreateForm /> : null}
+
+          {clientsState.data.items.length > 0 ? (
+            <ClientsTable items={clientsState.data.items} currentRole={currentOrganization.currentRole} />
+          ) : (
+            <ClientsEmptyState includeArchived={Boolean(query.includeArchived)} hasFilters={hasFilters} />
+          )}
+        </>
       ) : (
-        <ClientsEmptyState includeArchived={Boolean(query.includeArchived)} hasFilters={hasFilters} />
+        <ClientsUnavailableState reason={clientsState.reason} />
       )}
 
-      {clients.meta.hasNextPage && clients.meta.nextCursor ? (
+      {clientsState.status === 'ready' && clientsState.data.meta.hasNextPage && clientsState.data.meta.nextCursor ? (
         <div className="flex justify-end">
           <Link
             href={`/app/clients?${new URLSearchParams({
@@ -113,7 +136,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
               ...(query.status ? { status: query.status } : {}),
               ...(query.includeArchived ? { includeArchived: 'true' } : {}),
               limit: String(query.limit),
-              cursor: clients.meta.nextCursor
+              cursor: clientsState.data.meta.nextCursor
             }).toString()}`}
             className={buttonVariants({ variant: 'outline' })}
           >

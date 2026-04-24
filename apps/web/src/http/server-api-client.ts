@@ -3,8 +3,11 @@ import 'server-only'
 import { getServerApiUrl } from '@/lib/env'
 import { setForwardedHeaders } from '@/lib/http/forwarded-headers'
 import { setOrganizationHeaders } from '@/lib/http/organization-headers'
-import { persistRequestSnapshotOnServer } from '@/lib/http/request-snapshot/persist'
-import { resolveRequestSnapshotScope, writeRequestSnapshot } from '@/lib/http/request-snapshot/server'
+import {
+  resolveRequestSnapshotScope,
+  writeRequestSnapshot,
+  writeRequestSnapshotToServerStore
+} from '@/lib/http/request-snapshot/server'
 import { REQUEST_SNAPSHOT_ENDPOINT, type RequestSnapshotScope } from '@/lib/http/request-snapshot/shared'
 import { setSessionHeaders } from '@/lib/http/session-headers'
 import ky, { type KyResponse, type Options } from 'ky'
@@ -75,13 +78,13 @@ async function maybePersistSnapshot(request: Request, response: Response, option
     return
   }
 
-  await persistRequestSnapshotOnServer({
-    requestUrl: request.url,
+  await writeRequestSnapshotToServerStore(request.url, payload, {
     method,
-    payload,
     maxAgeSeconds: options.snapshotMaxAgeSeconds,
     scope,
-    tags: options.snapshotTags
+    tags: options.snapshotTags,
+    tenantScoped: options.snapshotTenantScoped,
+    userScoped: options.snapshotUserScoped
   })
 }
 

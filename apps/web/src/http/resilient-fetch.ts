@@ -1,10 +1,10 @@
 import 'server-only'
 
-import { persistRequestSnapshotOnServer } from '@/lib/http/request-snapshot/persist'
 import {
   readRequestSnapshotResult,
   resolveRequestSnapshotScope,
-  writeRequestSnapshot
+  writeRequestSnapshot,
+  writeRequestSnapshotToServerStore
 } from '@/lib/http/request-snapshot/server'
 import type { RequestSnapshotScope } from '@/lib/http/request-snapshot/shared'
 import type { NextResponse } from 'next/server'
@@ -103,14 +103,14 @@ export async function resilientGet<T>({
         }).then(() => undefined)
       }
 
-      return persistRequestSnapshotOnServer({
-        requestUrl: path,
+      return writeRequestSnapshotToServerStore(path, data, {
         method: 'GET',
-        payload: data,
         maxAgeSeconds,
         scope,
-        tags: snapshotTags
-      }).catch(() => undefined)
+        tags: snapshotTags,
+        tenantScoped,
+        userScoped
+      }).then(() => undefined)
     }
   })
 }
