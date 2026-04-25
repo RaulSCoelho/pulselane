@@ -47,7 +47,7 @@ export default async function AppHomePage() {
                 `${currentOrganization.usage.activeTasks}${currentOrganization.limits.activeTasks !== null ? ` / ${currentOrganization.limits.activeTasks}` : ''}`
               ]
             ].map(([label, value]) => (
-              <Card key={label} className="border border-black/5">
+              <Card key={label} className="border border-black/5" variant="secondary">
                 <Card.Content className="p-4">
                   <p className="text-sm text-muted">{label}</p>
                   <p className="mt-1 font-medium">{value}</p>

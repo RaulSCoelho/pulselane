@@ -65,7 +65,7 @@ export function ClientCreateForm() {
 
           <Select
             className="flex flex-col gap-2 md:col-span-2"
-            defaultSelectedKey={resolvedState.fields.status}
+            defaultValue={resolvedState.fields.status}
             isInvalid={Boolean(resolvedState.fieldErrors.status)}
             name="status"
             placeholder="Select status"

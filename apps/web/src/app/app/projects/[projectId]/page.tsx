@@ -1,19 +1,21 @@
-import { getClientById } from '@/features/clients/api/server-queries'
-import { ClientEditForm } from '@/features/clients/components/client-edit-form'
+import { listClients } from '@/features/clients/api/server-queries'
 import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
 import { OrganizationContextStatusState } from '@/features/organizations/components/organization-context-status-state'
-import { canEditClients } from '@/lib/clients/client-permissions'
+import { getProjectById } from '@/features/projects/api/server-queries'
+import { ProjectEditForm } from '@/features/projects/components/project-edit-form'
+import { canEditProjects } from '@/lib/projects/project-permissions'
 import { Alert, Card } from '@heroui/react'
+import { listClientsQuerySchema } from '@pulselane/contracts/clients'
 
-type ClientDetailPageProps = {
+type ProjectDetailPageProps = {
   params: Promise<{
-    clientId: string
+    projectId: string
   }>
 }
 
-export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
-  const { clientId } = await params
+export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
+  const { projectId } = await params
   const currentOrganizationState = await getCurrentOrganization()
 
   if (currentOrganizationState.status === 'not_selected') {
@@ -25,23 +27,31 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   }
 
   const currentOrganization = currentOrganizationState.data
+  const project = await getProjectById(projectId)
+  const canEdit = canEditProjects(currentOrganization.currentRole)
 
-  const client = await getClientById(clientId)
-  const canEdit = canEditClients(currentOrganization.currentRole)
+  const clientsState = await listClients(
+    listClientsQuerySchema.parse({
+      limit: '100',
+      includeArchived: false
+    })
+  )
+
+  const clients = clientsState.status === 'ready' ? clientsState.data.items : []
 
   return (
     <div className="flex flex-col gap-6">
       <Card className="border border-black/5">
         <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Client record</span>
-            <h1 className="text-3xl font-semibold tracking-tight">{client.name}</h1>
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Project record</span>
+            <h1 className="text-3xl font-semibold tracking-tight">{project.name}</h1>
             <p className="max-w-2xl text-sm leading-6 text-muted">
-              Review the current state and update the client without bypassing concurrency safeguards.
+              Review the current project state and update it without bypassing tenant or concurrency safeguards.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-2">
+          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-3">
             <Card className="border border-black/5" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Role</p>
@@ -52,7 +62,14 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             <Card className="border border-black/5" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Status</p>
-                <p className="mt-2 text-sm font-medium">{client.status}</p>
+                <p className="mt-2 text-sm font-medium">{project.status}</p>
+              </Card.Content>
+            </Card>
+
+            <Card className="border border-black/5" variant="secondary">
+              <Card.Content className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Client</p>
+                <p className="mt-2 text-sm font-medium">{project.client.name}</p>
               </Card.Content>
             </Card>
           </div>
@@ -64,12 +81,12 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>Read-only access</Alert.Title>
-            <Alert.Description>Your role can inspect this client, but cannot edit it.</Alert.Description>
+            <Alert.Description>Your role can inspect this project, but cannot edit it.</Alert.Description>
           </Alert.Content>
         </Alert>
       ) : null}
 
-      <ClientEditForm client={client} canEdit={canEdit} />
+      <ProjectEditForm project={project} clients={clients} canEdit={canEdit} />
     </div>
   )
 }

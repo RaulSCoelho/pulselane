@@ -1,6 +1,7 @@
 import type { CurrentOrganizationState } from '@/features/organizations/api/server-queries'
 import { CLIENTS_PATH } from '@/lib/clients/client-constants'
 import { APP_HOME_PATH, SELECT_ORGANIZATION_PATH } from '@/lib/organizations/organization-context-constants'
+import { PROJECTS_PATH } from '@/lib/projects/project-constants'
 import { Card } from '@heroui/react'
 import type { MeResponse } from '@pulselane/contracts'
 import Link from 'next/link'
@@ -21,6 +22,10 @@ const navigationItems = [
   {
     href: CLIENTS_PATH,
     label: 'Clients'
+  },
+  {
+    href: PROJECTS_PATH,
+    label: 'Projects'
   },
   {
     href: SELECT_ORGANIZATION_PATH,
@@ -54,7 +59,7 @@ export function AppShell({ me, organizationState, children }: AppShellProps) {
                 ))}
               </nav>
 
-              <Card className="border border-black/5">
+              <Card className="border border-black/5" variant="secondary">
                 <Card.Content className="p-4">
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current organization</p>
                   <p className="mt-2 font-medium">{organizationContext.organizationName}</p>
@@ -81,14 +86,14 @@ export function AppShell({ me, organizationState, children }: AppShellProps) {
                 </div>
 
                 <div className="grid gap-3 sm:min-w-80 sm:grid-cols-2">
-                  <Card className="border border-black/5">
+                  <Card className="border border-black/5" variant="secondary">
                     <Card.Content className="p-4">
                       <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Organizations</p>
                       <p className="mt-2 text-sm font-medium">{me.memberships.length}</p>
                     </Card.Content>
                   </Card>
 
-                  <Card className="border border-black/5">
+                  <Card className="border border-black/5" variant="secondary">
                     <Card.Content className="p-4">
                       <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Active context</p>
                       <p className="mt-2 text-sm font-medium">{organizationContext.activeContextValue}</p>

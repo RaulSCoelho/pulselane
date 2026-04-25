@@ -89,7 +89,7 @@ export function ClientEditForm({ client, canEdit }: ClientEditFormProps) {
 
           <Select
             className="flex flex-col gap-2 md:col-span-2"
-            defaultSelectedKey={state.fields.status}
+            defaultValue={state.fields.status}
             isDisabled={!canEdit}
             isInvalid={Boolean(state.fieldErrors.status)}
             name="status"
