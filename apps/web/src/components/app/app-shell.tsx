@@ -2,6 +2,7 @@ import type { CurrentOrganizationState } from '@/features/organizations/api/serv
 import { CLIENTS_PATH } from '@/lib/clients/client-constants'
 import { APP_HOME_PATH, SELECT_ORGANIZATION_PATH } from '@/lib/organizations/organization-context-constants'
 import { PROJECTS_PATH } from '@/lib/projects/project-constants'
+import { TASKS_PATH } from '@/lib/tasks/task-constants'
 import { Card } from '@heroui/react'
 import type { MeResponse } from '@pulselane/contracts'
 import Link from 'next/link'
@@ -26,6 +27,10 @@ const navigationItems = [
   {
     href: PROJECTS_PATH,
     label: 'Projects'
+  },
+  {
+    href: TASKS_PATH,
+    label: 'Tasks'
   },
   {
     href: SELECT_ORGANIZATION_PATH,
