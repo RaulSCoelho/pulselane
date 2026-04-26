@@ -1,0 +1,81 @@
+'use client'
+
+import { updateCommentAction } from '@/features/comments/actions/comment-actions'
+import { AlertDialog, Button, FieldError, Form, Label, TextArea, TextField, toast } from '@heroui/react'
+import type { CommentResponse } from '@pulselane/contracts/comments'
+import { useRouter } from 'next/navigation'
+import { useActionState, useEffect } from 'react'
+
+import { initialCommentFormState } from './comment-form-state'
+import { CommentFormSubmitButton } from './comment-form-submit-button'
+
+type CommentEditFormProps = {
+  taskId: string
+  comment: CommentResponse
+}
+
+export function CommentEditForm({ taskId, comment }: CommentEditFormProps) {
+  const router = useRouter()
+  const [state, formAction] = useActionState(updateCommentAction, {
+    ...initialCommentFormState,
+    fields: {
+      body: comment.body
+    }
+  })
+
+  useEffect(() => {
+    if (state.status === 'success' && state.message) {
+      toast.success(state.message)
+      router.refresh()
+    }
+
+    if (state.status === 'error' && state.message) {
+      toast.danger(state.message)
+    }
+  }, [router, state.message, state.status])
+
+  return (
+    <AlertDialog>
+      <Button size="sm" variant="outline">
+        Edit
+      </Button>
+
+      <AlertDialog.Backdrop>
+        <AlertDialog.Container>
+          <AlertDialog.Dialog>
+            <AlertDialog.Header>
+              <AlertDialog.Heading>Edit comment</AlertDialog.Heading>
+            </AlertDialog.Header>
+
+            <AlertDialog.Body>
+              <Form key={state.formKey} action={formAction} className="flex flex-col gap-4">
+                <input type="hidden" name="taskId" value={taskId} />
+                <input type="hidden" name="commentId" value={comment.id} />
+
+                <TextField
+                  className="flex flex-col gap-2"
+                  defaultValue={state.fields.body}
+                  isInvalid={Boolean(state.fieldErrors.body)}
+                  isRequired
+                  name="body"
+                >
+                  <Label>Comment</Label>
+                  <TextArea variant="secondary" />
+                  <FieldError>{state.fieldErrors.body}</FieldError>
+                </TextField>
+
+                <AlertDialog.Footer>
+                  <Button slot="close" variant="ghost">
+                    Cancel
+                  </Button>
+
+                  <CommentFormSubmitButton idleLabel="Save comment" pendingLabel="Saving comment..." />
+                </AlertDialog.Footer>
+              </Form>
+            </AlertDialog.Body>
+          </AlertDialog.Dialog>
+        </AlertDialog.Container>
+      </AlertDialog.Backdrop>
+    </AlertDialog>
+  )
+}

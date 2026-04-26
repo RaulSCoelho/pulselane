@@ -1,3 +1,6 @@
+import { listCommentActivityHistory, listComments } from '@/features/comments/api/server-queries'
+import { TaskActivityHistoryPanel } from '@/features/comments/components/task-activity-history-panel'
+import { TaskCommentsPanel } from '@/features/comments/components/task-comments-panel'
 import { listMemberships } from '@/features/memberships/api/server-queries'
 import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
@@ -7,6 +10,7 @@ import { getTaskById } from '@/features/tasks/api/server-queries'
 import { TaskEditForm } from '@/features/tasks/components/task-edit-form'
 import { canEditTasks } from '@/lib/tasks/task-permissions'
 import { Alert, Card } from '@heroui/react'
+import { listCommentActivityHistoryQuerySchema, listCommentsQuerySchema } from '@pulselane/contracts/comments'
 import { listMembershipsQuerySchema } from '@pulselane/contracts/memberships'
 import { listProjectsQuerySchema } from '@pulselane/contracts/projects'
 
@@ -14,10 +18,26 @@ type TaskDetailPageProps = {
   params: Promise<{
     taskId: string
   }>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
+function readSearchParam(source: Record<string, string | string[] | undefined>, key: string) {
+  const value = source[key]
+
+  if (Array.isArray(value)) {
+    return value[0]
+  }
+
+  return value
+}
+
+export default async function TaskDetailPage({ params, searchParams }: TaskDetailPageProps) {
   const { taskId } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+
+  const commentsCursor = readSearchParam(resolvedSearchParams, 'commentsCursor') ?? ''
+  const activityCursor = readSearchParam(resolvedSearchParams, 'activityCursor') ?? ''
+
   const currentOrganizationState = await getCurrentOrganization()
 
   if (currentOrganizationState.status === 'not_selected') {
@@ -45,6 +65,22 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
     })
   )
 
+  const commentsState = await listComments(
+    listCommentsQuerySchema.parse({
+      taskId,
+      cursor: commentsCursor || undefined,
+      limit: '20'
+    })
+  )
+
+  const activityHistoryState = await listCommentActivityHistory(
+    listCommentActivityHistoryQuerySchema.parse({
+      taskId,
+      cursor: activityCursor || undefined,
+      limit: '20'
+    })
+  )
+
   const projects = projectsState.status === 'ready' ? projectsState.data.items : []
   const memberships = membershipsState.status === 'ready' ? membershipsState.data.items : []
 
@@ -56,7 +92,8 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Task record</span>
             <h1 className="text-3xl font-semibold tracking-tight">{task.title}</h1>
             <p className="max-w-2xl text-sm leading-6 text-muted">
-              Review the execution state and update it without bypassing tenant or concurrency safeguards.
+              Review the execution state, comments and activity history without bypassing tenant or concurrency
+              safeguards.
             </p>
           </div>
 
@@ -90,12 +127,29 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>Read-only access</Alert.Title>
-            <Alert.Description>Your role can inspect this task, but cannot edit it.</Alert.Description>
+            <Alert.Description>Your role can inspect this task, but cannot edit it or add comments.</Alert.Description>
           </Alert.Content>
         </Alert>
       ) : null}
 
       <TaskEditForm task={task} projects={projects} memberships={memberships} canEdit={canEdit} />
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <TaskCommentsPanel
+          taskId={taskId}
+          state={commentsState}
+          currentRole={currentOrganization.currentRole}
+          commentsCursor={commentsCursor}
+          activityCursor={activityCursor}
+        />
+
+        <TaskActivityHistoryPanel
+          taskId={taskId}
+          state={activityHistoryState}
+          commentsCursor={commentsCursor}
+          activityCursor={activityCursor}
+        />
+      </div>
     </div>
   )
 }

@@ -31,6 +31,14 @@ function toOptionalValue(value: string): string | undefined {
   return value.length > 0 ? value : undefined
 }
 
+function toOptionalSelectValue(value: string): string | undefined {
+  if (!value || value === 'all' || value === 'unassigned') {
+    return undefined
+  }
+
+  return value
+}
+
 function toOptionalIsoDatetime(value: string): string | undefined {
   if (!value) {
     return undefined
@@ -114,7 +122,7 @@ export async function createTaskAction(previousState: TaskFormState, formData: F
     title: fields.title,
     projectId: fields.projectId,
     description: toOptionalValue(fields.description),
-    assigneeUserId: toOptionalValue(fields.assigneeUserId),
+    assigneeUserId: toOptionalSelectValue(fields.assigneeUserId),
     status: fields.status,
     priority: fields.priority,
     blockedReason: toOptionalValue(fields.blockedReason),
@@ -182,7 +190,7 @@ export async function updateTaskAction(previousState: TaskFormState, formData: F
     title: fields.title,
     projectId: fields.projectId,
     description: toOptionalValue(fields.description),
-    assigneeUserId: toOptionalValue(fields.assigneeUserId),
+    assigneeUserId: toOptionalSelectValue(fields.assigneeUserId),
     status: fields.status,
     priority: fields.priority,
     blockedReason: toOptionalValue(fields.blockedReason),
