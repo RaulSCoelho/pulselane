@@ -1,5 +1,6 @@
 import type { CurrentOrganizationState } from '@/features/organizations/api/server-queries'
 import { CLIENTS_PATH } from '@/lib/clients/client-constants'
+import { MEMBERS_PATH } from '@/lib/memberships/membership-constants'
 import { APP_HOME_PATH, SELECT_ORGANIZATION_PATH } from '@/lib/organizations/organization-context-constants'
 import { PROJECTS_PATH } from '@/lib/projects/project-constants'
 import { TASKS_PATH } from '@/lib/tasks/task-constants'
@@ -31,6 +32,10 @@ const navigationItems = [
   {
     href: TASKS_PATH,
     label: 'Tasks'
+  },
+  {
+    href: MEMBERS_PATH,
+    label: 'Members'
   },
   {
     href: SELECT_ORGANIZATION_PATH,
