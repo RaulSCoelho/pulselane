@@ -2,6 +2,7 @@
 
 import { InvitationResendButton } from '@/features/invitations/components/invitation-resend-button'
 import { InvitationRevokeButton } from '@/features/invitations/components/invitation-revoke-button'
+import { INVITATION_ACCEPT_PATH } from '@/lib/invitations/invitation-accept-constants'
 import { canResendInvitations, canRevokeInvitations } from '@/lib/invitations/invitation-permissions'
 import { Card, Table } from '@heroui/react'
 import type { MembershipRole } from '@pulselane/contracts'
@@ -20,7 +21,7 @@ function formatDatetime(value: string) {
 }
 
 function buildAcceptPath(token: string) {
-  return `/invite/accept?token=${encodeURIComponent(token)}`
+  return `${INVITATION_ACCEPT_PATH}?token=${encodeURIComponent(token)}`
 }
 
 export function InvitationsTable({ items, currentRole }: InvitationsTableProps) {
