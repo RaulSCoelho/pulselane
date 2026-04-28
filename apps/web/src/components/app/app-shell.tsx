@@ -1,5 +1,6 @@
 import type { CurrentOrganizationState } from '@/features/organizations/api/server-queries'
 import { CLIENTS_PATH } from '@/lib/clients/client-constants'
+import { INVITATIONS_PATH } from '@/lib/invitations/invitation-constants'
 import { MEMBERS_PATH } from '@/lib/memberships/membership-constants'
 import { APP_HOME_PATH, SELECT_ORGANIZATION_PATH } from '@/lib/organizations/organization-context-constants'
 import { PROJECTS_PATH } from '@/lib/projects/project-constants'
@@ -36,6 +37,10 @@ const navigationItems = [
   {
     href: MEMBERS_PATH,
     label: 'Members'
+  },
+  {
+    href: INVITATIONS_PATH,
+    label: 'Invitations'
   },
   {
     href: SELECT_ORGANIZATION_PATH,
