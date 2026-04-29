@@ -1,4 +1,5 @@
 import type { CurrentOrganizationState } from '@/features/organizations/api/server-queries'
+import { BILLING_PATH } from '@/lib/billing/billing-constants'
 import { CLIENTS_PATH } from '@/lib/clients/client-constants'
 import { INVITATIONS_PATH } from '@/lib/invitations/invitation-constants'
 import { MEMBERS_PATH } from '@/lib/memberships/membership-constants'
@@ -51,6 +52,10 @@ const navigationItems = [
   {
     href: SESSIONS_PATH,
     label: 'Sessions'
+  },
+  {
+    href: BILLING_PATH,
+    label: 'Billing'
   },
   {
     href: SELECT_ORGANIZATION_PATH,
