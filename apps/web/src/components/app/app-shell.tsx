@@ -5,6 +5,7 @@ import { MEMBERS_PATH } from '@/lib/memberships/membership-constants'
 import { APP_HOME_PATH, SELECT_ORGANIZATION_PATH } from '@/lib/organizations/organization-context-constants'
 import { ORGANIZATION_SETTINGS_PATH } from '@/lib/organizations/organization-settings-constants'
 import { PROJECTS_PATH } from '@/lib/projects/project-constants'
+import { SESSIONS_PATH } from '@/lib/sessions/session-constants'
 import { TASKS_PATH } from '@/lib/tasks/task-constants'
 import { Card } from '@heroui/react'
 import type { MeResponse } from '@pulselane/contracts'
@@ -46,6 +47,10 @@ const navigationItems = [
   {
     href: ORGANIZATION_SETTINGS_PATH,
     label: 'Organization'
+  },
+  {
+    href: SESSIONS_PATH,
+    label: 'Sessions'
   },
   {
     href: SELECT_ORGANIZATION_PATH,
