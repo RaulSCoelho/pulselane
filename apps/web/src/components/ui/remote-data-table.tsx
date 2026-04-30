@@ -305,7 +305,7 @@ export function RemoteDataTable<TItem extends object>({
     <Card className="overflow-hidden border border-border shadow-surface">
       <Card.Header className="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <Card.Title className="text-xl font-semibold tracking-normal">{title}</Card.Title>
+          <Card.Title className="text-xl font-medium tracking-normal">{title}</Card.Title>
           {description ? <Card.Description className="mt-1 text-sm text-muted">{description}</Card.Description> : null}
         </div>
         <div className="text-sm text-muted">

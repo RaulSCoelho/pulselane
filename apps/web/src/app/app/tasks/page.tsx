@@ -71,7 +71,7 @@ export default async function TasksPage() {
       {allowCreate && projects.length === 0 ? (
         <Card className="border border-border shadow-surface">
           <Card.Content className="flex flex-col gap-3 p-6">
-            <h2 className="text-xl font-semibold tracking-normal">Create a project first</h2>
+            <h2 className="text-xl font-medium tracking-normal">Create a project first</h2>
             <p className="text-sm leading-6 text-muted">
               Tasks require an active project. Create a project before starting operational execution.
             </p>

@@ -47,9 +47,9 @@ export function TaskActivityHistoryPanel({
   activityCursor
 }: TaskActivityHistoryPanelProps) {
   return (
-    <Card className="border border-black/5">
+    <Card className="border border-border">
       <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-2xl font-semibold tracking-tight">Activity history</Card.Title>
+        <Card.Title className="text-2xl font-semibold tracking-normal">Activity history</Card.Title>
         <Card.Description className="text-sm leading-6 text-muted">
           Minimal timeline combining comments and audit-log activity for this task.
         </Card.Description>
@@ -57,7 +57,7 @@ export function TaskActivityHistoryPanel({
 
       <Card.Content className="flex flex-col gap-4 p-8">
         {state.status === 'temporarily_unavailable' ? (
-          <Card className="border border-black/5" variant="secondary">
+          <Card className="border border-border" variant="secondary">
             <Card.Content className="p-4">
               <p className="text-sm font-medium text-danger">
                 Activity history is temporarily unavailable: {state.reason}
@@ -67,7 +67,7 @@ export function TaskActivityHistoryPanel({
         ) : null}
 
         {state.status === 'ready' && state.data.items.length === 0 ? (
-          <Card className="border border-black/5" variant="secondary">
+          <Card className="border border-border" variant="secondary">
             <Card.Content className="p-6 text-center">
               <p className="text-sm text-muted">No activity yet.</p>
             </Card.Content>
@@ -79,7 +79,7 @@ export function TaskActivityHistoryPanel({
               const metadata = formatMetadata(item.metadata)
 
               return (
-                <Card key={`${item.source}-${item.id}`} className="border border-black/5" variant="secondary">
+                <Card key={`${item.source}-${item.id}`} className="border border-border" variant="secondary">
                   <Card.Content className="flex flex-col gap-3 p-4">
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                       <div>
@@ -99,7 +99,7 @@ export function TaskActivityHistoryPanel({
                     {item.content ? <p className="whitespace-pre-wrap text-sm leading-6">{item.content}</p> : null}
 
                     {metadata ? (
-                      <pre className="overflow-auto rounded-xl bg-zinc-950 p-4 text-xs leading-5 text-zinc-50">
+                      <pre className="overflow-auto rounded-xl bg-brand-dark-background p-4 text-xs leading-5 text-brand-light-text">
                         {metadata}
                       </pre>
                     ) : null}

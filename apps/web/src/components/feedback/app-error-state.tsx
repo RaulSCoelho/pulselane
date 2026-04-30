@@ -22,9 +22,9 @@ export function AppErrorState({
 }: AppErrorStateProps) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <Card className="border border-black/5">
+      <Card className="border border-border">
         <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-          <Card.Title className="text-2xl font-semibold tracking-tight">{title}</Card.Title>
+          <Card.Title className="text-2xl font-semibold tracking-normal">{title}</Card.Title>
           <Card.Description className="text-sm leading-6 text-muted">{description}</Card.Description>
         </Card.Header>
 
@@ -40,7 +40,7 @@ export function AppErrorState({
           </Alert>
 
           {digest ? (
-            <Card className="border border-black/5">
+            <Card className="border border-border">
               <Card.Content className="px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Error reference</p>
                 <p className="mt-1 font-mono text-xs text-foreground">{digest}</p>

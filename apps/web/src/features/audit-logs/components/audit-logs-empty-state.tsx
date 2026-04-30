@@ -6,9 +6,9 @@ type AuditLogsEmptyStateProps = {
 
 export function AuditLogsEmptyState({ hasFilters }: AuditLogsEmptyStateProps) {
   return (
-    <Card className="border border-black/5">
+    <Card className="border border-border">
       <Card.Content className="flex flex-col gap-2 p-8 text-center">
-        <h2 className="text-xl font-semibold tracking-tight">
+        <h2 className="text-xl font-medium tracking-normal">
           {hasFilters ? 'No audit logs match these filters' : 'No audit logs found'}
         </h2>
         <p className="mx-auto max-w-2xl text-sm leading-6 text-muted">

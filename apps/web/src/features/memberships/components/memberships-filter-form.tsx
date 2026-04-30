@@ -10,9 +10,9 @@ type MembershipsFilterFormProps = {
 
 export function MembershipsFilterForm({ search, role }: MembershipsFilterFormProps) {
   return (
-    <Card className="border border-black/5">
+    <Card className="border border-border">
       <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-xl font-semibold tracking-tight">Filters</Card.Title>
+        <Card.Title className="text-xl font-medium tracking-normal">Filters</Card.Title>
         <Card.Description className="text-sm text-muted">
           Search members and narrow the list by organization role.
         </Card.Description>

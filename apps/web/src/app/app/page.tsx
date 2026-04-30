@@ -21,11 +21,11 @@ export default async function AppHomePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-black/5">
+      <Card className="border border-border">
         <Card.Content className="flex flex-col gap-6 p-8">
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Overview</span>
-            <h1 className="text-3xl font-semibold tracking-tight">{currentOrganization.organization.name}</h1>
+            <h1 className="font-semibold tracking-normal">{currentOrganization.organization.name}</h1>
             <p className="text-sm text-muted">
               Active workspace for {me.name}. The operational modules can now rely on a stable organization context.
             </p>
@@ -44,7 +44,7 @@ export default async function AppHomePage() {
                 `${currentOrganization.usage.activeTasks}${currentOrganization.limits.activeTasks !== null ? ` / ${currentOrganization.limits.activeTasks}` : ''}`
               ]
             ].map(([label, value]) => (
-              <Card key={label} className="border border-black/5" variant="secondary">
+              <Card key={label} className="border border-border" variant="secondary">
                 <Card.Content className="p-4">
                   <p className="text-sm text-muted">{label}</p>
                   <p className="mt-1 font-medium">{value}</p>
@@ -55,9 +55,9 @@ export default async function AppHomePage() {
         </Card.Content>
       </Card>
 
-      <Card className="border border-black/5">
+      <Card className="border border-border">
         <Card.Content className="flex flex-col gap-4 p-8">
-          <h2 className="text-xl font-semibold tracking-tight">Next operational modules</h2>
+          <h2 className="text-xl font-medium tracking-normal">Next operational modules</h2>
           <p className="text-sm leading-6 text-muted">
             With authentication and organization context closed, the frontend can move to clients, projects and tasks
             without reworking the shell or tenant flow.

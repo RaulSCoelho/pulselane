@@ -11,11 +11,11 @@ export function OrganizationContextStatusState({ state }: OrganizationContextSta
   const view = getOrganizationContextStatusView(state)
 
   return (
-    <Card className="border border-black/5">
+    <Card className="border border-border">
       <Card.Content className="flex flex-col gap-4 p-8">
         <div className="flex flex-col gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Organization context</span>
-          <h2 className="text-2xl font-semibold tracking-tight">{view.title}</h2>
+          <h2 className="text-2xl font-semibold tracking-normal">{view.title}</h2>
           <p className="text-sm leading-6 text-muted">{view.description}</p>
         </div>
 

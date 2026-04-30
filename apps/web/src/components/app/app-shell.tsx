@@ -1,5 +1,6 @@
 'use client'
 
+import { BrandLogo } from '@/components/brand/brand-logo'
 import type { CurrentOrganizationState } from '@/features/organizations/api/server-queries'
 import { nextClientApi } from '@/http/client-api-client'
 import { AUDIT_LOGS_PATH } from '@/lib/audit-logs/audit-log-constants'
@@ -16,6 +17,21 @@ import { cn } from '@/lib/styles'
 import { TASKS_PATH } from '@/lib/tasks/task-constants'
 import { Avatar, Button, Dropdown, Label, Separator, toast } from '@heroui/react'
 import type { MeResponse } from '@pulselane/contracts'
+import {
+  Building2,
+  ClipboardList,
+  CreditCard,
+  FolderKanban,
+  Home,
+  ListChecks,
+  LogOut,
+  Mail,
+  Menu,
+  Monitor,
+  Network,
+  Users,
+  type LucideIcon
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
@@ -122,128 +138,24 @@ function isRouteActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function MenuIcon({ isOpen = false }: { isOpen?: boolean }) {
-  return (
-    <svg aria-hidden="true" className="size-4" viewBox="0 0 16 16" fill="none">
-      {isOpen ? (
-        <>
-          <path d="M4 4L12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M12 4L4 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </>
-      ) : (
-        <>
-          <path d="M2.75 4.5H13.25" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M2.75 8H13.25" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M2.75 11.5H13.25" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </>
-      )}
-    </svg>
-  )
-}
-
-function LogoutIcon() {
-  return (
-    <svg aria-hidden="true" className="size-4" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M6.25 3.25H4.5A1.75 1.75 0 0 0 2.75 5v6A1.75 1.75 0 0 0 4.5 12.75h1.75"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path d="M7.5 8h5.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M11 5.75 13.25 8 11 10.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  )
-}
+const routeIconMap = {
+  overview: Home,
+  clients: Users,
+  projects: FolderKanban,
+  tasks: ListChecks,
+  members: Users,
+  invitations: Mail,
+  organization: Building2,
+  sessions: Monitor,
+  billing: CreditCard,
+  audit: ClipboardList,
+  context: Network
+} satisfies Record<NavigationIcon, LucideIcon>
 
 function RouteIcon({ icon }: { icon: NavigationIcon }) {
-  const common = {
-    'aria-hidden': true,
-    className: 'size-4',
-    viewBox: '0 0 16 16',
-    fill: 'none'
-  } as const
+  const Icon = routeIconMap[icon]
 
-  switch (icon) {
-    case 'overview':
-      return (
-        <svg {...common}>
-          <path d="M2.75 8.25 8 3.5l5.25 4.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M4.25 7.5v5h7.5v-5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-        </svg>
-      )
-    case 'clients':
-    case 'members':
-      return (
-        <svg {...common}>
-          <path d="M6.5 7.25a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M2.75 12.75c.55-2 1.85-3 3.75-3s3.2 1 3.75 3" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M11.2 7.25a1.65 1.65 0 1 0 0-3.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M11.25 9.8c1.15.2 1.95.95 2.4 2.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )
-    case 'projects':
-      return (
-        <svg {...common}>
-          <path d="M2.75 5.5h4l1.2-1.5h5.3v8.25H2.75V5.5Z" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M2.75 7.5h10.5" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      )
-    case 'tasks':
-      return (
-        <svg {...common}>
-          <path d="M3 4.25h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M3 11.75h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="m10.25 11.3 1 1 2-2.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )
-    case 'invitations':
-      return (
-        <svg {...common}>
-          <path d="M2.75 5.25 8 8.5l5.25-3.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          <path d="M2.75 4.5h10.5v7H2.75v-7Z" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      )
-    case 'organization':
-      return (
-        <svg {...common}>
-          <path d="M3.25 13V3.25h5.5V13" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          <path d="M8.75 6.25h4V13" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          <path d="M5 5.75h2M5 8h2M5 10.25h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )
-    case 'sessions':
-      return (
-        <svg {...common}>
-          <path d="M3.25 4.25h9.5v7.5h-9.5v-7.5Z" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M5.5 13h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M8 11.75V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )
-    case 'billing':
-      return (
-        <svg {...common}>
-          <path d="M3 5.25h10v6.5H3v-6.5Z" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M3 7h10" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M5 10h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )
-    case 'audit':
-      return (
-        <svg {...common}>
-          <path d="M4.25 2.75h7.5v10.5h-7.5V2.75Z" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M6 5.5h4M6 8h4M6 10.5h2.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      )
-    case 'context':
-      return (
-        <svg {...common}>
-          <path d="M8 2.75v10.5M2.75 8h10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M4.25 4.25h7.5v7.5h-7.5v-7.5Z" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      )
-  }
+  return <Icon aria-hidden="true" className="size-4" strokeWidth={1.8} />
 }
 
 function SidebarNavigation({
@@ -267,7 +179,7 @@ function SidebarNavigation({
             onClick={onNavigate}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'group flex items-center gap-3 rounded-2xl px-3 text-sm font-medium outline-none transition duration-150 ease-out',
+              'group flex items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition duration-150 ease-out',
               isCollapsed ? 'h-9 justify-center' : 'h-10 justify-start',
               isActive
                 ? 'bg-accent text-accent-foreground shadow-sm'
@@ -276,8 +188,8 @@ function SidebarNavigation({
           >
             <span
               className={cn(
-                'grid size-7 shrink-0 place-items-center rounded-xl transition',
-                isActive ? 'bg-white/15' : 'bg-background text-muted group-hover:text-foreground'
+                'grid size-7 shrink-0 place-items-center rounded-lg transition',
+                isActive ? 'bg-brand-light-text/15' : 'bg-background text-muted group-hover:text-foreground'
               )}
             >
               <RouteIcon icon={item.icon} />
@@ -314,12 +226,10 @@ function SidebarPanel({
     >
       <div className="flex h-16 items-center justify-between gap-3 border-b border-separator px-4">
         <Link href={APP_HOME_PATH} className="flex min-w-0 items-center gap-3" onClick={onNavigate}>
-          <span className="grid size-9 shrink-0 place-items-center rounded-2xl bg-accent text-sm font-semibold text-accent-foreground">
-            P
-          </span>
+          <BrandLogo variant="symbol" alt={isCollapsed ? 'Pulselane' : ''} className="size-9 shrink-0" priority />
           {!isCollapsed ? (
             <span className="min-w-0">
-              <span className="block truncate font-brand text-sm font-semibold leading-tight">Pulselane</span>
+              <BrandLogo variant="horizontal" alt="Pulselane" className="h-6 max-w-32" priority />
               <span className="block truncate text-xs text-muted">Operations hub</span>
             </span>
           ) : (
@@ -336,7 +246,7 @@ function SidebarPanel({
         {isCollapsed ? (
           <div className="mx-auto size-2 rounded-full bg-success" aria-label="Organization context active" />
         ) : (
-          <div className="rounded-2xl bg-surface-secondary p-4">
+          <div className="rounded-lg bg-surface-secondary p-4">
             <p className="text-xs font-medium uppercase text-muted">Current organization</p>
             <p className="mt-2 truncate text-sm font-medium">{organizationName}</p>
             <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted">{organizationDetail}</p>
@@ -451,7 +361,7 @@ function Topbar({
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-separator bg-background/85 px-4 backdrop-blur md:px-6">
       <div className="flex min-w-0 items-center gap-3">
         <Button aria-label="Toggle navigation" isIconOnly size="sm" variant="secondary" onPress={onMenuPress}>
-          <MenuIcon />
+          <Menu aria-hidden="true" className="size-4" strokeWidth={1.8} />
         </Button>
 
         <div className="min-w-0">
@@ -488,7 +398,7 @@ function Topbar({
             </Dropdown.Item>
             <Separator />
             <Dropdown.Item id="logout" textValue="Sign out" variant="danger">
-              <LogoutIcon />
+              <LogOut aria-hidden="true" className="size-4" strokeWidth={1.8} />
               <Label>{isLogoutPending ? 'Signing out...' : 'Sign out'}</Label>
             </Dropdown.Item>
           </Dropdown.Menu>

@@ -31,7 +31,7 @@ export function PageHeader({ eyebrow, title, description, actions, metrics = [],
       {metrics.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {metrics.map(metric => (
-            <div key={String(metric.label)} className="rounded-3xl border border-border bg-surface p-4 shadow-surface">
+            <div key={String(metric.label)} className="rounded-lg border border-border bg-surface p-4 shadow-surface">
               <p className="text-xs font-medium uppercase text-muted">{metric.label}</p>
               <p className="mt-2 text-sm font-medium">{metric.value}</p>
             </div>

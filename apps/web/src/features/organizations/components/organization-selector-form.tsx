@@ -58,10 +58,10 @@ export function OrganizationSelectorForm({ memberships, activeOrganizationId }: 
         const isActive = membership.organization.id === activeOrganizationId
 
         return (
-          <Card key={membership.id} className="border border-black/5">
+          <Card key={membership.id} className="border border-border">
             <Card.Content className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-col gap-1">
-                <h2 className="text-lg font-semibold tracking-tight">{membership.organization.name}</h2>
+                <h2 className="text-xl font-medium tracking-normal">{membership.organization.name}</h2>
                 <p className="text-sm text-muted">Role: {membership.role}</p>
                 <p className="text-sm text-muted">Slug: {membership.organization.slug}</p>
               </div>

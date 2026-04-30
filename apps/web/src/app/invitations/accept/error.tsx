@@ -10,7 +10,7 @@ export default function InvitationAcceptErrorPage({
   reset: () => void
 }) {
   return (
-    <div className="min-h-screen bg-zinc-50 px-6 py-10">
+    <div className="min-h-screen bg-background px-6 py-10">
       <AppErrorState
         title="Invitation accept page failed to load"
         description="The invitation accept page could not be rendered safely. Retry the page or go back to the application home."

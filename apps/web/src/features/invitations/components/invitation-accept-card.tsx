@@ -36,10 +36,10 @@ export function InvitationAcceptCard({ token, invitation }: InvitationAcceptCard
   const canAccept = invitation.canAccept && !invitation.isExpired && invitation.status === 'pending'
 
   return (
-    <Card className="w-full max-w-2xl border border-black/5 shadow-sm">
+    <Card className="w-full max-w-2xl border border-border shadow-sm">
       <Card.Header className="flex flex-col gap-2 p-8 pb-0">
         <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Pulselane invitation</span>
-        <Card.Title className="text-3xl font-semibold tracking-tight">Join {invitation.organizationName}</Card.Title>
+        <Card.Title className="text-2xl font-semibold tracking-normal">Join {invitation.organizationName}</Card.Title>
         <Card.Description className="text-sm leading-6 text-muted">
           {invitation.invitedByName} invited {invitation.email} to join this organization as {invitation.role}.
         </Card.Description>

@@ -1,0 +1,36 @@
+{
+  "name": "@pulselane/assets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./app_icon.png": "./app_icon.png",
+    "./avatar-customer-support-female.png": "./avatar-customer-support-female.png",
+    "./avatar-operations-manager-male.png": "./avatar-operations-manager-male.png",
+    "./avatar-product-lead-male.png": "./avatar-product-lead-male.png",
+    "./avatar-project-coordinator-female.png": "./avatar-project-coordinator-female.png",
+    "./dark_logo.png": "./dark_logo.png",
+    "./elegant_waveforms_in_dark_gradient_backdrop.png": "./elegant_waveforms_in_dark_gradient_backdrop.png",
+    "./favicon.png": "./favicon.png",
+    "./horizontal_logo.png": "./horizontal_logo.png",
+    "./logo-dark.svg": "./logo-dark.svg",
+    "./logo.svg": "./logo.svg",
+    "./main_logo.png": "./main_logo.png",
+    "./monochromatic_logo.png": "./monochromatic_logo.png",
+    "./placeholder-abstract-interface-vertical.png": "./placeholder-abstract-interface-vertical.png",
+    "./placeholder-flowing-data-paths-wide.png": "./placeholder-flowing-data-paths-wide.png",
+    "./placeholder-image-card-square.png": "./placeholder-image-card-square.png",
+    "./placeholder-tech-layout-wide.png": "./placeholder-tech-layout-wide.png",
+    "./pulselane-wordmark-white.svg": "./pulselane-wordmark-white.svg",
+    "./pulselane-wordmark.svg": "./pulselane-wordmark.svg",
+    "./symbol-filled.svg": "./symbol-filled.svg",
+    "./symbol.png": "./symbol.png",
+    "./symbol.svg": "./symbol.svg",
+    "./vertical_logo.png": "./vertical_logo.png"
+  },
+  "files": [
+    "*.png",
+    "*.svg"
+  ]
+}

@@ -8,7 +8,7 @@ type MetricCardProps = {
 
 export function MetricCard({ label, value }: MetricCardProps) {
   return (
-    <Card className="border border-black/5" variant="secondary">
+    <Card className="border border-border" variant="secondary">
       <Card.Content className="p-4">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">{label}</p>
         <p className="mt-2 text-sm font-medium">{value}</p>
@@ -26,7 +26,7 @@ type KeyValueListCardProps = {
 
 export function KeyValueListCard({ items }: KeyValueListCardProps) {
   return (
-    <Card className="border border-black/5" variant="secondary">
+    <Card className="border border-border" variant="secondary">
       <Card.Content className="grid grid-cols-2 gap-3 p-4 text-sm">
         {items.map(item => (
           <span key={String(item.label)} className="contents">

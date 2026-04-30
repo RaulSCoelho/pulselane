@@ -1,5 +1,6 @@
 'use client'
 
+import { BrandLogo } from '@/components/brand/brand-logo'
 import { nextClientApi } from '@/http/client-api-client'
 import { DEFAULT_AUTHENTICATED_PATH, SIGNUP_PATH } from '@/lib/auth/auth-constants'
 import { sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
@@ -73,17 +74,15 @@ export function LoginForm() {
     <Card className="w-full border border-border shadow-surface">
       <Card.Content className="flex flex-col gap-6 p-8">
         <div className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-3xl bg-accent text-sm font-semibold text-accent-foreground">
-            P
-          </span>
+          <BrandLogo variant="symbol" alt="" className="size-10 shrink-0" priority />
           <div>
-            <p className="font-brand text-base font-semibold leading-tight">Pulselane</p>
+            <BrandLogo alt="Pulselane" className="h-6 max-w-32" priority />
             <p className="text-xs text-muted">Operations hub</p>
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-normal">Sign in</h1>
+          <h1 className="font-semibold tracking-normal">Sign in</h1>
 
           <p className="text-sm text-muted">Enter your account and continue to the operational workspace.</p>
         </div>
@@ -117,7 +116,7 @@ export function LoginForm() {
           No account yet?{' '}
           <Link
             href={`${SIGNUP_PATH}?redirectTo=${encodeURIComponent(redirectTo)}`}
-            className="font-medium text-primary underline-offset-4 hover:underline"
+            className="font-medium text-brand-primary underline-offset-4 hover:underline"
           >
             Create one
           </Link>

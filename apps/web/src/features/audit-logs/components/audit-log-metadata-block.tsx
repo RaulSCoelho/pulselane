@@ -18,7 +18,7 @@ export function AuditLogMetadataBlock({ metadata }: AuditLogMetadataBlockProps) 
   }
 
   return (
-    <pre className="max-h-56 max-w-xl overflow-auto rounded-xl bg-zinc-950 p-4 text-xs leading-5 text-zinc-50">
+    <pre className="max-h-56 max-w-xl overflow-auto rounded-xl bg-brand-dark-background p-4 text-xs leading-5 text-brand-light-text">
       {formatted}
     </pre>
   )

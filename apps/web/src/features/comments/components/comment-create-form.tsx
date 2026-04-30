@@ -23,7 +23,7 @@ export function CommentCreateForm({ taskId }: CommentCreateFormProps) {
   }, [resolvedState.message, resolvedState.status])
 
   return (
-    <Card className="border border-black/5" variant="secondary">
+    <Card className="border border-border" variant="secondary">
       <Card.Content className="p-4">
         <Form key={resolvedState.formKey} action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="taskId" value={taskId} />

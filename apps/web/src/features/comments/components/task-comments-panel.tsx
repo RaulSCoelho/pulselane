@@ -51,9 +51,9 @@ export function TaskCommentsPanel({
   const allowDelete = canDeleteComments(currentRole)
 
   return (
-    <Card className="border border-black/5">
+    <Card className="border border-border">
       <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-2xl font-semibold tracking-tight">Comments</Card.Title>
+        <Card.Title className="text-2xl font-semibold tracking-normal">Comments</Card.Title>
         <Card.Description className="text-sm leading-6 text-muted">
           Keep task decisions, blockers and execution context attached to the work item.
         </Card.Description>
@@ -63,7 +63,7 @@ export function TaskCommentsPanel({
         {allowCreate ? <CommentCreateForm taskId={taskId} /> : null}
 
         {state.status === 'temporarily_unavailable' ? (
-          <Card className="border border-black/5" variant="secondary">
+          <Card className="border border-border" variant="secondary">
             <Card.Content className="p-4">
               <p className="text-sm font-medium text-danger">Comments are temporarily unavailable: {state.reason}</p>
             </Card.Content>
@@ -71,7 +71,7 @@ export function TaskCommentsPanel({
         ) : null}
 
         {state.status === 'ready' && state.data.items.length === 0 ? (
-          <Card className="border border-black/5" variant="secondary">
+          <Card className="border border-border" variant="secondary">
             <Card.Content className="p-6 text-center">
               <p className="text-sm text-muted">No comments yet.</p>
             </Card.Content>
@@ -80,7 +80,7 @@ export function TaskCommentsPanel({
 
         {state.status === 'ready'
           ? state.data.items.map(comment => (
-              <Card key={comment.id} className="border border-black/5" variant="secondary">
+              <Card key={comment.id} className="border border-border" variant="secondary">
                 <Card.Content className="flex flex-col gap-4 p-4">
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                     <div>

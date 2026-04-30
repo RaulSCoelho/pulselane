@@ -26,11 +26,11 @@ export function SectionCard({
   const hasHeader = Boolean(title || description)
 
   return (
-    <Card className={cn('border border-black/5', className)}>
+    <Card className={cn('border border-border', className)}>
       {hasHeader ? (
         <Card.Header className={cn('flex flex-col gap-2 p-8 pb-0', headerClassName)}>
           {title ? (
-            <Card.Title className={cn('text-2xl font-semibold tracking-tight', titleClassName)}>{title}</Card.Title>
+            <Card.Title className={cn('text-2xl font-semibold tracking-normal', titleClassName)}>{title}</Card.Title>
           ) : null}
           {description ? (
             <Card.Description className={cn('text-sm leading-6 text-muted', descriptionClassName)}>

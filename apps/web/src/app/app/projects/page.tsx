@@ -59,7 +59,7 @@ export default async function ProjectsPage() {
       {allowCreate && clients.length === 0 ? (
         <Card className="border border-border shadow-surface">
           <Card.Content className="flex flex-col gap-3 p-6">
-            <h2 className="text-xl font-semibold tracking-normal">Create a client first</h2>
+            <h2 className="text-xl font-medium tracking-normal">Create a client first</h2>
             <p className="text-sm leading-6 text-muted">
               Projects require an active client. Create a client before starting project work.
             </p>

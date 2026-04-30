@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@pulselane/contracts']
+  transpilePackages: ['@pulselane/assets', '@pulselane/contracts']
 }
 
 export default nextConfig

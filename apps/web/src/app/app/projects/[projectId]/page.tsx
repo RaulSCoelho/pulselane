@@ -41,32 +41,32 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-black/5">
+      <Card className="border border-border">
         <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Project record</span>
-            <h1 className="text-3xl font-semibold tracking-tight">{project.name}</h1>
+            <h1 className="font-semibold tracking-normal">{project.name}</h1>
             <p className="max-w-2xl text-sm leading-6 text-muted">
               Review the current project state and update it without bypassing tenant or concurrency safeguards.
             </p>
           </div>
 
           <div className="grid gap-3 sm:min-w-80 sm:grid-cols-3">
-            <Card className="border border-black/5" variant="secondary">
+            <Card className="border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Role</p>
                 <p className="mt-2 text-sm font-medium">{currentOrganization.currentRole}</p>
               </Card.Content>
             </Card>
 
-            <Card className="border border-black/5" variant="secondary">
+            <Card className="border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Status</p>
                 <p className="mt-2 text-sm font-medium">{project.status}</p>
               </Card.Content>
             </Card>
 
-            <Card className="border border-black/5" variant="secondary">
+            <Card className="border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Client</p>
                 <p className="mt-2 text-sm font-medium">{project.client.name}</p>

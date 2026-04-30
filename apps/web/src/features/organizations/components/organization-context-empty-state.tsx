@@ -4,11 +4,11 @@ import Link from 'next/link'
 
 export function OrganizationContextEmptyState() {
   return (
-    <Card className="border border-black/5">
+    <Card className="border border-border">
       <Card.Content className="flex flex-col gap-4 p-8">
         <div className="flex flex-col gap-2">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Organization context</span>
-          <h2 className="text-2xl font-semibold tracking-tight">Choose the active organization</h2>
+          <h2 className="text-2xl font-semibold tracking-normal">Choose the active organization</h2>
           <p className="text-sm leading-6 text-muted">
             Pulselane is multi-tenant and the operational modules depend on an active organization context.
           </p>

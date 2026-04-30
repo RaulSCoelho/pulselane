@@ -64,7 +64,7 @@ export function InvitationsTable({ items, currentRole }: InvitationsTableProps) 
               <Table.Cell className="whitespace-nowrap">{formatDateTime(invitation.expiresAt)}</Table.Cell>
 
               <Table.Cell>
-                <code className="block max-w-72 truncate rounded-lg bg-zinc-100 px-2 py-1 text-xs text-zinc-800">
+                <code className="block max-w-72 truncate rounded-lg bg-surface-secondary px-2 py-1 text-xs text-foreground">
                   {buildAcceptPath(invitation.token)}
                 </code>
               </Table.Cell>

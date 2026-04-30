@@ -3,7 +3,7 @@ import { Card, Skeleton } from '@heroui/react'
 export default function ClientDetailLoadingPage() {
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-black/5">
+      <Card className="border border-border">
         <Card.Content className="grid gap-4 p-8">
           <Skeleton className="h-4 w-24 rounded" />
           <Skeleton className="h-9 w-72 rounded" />
@@ -11,13 +11,13 @@ export default function ClientDetailLoadingPage() {
         </Card.Content>
       </Card>
 
-      <Card className="border border-black/5">
+      <Card className="border border-border">
         <Card.Content className="grid gap-4 p-8 md:grid-cols-2">
           <Skeleton className="h-12 rounded-xl" />
           <Skeleton className="h-12 rounded-xl" />
           <Skeleton className="h-12 rounded-xl md:col-span-2" />
           <Skeleton className="h-12 rounded-xl md:col-span-2" />
-          <Skeleton className="h-28 rounded-2xl md:col-span-2" />
+          <Skeleton className="h-28 rounded-lg md:col-span-2" />
         </Card.Content>
       </Card>
     </div>

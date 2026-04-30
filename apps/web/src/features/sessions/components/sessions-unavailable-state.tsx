@@ -14,9 +14,9 @@ const reasonMessage: Record<SessionsUnavailableReason, string> = {
 
 export function SessionsUnavailableState({ reason }: SessionsUnavailableStateProps) {
   return (
-    <Card className="border border-black/5">
+    <Card className="border border-border">
       <Card.Content className="flex flex-col gap-2 p-8">
-        <h2 className="text-xl font-semibold tracking-tight">Sessions temporarily unavailable</h2>
+        <h2 className="text-xl font-medium tracking-normal">Sessions temporarily unavailable</h2>
         <p className="text-sm leading-6 text-muted">{reasonMessage[reason]}</p>
       </Card.Content>
     </Card>

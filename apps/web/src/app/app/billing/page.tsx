@@ -25,11 +25,11 @@ export default async function BillingPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-black/5">
+      <Card className="border border-border">
         <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Plan and billing</span>
-            <h1 className="text-3xl font-semibold tracking-tight">Billing</h1>
+            <h1 className="font-semibold tracking-normal">Billing</h1>
             <p className="max-w-2xl text-sm leading-6 text-muted">
               Review the active subscription, compare plan limits and start Stripe checkout or portal sessions when
               available.
@@ -37,21 +37,21 @@ export default async function BillingPage() {
           </div>
 
           <div className="grid gap-3 sm:min-w-80 sm:grid-cols-3">
-            <Card className="border border-black/5" variant="secondary">
+            <Card className="border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current role</p>
                 <p className="mt-2 text-sm font-medium">{currentOrganization.currentRole}</p>
               </Card.Content>
             </Card>
 
-            <Card className="border border-black/5" variant="secondary">
+            <Card className="border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Organization</p>
                 <p className="mt-2 text-sm font-medium">{currentOrganization.organization.name}</p>
               </Card.Content>
             </Card>
 
-            <Card className="border border-black/5" variant="secondary">
+            <Card className="border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Plan</p>
                 <p className="mt-2 text-sm font-medium">
@@ -64,7 +64,7 @@ export default async function BillingPage() {
       </Card>
 
       {!canManage ? (
-        <Card className="border border-black/5">
+        <Card className="border border-border">
           <Card.Content className="p-4">
             <p className="text-sm font-medium text-warning">
               Your role can inspect billing, but only owners and admins can start checkout or open the billing portal.
