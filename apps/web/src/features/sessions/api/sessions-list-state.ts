@@ -1,6 +1,6 @@
 import type { SessionListResponse } from '@pulselane/contracts/auth'
 
-import type { ResilientGetResult } from '../../../http/api-result'
+import type { ServerGetResult } from '../../../http/server-api-result'
 
 export type SessionsUnavailableReason = 'rate_limited' | 'server_error' | 'network_error' | 'unexpected_response'
 
@@ -8,27 +8,17 @@ export type SessionsListState =
   | {
       status: 'ready'
       data: SessionListResponse
-      freshness: 'fresh' | 'stale'
     }
   | {
       status: 'temporarily_unavailable'
       reason: SessionsUnavailableReason
     }
 
-export function sessionsListResultToState(result: ResilientGetResult<SessionListResponse>): SessionsListState {
-  if (result.status === 'fresh') {
+export function sessionsListResultToState(result: ServerGetResult<SessionListResponse>): SessionsListState {
+  if (result.status === 'ok') {
     return {
       status: 'ready',
-      data: result.data,
-      freshness: 'fresh'
-    }
-  }
-
-  if (result.status === 'stale') {
-    return {
-      status: 'ready',
-      data: result.data,
-      freshness: 'stale'
+      data: result.data
     }
   }
 
@@ -46,17 +36,17 @@ export function sessionsListResultToState(result: ResilientGetResult<SessionList
 }
 
 function sessionsUnavailableReason(
-  reason: Extract<ResilientGetResult<SessionListResponse>, { status: 'unavailable' }>['reason']
+  reason: Extract<ServerGetResult<SessionListResponse>, { status: 'unavailable' }>['reason']
 ): SessionsUnavailableReason {
-  if (reason === 'rate_limited_no_snapshot') {
+  if (reason === 'rate_limited') {
     return 'rate_limited'
   }
 
-  if (reason === 'server_error_no_snapshot') {
+  if (reason === 'server_error') {
     return 'server_error'
   }
 
-  if (reason === 'network_error_no_snapshot') {
+  if (reason === 'network_error') {
     return 'network_error'
   }
 

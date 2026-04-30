@@ -1,26 +1,24 @@
 import 'server-only'
 
+import { getUserIdFromAccessToken } from '@/lib/auth/auth-token'
 import { getServerApiUrl } from '@/lib/env'
 import { setForwardedHeaders } from '@/lib/http/forwarded-headers'
 import { setOrganizationHeaders } from '@/lib/http/organization-headers'
-import {
-  resolveRequestSnapshotScope,
-  writeRequestSnapshot,
-  writeRequestSnapshotToServerStore
-} from '@/lib/http/request-snapshot/server'
-import { REQUEST_SNAPSHOT_ENDPOINT, type RequestSnapshotScope } from '@/lib/http/request-snapshot/shared'
 import { setSessionHeaders } from '@/lib/http/session-headers'
+import { ACTIVE_ORGANIZATION_HEADER_NAME } from '@/lib/organizations/organization-context-constants'
 import ky, { type KyResponse, type Options } from 'ky'
-import type { NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
+import type { z } from 'zod'
 
-export type ServerApiOptions = Options & {
-  saveSnapshot?: boolean
-  snapshotTarget?: NextResponse
-  snapshotMaxAgeSeconds?: number
-  snapshotScope?: RequestSnapshotScope
-  snapshotTags?: string[]
-  snapshotTenantScoped?: boolean
-  snapshotUserScoped?: boolean
+import type { ServerGetResult } from './server-api-result'
+
+type CachedServerApiGetOptions<T> = {
+  path: string
+  schema: z.ZodType<T>
+  tags?: string[]
+  revalidate?: number | false
+  request?: Omit<RequestInit, 'body' | 'method'>
+  keyParts?: string[]
 }
 
 const safeFetch: typeof fetch = async (input, init) => {
@@ -39,55 +37,6 @@ const safeFetch: typeof fetch = async (input, init) => {
   return fetch(input, init)
 }
 
-async function maybePersistSnapshot(request: Request, response: Response, options: ServerApiOptions) {
-  if (!options.saveSnapshot || !response.ok) {
-    return
-  }
-
-  const method = request.method.toUpperCase()
-
-  if (method !== 'GET') {
-    return
-  }
-
-  const payload = await response
-    .clone()
-    .json()
-    .catch(() => null)
-
-  if (payload === null) {
-    return
-  }
-
-  const scope = await resolveRequestSnapshotScope({
-    request,
-    scope: options.snapshotScope,
-    tenantScoped: options.snapshotTenantScoped,
-    userScoped: options.snapshotUserScoped
-  })
-
-  if (options.snapshotTarget) {
-    await writeRequestSnapshot(options.snapshotTarget, request.url, payload, {
-      method,
-      maxAgeSeconds: options.snapshotMaxAgeSeconds,
-      scope,
-      tags: options.snapshotTags,
-      tenantScoped: options.snapshotTenantScoped,
-      userScoped: options.snapshotUserScoped
-    })
-    return
-  }
-
-  await writeRequestSnapshotToServerStore(request.url, payload, {
-    method,
-    maxAgeSeconds: options.snapshotMaxAgeSeconds,
-    scope,
-    tags: options.snapshotTags,
-    tenantScoped: options.snapshotTenantScoped,
-    userScoped: options.snapshotUserScoped
-  })
-}
-
 const serverApiClient = ky.create({
   prefix: `${getServerApiUrl()}/`,
   fetch: safeFetch,
@@ -101,18 +50,6 @@ const serverApiClient = ky.create({
         await setSessionHeaders(request)
         await setOrganizationHeaders(request)
         await setForwardedHeaders(request)
-      }
-    ],
-    afterResponse: [
-      async state => {
-        const { request, response, options } = state
-        const typedOptions = options as ServerApiOptions
-
-        if (!request.url.includes(REQUEST_SNAPSHOT_ENDPOINT)) {
-          await maybePersistSnapshot(request, response, typedOptions).catch(() => undefined)
-        }
-
-        return response
       }
     ]
   }
@@ -135,7 +72,7 @@ const serverNextApiClient = ky.create({
   }
 })
 
-export async function serverApi<T>(path: string, init?: ServerApiOptions): Promise<KyResponse<T>> {
+export async function serverApi<T>(path: string, init?: Options): Promise<KyResponse<T>> {
   const normalizedPath = path.replace(/^\/+/, '')
 
   return serverApiClient(normalizedPath, {
@@ -145,7 +82,7 @@ export async function serverApi<T>(path: string, init?: ServerApiOptions): Promi
   })
 }
 
-export async function serverNextApi<T>(path: string, init?: ServerApiOptions): Promise<KyResponse<T>> {
+export async function serverNextApi<T>(path: string, init?: Options): Promise<KyResponse<T>> {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
 
   return serverNextApiClient(normalizedPath, {
@@ -153,4 +90,131 @@ export async function serverNextApi<T>(path: string, init?: ServerApiOptions): P
     cache: 'no-store',
     ...init
   })
+}
+
+export async function cachedServerApiGet<T>({
+  path,
+  schema,
+  tags = [],
+  revalidate = 120,
+  request,
+  keyParts = []
+}: CachedServerApiGetOptions<T>): Promise<ServerGetResult<T>> {
+  const url = buildServerApiUrl(path)
+  const headers = await buildServerApiHeaders(request?.headers)
+  const cacheKeyParts = ['server-api', path, ...buildScopeCacheKeyParts(headers), ...keyParts]
+  const getCachedData = unstable_cache(
+    async () => {
+      const response = await fetch(url, {
+        ...request,
+        method: 'GET',
+        headers,
+        credentials: 'include',
+        cache: 'no-store'
+      })
+
+      if (!response.ok) {
+        throw new ServerApiStatusError(response.status)
+      }
+
+      return schema.parse(await response.json())
+    },
+    cacheKeyParts,
+    {
+      tags,
+      revalidate
+    }
+  )
+
+  try {
+    return {
+      status: 'ok',
+      data: await getCachedData()
+    }
+  } catch (error) {
+    if (error instanceof ServerApiStatusError) {
+      return serverApiStatusToResult(error.statusCode)
+    }
+
+    if (error instanceof TypeError) {
+      return {
+        status: 'unavailable',
+        reason: 'network_error'
+      }
+    }
+
+    throw error
+  }
+}
+
+async function buildServerApiHeaders(headersInit: HeadersInit | undefined) {
+  const request = new Request('http://localhost', {
+    headers: headersInit
+  })
+
+  await setSessionHeaders(request)
+  await setOrganizationHeaders(request)
+  await setForwardedHeaders(request)
+
+  return request.headers
+}
+
+function buildServerApiUrl(path: string) {
+  const normalizedPath = path.replace(/^\/+/, '')
+  return `${getServerApiUrl()}/${normalizedPath}`
+}
+
+function buildScopeCacheKeyParts(headers: Headers) {
+  const token = getBearerToken(headers)
+  const userId = token ? getUserIdFromAccessToken(token) : null
+  const organizationId = headers.get(ACTIVE_ORGANIZATION_HEADER_NAME)
+
+  return [`user:${userId ?? 'anonymous'}`, `organization:${organizationId ?? 'none'}`]
+}
+
+function getBearerToken(headers: Headers) {
+  const authorization = headers.get('authorization')
+
+  if (!authorization) {
+    return null
+  }
+
+  const [scheme, token] = authorization.split(' ')
+
+  return scheme?.toLowerCase() === 'bearer' && token ? token : null
+}
+
+class ServerApiStatusError extends Error {
+  constructor(readonly statusCode: number) {
+    super(`Server API request failed with status ${statusCode}`)
+    this.name = 'ServerApiStatusError'
+  }
+}
+
+function serverApiStatusToResult<T>(statusCode: number): ServerGetResult<T> {
+  if (statusCode === 400) {
+    return { status: 'bad_request', statusCode }
+  }
+
+  if (statusCode === 401) {
+    return { status: 'unauthorized', statusCode }
+  }
+
+  if (statusCode === 403) {
+    return { status: 'forbidden', statusCode }
+  }
+
+  if (statusCode === 404) {
+    return { status: 'not_found', statusCode }
+  }
+
+  if (statusCode === 429) {
+    return { status: 'unavailable', reason: 'rate_limited', statusCode }
+  }
+
+  if (statusCode >= 500) {
+    return { status: 'unavailable', reason: 'server_error', statusCode }
+  }
+
+  return { status: 'unavailable', reason: 'http_error', statusCode }
 }

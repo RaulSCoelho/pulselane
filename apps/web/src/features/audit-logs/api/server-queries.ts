@@ -1,6 +1,5 @@
 import { auditLogsCacheTag } from '@/features/audit-logs/api/cache-tags'
-import { resilientResultHasData } from '@/http/api-result'
-import { resilientGet } from '@/http/resilient-fetch'
+import { cachedServerApiGet } from '@/http/server-api-client'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import {
   ListAuditLogsQuery,
@@ -51,7 +50,7 @@ function toQueryString(query: Partial<ListAuditLogsQuery>) {
   return serialized ? `?${serialized}` : ''
 }
 
-async function getAuditLogsSnapshotTags() {
+async function getAuditLogsCacheTags() {
   const organizationId = await getActiveOrganizationIdFromServerCookies()
 
   if (!organizationId) {
@@ -73,22 +72,12 @@ export const listAuditLogs = cache(async function listAuditLogs(
     }
   }
 
-  const result = await resilientGet<ListAuditLogsResponse>({
-    key: 'audit-logs.list',
+  const result = await cachedServerApiGet<ListAuditLogsResponse>({
     path: `/api/v1/audit-logs${toQueryString(parsed.data)}`,
     schema: listAuditLogsResponseSchema,
-    fallback: 'last-valid',
-    tags: await getAuditLogsSnapshotTags(),
-    maxAgeSeconds: 60,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getAuditLogsCacheTags(),
+    revalidate: 60
   })
-
-  if (resilientResultHasData(result)) {
-    return auditLogsListResultToState(result)
-  }
 
   return auditLogsListResultToState(result)
 })

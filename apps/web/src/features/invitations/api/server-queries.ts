@@ -1,6 +1,5 @@
 import { invitationsCacheTag } from '@/features/invitations/api/cache-tags'
-import { resilientResultHasData } from '@/http/api-result'
-import { resilientGet } from '@/http/resilient-fetch'
+import { cachedServerApiGet } from '@/http/server-api-client'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import {
   ListInvitationsQuery,
@@ -43,7 +42,7 @@ function toQueryString(query: Partial<ListInvitationsQuery>) {
   return serialized ? `?${serialized}` : ''
 }
 
-async function getInvitationSnapshotTags() {
+async function getInvitationCacheTags() {
   const organizationId = await getActiveOrganizationIdFromServerCookies()
 
   if (!organizationId) {
@@ -56,22 +55,12 @@ async function getInvitationSnapshotTags() {
 export const listInvitations = cache(async function listInvitations(
   query: Partial<ListInvitationsQuery>
 ): Promise<InvitationsListState> {
-  const result = await resilientGet<ListInvitationsResponse>({
-    key: 'invitations.list',
+  const result = await cachedServerApiGet<ListInvitationsResponse>({
     path: `/api/v1/invitations${toQueryString(query)}`,
     schema: listInvitationsResponseSchema,
-    fallback: 'last-valid',
-    tags: await getInvitationSnapshotTags(),
-    maxAgeSeconds: 120,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getInvitationCacheTags(),
+    revalidate: 120
   })
-
-  if (resilientResultHasData(result)) {
-    return invitationsListResultToState(result)
-  }
 
   return invitationsListResultToState(result)
 })

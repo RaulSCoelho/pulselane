@@ -1,6 +1,6 @@
 import type { CurrentOrganizationResponse } from '@pulselane/contracts'
 
-import { resilientResultHasData, type ResilientGetResult } from '../../../http/api-result'
+import { serverGetResultHasData, type ServerGetResult } from '../../../http/server-api-result'
 
 export type CurrentOrganizationUnavailableReason =
   | 'rate_limited'
@@ -8,19 +8,10 @@ export type CurrentOrganizationUnavailableReason =
   | 'network_error'
   | 'unexpected_response'
 
-export type CurrentOrganizationStaleReason = 'rate_limited' | 'server_error' | 'network_error'
-
 export type CurrentOrganizationState =
   | {
       status: 'ready'
       data: CurrentOrganizationResponse
-      freshness: 'fresh'
-    }
-  | {
-      status: 'ready'
-      data: CurrentOrganizationResponse
-      freshness: 'stale'
-      staleReason: CurrentOrganizationStaleReason
     }
   | {
       status: 'not_selected'
@@ -41,7 +32,7 @@ export type CurrentOrganizationState =
 
 type ResolveCurrentOrganizationStateOptions = {
   activeOrganizationId: string | null
-  loadCurrentOrganization: () => Promise<ResilientGetResult<CurrentOrganizationResponse>>
+  loadCurrentOrganization: () => Promise<ServerGetResult<CurrentOrganizationResponse>>
 }
 
 export async function resolveCurrentOrganizationState({
@@ -56,22 +47,12 @@ export async function resolveCurrentOrganizationState({
 }
 
 export function currentOrganizationResultToState(
-  result: ResilientGetResult<CurrentOrganizationResponse>
+  result: ServerGetResult<CurrentOrganizationResponse>
 ): CurrentOrganizationState {
-  if (resilientResultHasData(result)) {
-    if (result.status === 'fresh') {
-      return {
-        status: 'ready',
-        data: result.data,
-        freshness: 'fresh'
-      }
-    }
-
+  if (serverGetResultHasData(result)) {
     return {
       status: 'ready',
-      data: result.data,
-      freshness: 'stale',
-      staleReason: result.reason
+      data: result.data
     }
   }
 
@@ -101,17 +82,17 @@ export function currentOrganizationResultToState(
 }
 
 function currentOrganizationUnavailableReason(
-  reason: Extract<ResilientGetResult<CurrentOrganizationResponse>, { status: 'unavailable' }>['reason']
+  reason: Extract<ServerGetResult<CurrentOrganizationResponse>, { status: 'unavailable' }>['reason']
 ): CurrentOrganizationUnavailableReason {
-  if (reason === 'rate_limited_no_snapshot') {
+  if (reason === 'rate_limited') {
     return 'rate_limited'
   }
 
-  if (reason === 'server_error_no_snapshot') {
+  if (reason === 'server_error') {
     return 'server_error'
   }
 
-  if (reason === 'network_error_no_snapshot') {
+  if (reason === 'network_error') {
     return 'network_error'
   }
 

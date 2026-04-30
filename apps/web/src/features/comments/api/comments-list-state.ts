@@ -1,6 +1,6 @@
 import type { ListCommentActivityHistoryResponse, ListCommentsResponse } from '@pulselane/contracts/comments'
 
-import type { ResilientGetResult } from '../../../http/api-result'
+import type { ServerGetResult } from '../../../http/server-api-result'
 
 export type CommentsUnavailableReason = 'rate_limited' | 'server_error' | 'network_error' | 'unexpected_response'
 
@@ -8,7 +8,6 @@ export type CommentsListState =
   | {
       status: 'ready'
       data: ListCommentsResponse
-      freshness: 'fresh' | 'stale'
     }
   | {
       status: 'temporarily_unavailable'
@@ -19,27 +18,17 @@ export type CommentActivityHistoryState =
   | {
       status: 'ready'
       data: ListCommentActivityHistoryResponse
-      freshness: 'fresh' | 'stale'
     }
   | {
       status: 'temporarily_unavailable'
       reason: CommentsUnavailableReason
     }
 
-export function commentsListResultToState(result: ResilientGetResult<ListCommentsResponse>): CommentsListState {
-  if (result.status === 'fresh') {
+export function commentsListResultToState(result: ServerGetResult<ListCommentsResponse>): CommentsListState {
+  if (result.status === 'ok') {
     return {
       status: 'ready',
-      data: result.data,
-      freshness: 'fresh'
-    }
-  }
-
-  if (result.status === 'stale') {
-    return {
-      status: 'ready',
-      data: result.data,
-      freshness: 'stale'
+      data: result.data
     }
   }
 
@@ -57,21 +46,12 @@ export function commentsListResultToState(result: ResilientGetResult<ListComment
 }
 
 export function commentActivityHistoryResultToState(
-  result: ResilientGetResult<ListCommentActivityHistoryResponse>
+  result: ServerGetResult<ListCommentActivityHistoryResponse>
 ): CommentActivityHistoryState {
-  if (result.status === 'fresh') {
+  if (result.status === 'ok') {
     return {
       status: 'ready',
-      data: result.data,
-      freshness: 'fresh'
-    }
-  }
-
-  if (result.status === 'stale') {
-    return {
-      status: 'ready',
-      data: result.data,
-      freshness: 'stale'
+      data: result.data
     }
   }
 
@@ -89,17 +69,17 @@ export function commentActivityHistoryResultToState(
 }
 
 function commentsUnavailableReason(
-  reason: Extract<ResilientGetResult<unknown>, { status: 'unavailable' }>['reason']
+  reason: Extract<ServerGetResult<unknown>, { status: 'unavailable' }>['reason']
 ): CommentsUnavailableReason {
-  if (reason === 'rate_limited_no_snapshot') {
+  if (reason === 'rate_limited') {
     return 'rate_limited'
   }
 
-  if (reason === 'server_error_no_snapshot') {
+  if (reason === 'server_error') {
     return 'server_error'
   }
 
-  if (reason === 'network_error_no_snapshot') {
+  if (reason === 'network_error') {
     return 'network_error'
   }
 

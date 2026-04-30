@@ -111,14 +111,6 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
             actorUserId={query.actorUserId ?? ''}
           />
 
-          {auditLogsState?.status === 'ready' && auditLogsState.freshness === 'stale' ? (
-            <Card className="border border-black/5">
-              <Card.Content className="p-4">
-                <p className="text-sm font-medium text-warning">Using last synced audit logs snapshot.</p>
-              </Card.Content>
-            </Card>
-          ) : null}
-
           {auditLogsState?.status === 'ready' ? (
             auditLogsState.data.items.length > 0 ? (
               <AuditLogsTable items={auditLogsState.data.items} />

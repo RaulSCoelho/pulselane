@@ -1,7 +1,7 @@
 import { taskCacheTag, tasksCacheTag } from '@/features/tasks/api/cache-tags'
 import { readApiErrorMessage } from '@/http/api-error'
-import { resilientResultHasData, type ResilientGetResult } from '@/http/api-result'
-import { resilientGet } from '@/http/resilient-fetch'
+import { cachedServerApiGet } from '@/http/server-api-client'
+import { serverGetResultHasData, type ServerGetResult } from '@/http/server-api-result'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import {
   ListTasksQuery,
@@ -83,7 +83,7 @@ function toQueryString(query: Partial<ListTasksQuery>) {
   return serialized ? `?${serialized}` : ''
 }
 
-async function getTaskSnapshotTags(taskId?: string) {
+async function getTaskCacheTags(taskId?: string) {
   const organizationId = await getActiveOrganizationIdFromServerCookies()
 
   if (!organizationId) {
@@ -95,7 +95,7 @@ async function getTaskSnapshotTags(taskId?: string) {
     : [tasksCacheTag(organizationId)]
 }
 
-function throwResilientTasksError(result: ResilientGetResult<unknown>, message: string): never {
+function throwServerTasksError(result: ServerGetResult<unknown>, message: string): never {
   if (result.status === 'unavailable') {
     throw new Error(`${message} Status: ${result.statusCode ?? result.reason}`)
   }
@@ -104,49 +104,33 @@ function throwResilientTasksError(result: ResilientGetResult<unknown>, message: 
 }
 
 export const listTasks = cache(async function listTasks(query: Partial<ListTasksQuery>): Promise<TasksListState> {
-  const result = await resilientGet<ListTasksResponse>({
-    key: 'tasks.list',
+  const result = await cachedServerApiGet<ListTasksResponse>({
     path: `/api/v1/tasks${toQueryString(query)}`,
     schema: listTasksResponseSchema,
-    fallback: 'last-valid',
-    tags: await getTaskSnapshotTags(),
-    maxAgeSeconds: 120,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getTaskCacheTags(),
+    revalidate: 120
   })
-
-  if (resilientResultHasData(result)) {
-    return tasksListResultToState(result)
-  }
 
   return tasksListResultToState(result)
 })
 
 export const getTaskById = cache(async function getTaskById(taskId: string): Promise<TaskResponse> {
-  const result = await resilientGet<TaskResponse>({
-    key: 'tasks.detail',
+  const result = await cachedServerApiGet<TaskResponse>({
     path: `/api/v1/tasks/${taskId}`,
     schema: taskResponseSchema,
-    fallback: 'last-valid',
-    tags: await getTaskSnapshotTags(taskId),
-    maxAgeSeconds: 120,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getTaskCacheTags(taskId),
+    revalidate: 120
   })
 
   if (result.status === 'not_found') {
     notFound()
   }
 
-  if (resilientResultHasData(result)) {
+  if (serverGetResultHasData(result)) {
     return result.data
   }
 
-  throwResilientTasksError(result, 'Unable to load task.')
+  throwServerTasksError(result, 'Unable to load task.')
 })
 
 export const readErrorMessage = readApiErrorMessage

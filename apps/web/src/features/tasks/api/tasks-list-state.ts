@@ -1,6 +1,6 @@
 import type { ListTasksResponse } from '@pulselane/contracts/tasks'
 
-import type { ResilientGetResult } from '../../../http/api-result'
+import type { ServerGetResult } from '../../../http/server-api-result'
 
 export type TasksUnavailableReason = 'rate_limited' | 'server_error' | 'network_error' | 'unexpected_response'
 
@@ -8,27 +8,17 @@ export type TasksListState =
   | {
       status: 'ready'
       data: ListTasksResponse
-      freshness: 'fresh' | 'stale'
     }
   | {
       status: 'temporarily_unavailable'
       reason: TasksUnavailableReason
     }
 
-export function tasksListResultToState(result: ResilientGetResult<ListTasksResponse>): TasksListState {
-  if (result.status === 'fresh') {
+export function tasksListResultToState(result: ServerGetResult<ListTasksResponse>): TasksListState {
+  if (result.status === 'ok') {
     return {
       status: 'ready',
-      data: result.data,
-      freshness: 'fresh'
-    }
-  }
-
-  if (result.status === 'stale') {
-    return {
-      status: 'ready',
-      data: result.data,
-      freshness: 'stale'
+      data: result.data
     }
   }
 
@@ -46,17 +36,17 @@ export function tasksListResultToState(result: ResilientGetResult<ListTasksRespo
 }
 
 function tasksUnavailableReason(
-  reason: Extract<ResilientGetResult<ListTasksResponse>, { status: 'unavailable' }>['reason']
+  reason: Extract<ServerGetResult<ListTasksResponse>, { status: 'unavailable' }>['reason']
 ): TasksUnavailableReason {
-  if (reason === 'rate_limited_no_snapshot') {
+  if (reason === 'rate_limited') {
     return 'rate_limited'
   }
 
-  if (reason === 'server_error_no_snapshot') {
+  if (reason === 'server_error') {
     return 'server_error'
   }
 
-  if (reason === 'network_error_no_snapshot') {
+  if (reason === 'network_error') {
     return 'network_error'
   }
 

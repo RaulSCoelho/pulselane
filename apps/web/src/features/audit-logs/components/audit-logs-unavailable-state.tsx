@@ -6,9 +6,9 @@ type AuditLogsUnavailableStateProps = {
 }
 
 const reasonMessage: Record<AuditLogsUnavailableReason, string> = {
-  rate_limited: 'The API rate limit was reached and no valid audit logs snapshot is available.',
-  server_error: 'The API returned an error and no valid audit logs snapshot is available.',
-  network_error: 'The API could not be reached and no valid audit logs snapshot is available.',
+  rate_limited: 'The API rate limit was reached. Try again shortly.',
+  server_error: 'The API returned an error. Try again shortly.',
+  network_error: 'The API could not be reached. Try again shortly.',
   unexpected_response: 'The audit logs response could not be validated safely.'
 }
 

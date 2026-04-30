@@ -1,6 +1,5 @@
 import { membershipsCacheTag } from '@/features/memberships/api/cache-tags'
-import { resilientResultHasData } from '@/http/api-result'
-import { resilientGet } from '@/http/resilient-fetch'
+import { cachedServerApiGet } from '@/http/server-api-client'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import {
   ListMembershipsQuery,
@@ -43,7 +42,7 @@ function toQueryString(query: Partial<ListMembershipsQuery>) {
   return serialized ? `?${serialized}` : ''
 }
 
-async function getMembershipSnapshotTags() {
+async function getMembershipCacheTags() {
   const organizationId = await getActiveOrganizationIdFromServerCookies()
 
   if (!organizationId) {
@@ -56,22 +55,12 @@ async function getMembershipSnapshotTags() {
 export const listMemberships = cache(async function listMemberships(
   query: Partial<ListMembershipsQuery>
 ): Promise<MembershipsListState> {
-  const result = await resilientGet<ListMembershipsResponse>({
-    key: 'memberships.list',
+  const result = await cachedServerApiGet<ListMembershipsResponse>({
     path: `/api/v1/memberships${toQueryString(query)}`,
     schema: listMembershipsResponseSchema,
-    fallback: 'last-valid',
-    tags: await getMembershipSnapshotTags(),
-    maxAgeSeconds: 120,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getMembershipCacheTags(),
+    revalidate: 120
   })
-
-  if (resilientResultHasData(result)) {
-    return membershipsListResultToState(result)
-  }
 
   return membershipsListResultToState(result)
 })

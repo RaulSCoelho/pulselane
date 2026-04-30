@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint --fix",
     "lint:check": "eslint",
-    "test:resilience": "node --test --experimental-strip-types --experimental-loader ./scripts/ts-extension-loader.mjs src/http/resilient-fetch.test.mjs src/lib/http/request-snapshot/server-store.test.mjs src/features/organizations/api/current-organization-state.test.mjs src/features/clients/api/server-queries.test.mjs src/components/app/app-shell-organization-context.test.mjs"
+    "test:resilience": "node --test --experimental-strip-types --experimental-loader ./scripts/ts-extension-loader.mjs src/features/organizations/api/current-organization-state.test.mjs src/features/clients/api/server-queries.test.mjs src/components/app/app-shell-organization-context.test.mjs"
   },
   "dependencies": {
     "@heroui/react": "^3.0.3",

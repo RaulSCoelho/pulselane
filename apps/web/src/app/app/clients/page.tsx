@@ -106,14 +106,6 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
         includeArchived={Boolean(query.includeArchived)}
       />
 
-      {clientsState.status === 'ready' && clientsState.freshness === 'stale' ? (
-        <Card className="border border-black/5">
-          <Card.Content className="p-4">
-            <p className="text-sm font-medium text-warning">Using last synced clients list</p>
-          </Card.Content>
-        </Card>
-      ) : null}
-
       {clientsState.status === 'ready' ? (
         <>
           {allowCreate ? <ClientCreateForm /> : null}

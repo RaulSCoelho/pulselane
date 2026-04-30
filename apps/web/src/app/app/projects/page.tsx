@@ -119,14 +119,6 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
         clients={clients}
       />
 
-      {projectsState.status === 'ready' && projectsState.freshness === 'stale' ? (
-        <Card className="border border-black/5">
-          <Card.Content className="p-4">
-            <p className="text-sm font-medium text-warning">Using last synced projects list</p>
-          </Card.Content>
-        </Card>
-      ) : null}
-
       {projectsState.status === 'ready' ? (
         <>
           {allowCreate && clients.length > 0 ? <ProjectCreateForm clients={clients} /> : null}

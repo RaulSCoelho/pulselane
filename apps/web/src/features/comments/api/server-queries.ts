@@ -1,6 +1,5 @@
 import { commentActivityHistoryCacheTag, commentsCacheTag } from '@/features/comments/api/cache-tags'
-import { resilientResultHasData } from '@/http/api-result'
-import { resilientGet } from '@/http/resilient-fetch'
+import { cachedServerApiGet } from '@/http/server-api-client'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import {
   ListCommentActivityHistoryQuery,
@@ -69,7 +68,7 @@ function toActivityHistoryQueryString(query: Partial<ListCommentActivityHistoryQ
   return serialized ? `?${serialized}` : ''
 }
 
-async function getCommentsSnapshotTags(taskId: string) {
+async function getCommentsCacheTags(taskId: string) {
   const organizationId = await getActiveOrganizationIdFromServerCookies()
 
   if (!organizationId) {
@@ -79,7 +78,7 @@ async function getCommentsSnapshotTags(taskId: string) {
   return [commentsCacheTag(organizationId, taskId)]
 }
 
-async function getActivityHistorySnapshotTags(taskId: string) {
+async function getActivityHistoryCacheTags(taskId: string) {
   const organizationId = await getActiveOrganizationIdFromServerCookies()
 
   if (!organizationId) {
@@ -101,22 +100,12 @@ export const listComments = cache(async function listComments(
     }
   }
 
-  const result = await resilientGet<ListCommentsResponse>({
-    key: 'comments.list',
+  const result = await cachedServerApiGet<ListCommentsResponse>({
     path: `/api/v1/comments${toCommentsQueryString(parsed.data)}`,
     schema: listCommentsResponseSchema,
-    fallback: 'last-valid',
-    tags: await getCommentsSnapshotTags(parsed.data.taskId),
-    maxAgeSeconds: 60,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getCommentsCacheTags(parsed.data.taskId),
+    revalidate: 60
   })
-
-  if (resilientResultHasData(result)) {
-    return commentsListResultToState(result)
-  }
 
   return commentsListResultToState(result)
 })
@@ -133,22 +122,12 @@ export const listCommentActivityHistory = cache(async function listCommentActivi
     }
   }
 
-  const result = await resilientGet<ListCommentActivityHistoryResponse>({
-    key: 'comments.activity-history',
+  const result = await cachedServerApiGet<ListCommentActivityHistoryResponse>({
     path: `/api/v1/comments/activity-history${toActivityHistoryQueryString(parsed.data)}`,
     schema: listCommentActivityHistoryResponseSchema,
-    fallback: 'last-valid',
-    tags: await getActivityHistorySnapshotTags(parsed.data.taskId),
-    maxAgeSeconds: 60,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getActivityHistoryCacheTags(parsed.data.taskId),
+    revalidate: 60
   })
-
-  if (resilientResultHasData(result)) {
-    return commentActivityHistoryResultToState(result)
-  }
 
   return commentActivityHistoryResultToState(result)
 })

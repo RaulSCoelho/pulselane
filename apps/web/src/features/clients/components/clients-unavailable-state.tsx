@@ -19,9 +19,7 @@ export function ClientsUnavailableState({ reason }: ClientsUnavailableStateProps
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>Try again shortly</Alert.Title>
-            <Alert.Description>
-              Pulselane will keep using the last synced clients list whenever one is available.
-            </Alert.Description>
+            <Alert.Description>Cached clients data will be reused by the server when available.</Alert.Description>
           </Alert.Content>
         </Alert>
       </Card.Content>
@@ -31,12 +29,12 @@ export function ClientsUnavailableState({ reason }: ClientsUnavailableStateProps
 
 function getClientsUnavailableDescription(reason: ClientsUnavailableReason) {
   if (reason === 'rate_limited') {
-    return 'The clients list is being rate limited right now, and there is no synced copy available for this filter yet.'
+    return 'The clients list is being rate limited right now. Try again shortly.'
   }
 
   if (reason === 'network_error') {
-    return 'The clients list could not be reached right now, and there is no synced copy available for this filter yet.'
+    return 'The clients list could not be reached right now. Try again shortly.'
   }
 
-  return 'The clients list could not be loaded right now, and there is no synced copy available for this filter yet.'
+  return 'The clients list could not be loaded right now. Try again shortly.'
 }

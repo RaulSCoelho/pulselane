@@ -112,14 +112,6 @@ export default async function InvitationsPage({ searchParams }: InvitationsPageP
 
       <InvitationsFilterForm email={query.email ?? ''} status={query.status ?? 'all'} />
 
-      {invitationsState.status === 'ready' && invitationsState.freshness === 'stale' ? (
-        <Card className="border border-black/5">
-          <Card.Content className="p-4">
-            <p className="text-sm font-medium text-warning">Using last synced invitations list</p>
-          </Card.Content>
-        </Card>
-      ) : null}
-
       {invitationsState.status === 'ready' ? (
         invitationsState.data.items.length > 0 ? (
           <InvitationsTable items={invitationsState.data.items} currentRole={currentOrganization.currentRole} />

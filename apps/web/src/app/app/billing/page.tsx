@@ -75,14 +75,6 @@ export default async function BillingPage() {
 
       {billingState.status === 'ready' ? (
         <>
-          {billingState.freshness === 'stale' ? (
-            <Card className="border border-black/5">
-              <Card.Content className="p-4">
-                <p className="text-sm font-medium text-warning">Using last synced billing snapshot.</p>
-              </Card.Content>
-            </Card>
-          ) : null}
-
           <BillingCurrentSummaryCard billing={billingState.data.current} canManage={canManage} />
 
           <BillingPlansGrid plans={billingState.data.plans} canManage={canManage} />

@@ -112,14 +112,6 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
 
       <MembershipsFilterForm search={query.search ?? ''} role={query.role ?? 'all'} />
 
-      {membershipsState.status === 'ready' && membershipsState.freshness === 'stale' ? (
-        <Card className="border border-black/5">
-          <Card.Content className="p-4">
-            <p className="text-sm font-medium text-warning">Using last synced members list</p>
-          </Card.Content>
-        </Card>
-      ) : null}
-
       {membershipsState.status === 'ready' ? (
         membershipsState.data.items.length > 0 ? (
           <MembershipsTable

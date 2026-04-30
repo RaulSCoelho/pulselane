@@ -1,5 +1,5 @@
-import { resilientResultHasData } from '@/http/api-result'
-import { resilientGet } from '@/http/resilient-fetch'
+import { cachedServerApiGet } from '@/http/server-api-client'
+import { serverGetResultHasData } from '@/http/server-api-result'
 import { DEFAULT_AUTHENTICATED_PATH } from '@/lib/auth/auth-constants'
 import { buildLoginRedirectPath, buildRefreshRedirectPath } from '@/lib/auth/auth-redirect'
 import { getAuthSession } from '@/lib/auth/auth-session'
@@ -17,7 +17,7 @@ type SessionCheckResult = { status: 'authenticated' } | { status: 'unauthenticat
 
 type MeResult =
   | { status: 'ok'; data: MeResponse }
-  | { status: 'rate_limited_no_snapshot' }
+  | { status: 'rate_limited' }
   | { status: 'unauthorized' }
   | { status: 'error' }
 
@@ -36,18 +36,13 @@ async function getSessionStatus(refreshBufferInSeconds: number): Promise<Session
 }
 
 const fetchMe = cache(async function fetchMe(): Promise<MeResult> {
-  const result = await resilientGet<MeResponse>({
-    key: 'auth.me',
+  const result = await cachedServerApiGet<MeResponse>({
     path: '/api/v1/auth/me',
     schema: meResponseSchema,
-    fallback: 'last-valid',
-    maxAgeSeconds: 300,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 3600,
-    userScoped: true
+    revalidate: 300
   })
 
-  if (resilientResultHasData(result)) {
+  if (serverGetResultHasData(result)) {
     return { status: 'ok', data: result.data }
   }
 
@@ -55,14 +50,14 @@ const fetchMe = cache(async function fetchMe(): Promise<MeResult> {
     return { status: 'unauthorized' }
   }
 
-  if (result.status === 'unavailable' && result.reason === 'rate_limited_no_snapshot') {
-    return { status: 'rate_limited_no_snapshot' }
+  if (result.status === 'unavailable' && result.reason === 'rate_limited') {
+    return { status: 'rate_limited' }
   }
 
   return { status: 'error' }
 })
 
-async function resolveCurrentUserOrSnapshot(redirectTo: string | undefined): Promise<MeResponse> {
+async function resolveCurrentUser(redirectTo: string | undefined): Promise<MeResponse> {
   const result = await fetchMe()
 
   if (result.status === 'ok') {
@@ -92,7 +87,7 @@ const requireAuthCached = cache(async (redirectTo: string | undefined, refreshBu
     redirect(buildRefreshRedirectPath(redirectTo))
   }
 
-  return resolveCurrentUserOrSnapshot(redirectTo)
+  return resolveCurrentUser(redirectTo)
 })
 
 const redirectIfAuthenticatedCached = cache(async (redirectTo: string | undefined, refreshBufferInSeconds: number) => {

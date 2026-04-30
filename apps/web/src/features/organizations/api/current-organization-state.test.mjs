@@ -30,57 +30,27 @@ const currentOrganization = {
   }
 }
 
-const snapshot = {
-  createdAt: '2026-01-01T00:00:00.000Z',
-  expiresAt: '2026-01-01T00:05:00.000Z',
-  scope: {
-    userId: 'user-1',
-    organizationId: 'org-1'
-  },
-  tags: ['organization-current']
-}
-
 test('returns ready/fresh when an active organization exists and the API returns 200', async () => {
   const state = await resolveCurrentOrganizationState({
     activeOrganizationId: 'org-1',
     loadCurrentOrganization: async () => ({
-      status: 'fresh',
+      status: 'ok',
       data: currentOrganization
     })
   })
 
   assert.deepEqual(state, {
     status: 'ready',
-    data: currentOrganization,
-    freshness: 'fresh'
+    data: currentOrganization
   })
 })
 
-test('returns ready/stale when an active organization exists and 429 has a valid snapshot', async () => {
-  const state = await resolveCurrentOrganizationState({
-    activeOrganizationId: 'org-1',
-    loadCurrentOrganization: async () => ({
-      status: 'stale',
-      data: currentOrganization,
-      reason: 'rate_limited',
-      snapshot
-    })
-  })
-
-  assert.deepEqual(state, {
-    status: 'ready',
-    data: currentOrganization,
-    freshness: 'stale',
-    staleReason: 'rate_limited'
-  })
-})
-
-test('returns temporarily_unavailable when an active organization exists and 429 has no snapshot', async () => {
+test('returns temporarily_unavailable when an active organization exists and the API is rate limited', async () => {
   const state = await resolveCurrentOrganizationState({
     activeOrganizationId: 'org-1',
     loadCurrentOrganization: async () => ({
       status: 'unavailable',
-      reason: 'rate_limited_no_snapshot',
+      reason: 'rate_limited',
       statusCode: 429
     })
   })
@@ -99,7 +69,7 @@ test('returns not_selected without loading the API when there is no active organ
     loadCurrentOrganization: async () => {
       called = true
       return {
-        status: 'fresh',
+        status: 'ok',
         data: currentOrganization
       }
     }

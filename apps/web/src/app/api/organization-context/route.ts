@@ -1,10 +1,7 @@
-import { resilientGet } from '@/http/resilient-fetch'
 import {
-  ACTIVE_ORGANIZATION_HEADER_NAME,
   ACTIVE_ORGANIZATION_COOKIE_MAX_AGE_IN_SECONDS,
   ACTIVE_ORGANIZATION_COOKIE_NAME
 } from '@/lib/organizations/organization-context-constants'
-import { currentOrganizationResponseSchema } from '@pulselane/contracts'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -28,24 +25,6 @@ export async function POST(request: Request) {
     maxAge: ACTIVE_ORGANIZATION_COOKIE_MAX_AGE_IN_SECONDS,
     sameSite: 'lax',
     path: '/'
-  })
-
-  await resilientGet({
-    key: 'organizations.current',
-    path: '/api/v1/organizations/current',
-    schema: currentOrganizationResponseSchema,
-    tags: ['organization-current'],
-    maxAgeSeconds: 300,
-    staleIfErrorSeconds: 3600,
-    staleIfRateLimitedSeconds: 3600,
-    tenantScoped: true,
-    userScoped: true,
-    request: {
-      headers: {
-        [ACTIVE_ORGANIZATION_HEADER_NAME]: parsedBody.data.organizationId
-      }
-    },
-    snapshotTarget: response
   })
 
   return response

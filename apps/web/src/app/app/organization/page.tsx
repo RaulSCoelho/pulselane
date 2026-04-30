@@ -58,14 +58,6 @@ export default async function OrganizationSettingsPage() {
         </Card.Content>
       </Card>
 
-      {currentOrganizationState.freshness === 'stale' ? (
-        <Card className="border border-black/5">
-          <Card.Content className="p-4">
-            <p className="text-sm font-medium text-warning">Using last synced organization snapshot.</p>
-          </Card.Content>
-        </Card>
-      ) : null}
-
       <OrganizationSettingsForm currentOrganization={currentOrganization} canEdit={canEdit} />
 
       <OrganizationPlanCard currentOrganization={currentOrganization} />

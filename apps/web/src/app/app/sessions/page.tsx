@@ -59,14 +59,6 @@ export default async function SessionsPage() {
 
       {sessionsState.status === 'ready' ? (
         <>
-          {sessionsState.freshness === 'stale' ? (
-            <Card className="border border-black/5">
-              <Card.Content className="p-4">
-                <p className="text-sm font-medium text-warning">Using last synced sessions list.</p>
-              </Card.Content>
-            </Card>
-          ) : null}
-
           <Card className="border border-black/5">
             <Card.Content className="flex flex-col gap-4 p-8 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-col gap-1">

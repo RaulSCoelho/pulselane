@@ -5,7 +5,6 @@ import { getAppShellOrganizationContextView } from './app-shell-organization-con
 
 const readyState = {
   status: 'ready',
-  freshness: 'fresh',
   data: {
     organization: {
       id: 'org-1',
@@ -34,7 +33,7 @@ const readyState = {
   }
 }
 
-test('does not show Missing when organization context is rate limited without a snapshot', () => {
+test('does not show Missing when organization context is rate limited', () => {
   const view = getAppShellOrganizationContextView({
     status: 'temporarily_unavailable',
     reason: 'rate_limited'

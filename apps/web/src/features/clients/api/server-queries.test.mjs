@@ -11,32 +11,22 @@ const clientsResponse = {
   }
 }
 
-test('maps stale clients snapshots to a ready stale state', () => {
+test('maps successful clients responses to a ready fresh state', () => {
   const state = clientsListResultToState({
-    status: 'stale',
-    data: clientsResponse,
-    reason: 'rate_limited',
-    snapshot: {
-      createdAt: '2026-01-01T00:00:00.000Z',
-      expiresAt: '2026-01-01T00:05:00.000Z',
-      scope: {
-        userId: 'user-1',
-        organizationId: 'org-1'
-      }
-    }
+    status: 'ok',
+    data: clientsResponse
   })
 
   assert.deepEqual(state, {
     status: 'ready',
-    data: clientsResponse,
-    freshness: 'stale'
+    data: clientsResponse
   })
 })
 
-test('maps rate limited clients without a snapshot to a temporary state', () => {
+test('maps rate limited clients to a temporary state', () => {
   const state = clientsListResultToState({
     status: 'unavailable',
-    reason: 'rate_limited_no_snapshot',
+    reason: 'rate_limited',
     statusCode: 429
   })
 

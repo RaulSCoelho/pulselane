@@ -1,6 +1,6 @@
 import type { ListMembershipsResponse } from '@pulselane/contracts/memberships'
 
-import type { ResilientGetResult } from '../../../http/api-result'
+import type { ServerGetResult } from '../../../http/server-api-result'
 
 export type MembershipsUnavailableReason = 'rate_limited' | 'server_error' | 'network_error' | 'unexpected_response'
 
@@ -8,29 +8,17 @@ export type MembershipsListState =
   | {
       status: 'ready'
       data: ListMembershipsResponse
-      freshness: 'fresh' | 'stale'
     }
   | {
       status: 'temporarily_unavailable'
       reason: MembershipsUnavailableReason
     }
 
-export function membershipsListResultToState(
-  result: ResilientGetResult<ListMembershipsResponse>
-): MembershipsListState {
-  if (result.status === 'fresh') {
+export function membershipsListResultToState(result: ServerGetResult<ListMembershipsResponse>): MembershipsListState {
+  if (result.status === 'ok') {
     return {
       status: 'ready',
-      data: result.data,
-      freshness: 'fresh'
-    }
-  }
-
-  if (result.status === 'stale') {
-    return {
-      status: 'ready',
-      data: result.data,
-      freshness: 'stale'
+      data: result.data
     }
   }
 
@@ -48,17 +36,17 @@ export function membershipsListResultToState(
 }
 
 function membershipsUnavailableReason(
-  reason: Extract<ResilientGetResult<ListMembershipsResponse>, { status: 'unavailable' }>['reason']
+  reason: Extract<ServerGetResult<ListMembershipsResponse>, { status: 'unavailable' }>['reason']
 ): MembershipsUnavailableReason {
-  if (reason === 'rate_limited_no_snapshot') {
+  if (reason === 'rate_limited') {
     return 'rate_limited'
   }
 
-  if (reason === 'server_error_no_snapshot') {
+  if (reason === 'server_error') {
     return 'server_error'
   }
 
-  if (reason === 'network_error_no_snapshot') {
+  if (reason === 'network_error') {
     return 'network_error'
   }
 

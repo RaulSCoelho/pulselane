@@ -158,14 +158,6 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         memberships={memberships}
       />
 
-      {tasksState.status === 'ready' && tasksState.freshness === 'stale' ? (
-        <Card className="border border-black/5">
-          <Card.Content className="p-4">
-            <p className="text-sm font-medium text-warning">Using last synced tasks list</p>
-          </Card.Content>
-        </Card>
-      ) : null}
-
       {tasksState.status === 'ready' ? (
         <>
           {allowCreate && projects.length > 0 ? <TaskCreateForm projects={projects} memberships={memberships} /> : null}

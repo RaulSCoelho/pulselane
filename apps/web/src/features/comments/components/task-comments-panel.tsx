@@ -62,14 +62,6 @@ export function TaskCommentsPanel({
       <Card.Content className="flex flex-col gap-4 p-8">
         {allowCreate ? <CommentCreateForm taskId={taskId} /> : null}
 
-        {state.status === 'ready' && state.freshness === 'stale' ? (
-          <Card className="border border-black/5" variant="secondary">
-            <Card.Content className="p-4">
-              <p className="text-sm font-medium text-warning">Using last synced comments list</p>
-            </Card.Content>
-          </Card>
-        ) : null}
-
         {state.status === 'temporarily_unavailable' ? (
           <Card className="border border-black/5" variant="secondary">
             <Card.Content className="p-4">

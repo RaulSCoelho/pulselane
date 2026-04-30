@@ -99,9 +99,6 @@ export function AppShell({ me, organizationState, children }: AppShellProps) {
                   <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current organization</p>
                   <p className="mt-2 font-medium">{organizationContext.organizationName}</p>
                   <p className="mt-1 text-sm text-muted">{organizationContext.organizationDetail}</p>
-                  {organizationContext.syncNotice ? (
-                    <p className="mt-2 text-xs font-medium text-warning">{organizationContext.syncNotice}</p>
-                  ) : null}
                 </Card.Content>
               </Card>
             </Card.Content>
@@ -132,9 +129,6 @@ export function AppShell({ me, organizationState, children }: AppShellProps) {
                     <Card.Content className="p-4">
                       <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Active context</p>
                       <p className="mt-2 text-sm font-medium">{organizationContext.activeContextValue}</p>
-                      {organizationContext.syncNotice ? (
-                        <p className="mt-1 text-xs font-medium text-warning">{organizationContext.syncNotice}</p>
-                      ) : null}
                     </Card.Content>
                   </Card>
                 </div>

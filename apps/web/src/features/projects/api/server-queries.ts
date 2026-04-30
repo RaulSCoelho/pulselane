@@ -1,7 +1,7 @@
 import { projectCacheTag, projectsCacheTag } from '@/features/projects/api/cache-tags'
 import { readApiErrorMessage } from '@/http/api-error'
-import { resilientResultHasData, type ResilientGetResult } from '@/http/api-result'
-import { resilientGet } from '@/http/resilient-fetch'
+import { cachedServerApiGet } from '@/http/server-api-client'
+import { serverGetResultHasData, type ServerGetResult } from '@/http/server-api-result'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import {
   ListProjectsQuery,
@@ -55,7 +55,7 @@ function toQueryString(query: Partial<ListProjectsQuery>) {
   return serialized ? `?${serialized}` : ''
 }
 
-async function getProjectSnapshotTags(projectId?: string) {
+async function getProjectCacheTags(projectId?: string) {
   const organizationId = await getActiveOrganizationIdFromServerCookies()
 
   if (!organizationId) {
@@ -67,7 +67,7 @@ async function getProjectSnapshotTags(projectId?: string) {
     : [projectsCacheTag(organizationId)]
 }
 
-function throwResilientProjectsError(result: ResilientGetResult<unknown>, message: string): never {
+function throwServerProjectsError(result: ServerGetResult<unknown>, message: string): never {
   if (result.status === 'unavailable') {
     throw new Error(`${message} Status: ${result.statusCode ?? result.reason}`)
   }
@@ -78,49 +78,33 @@ function throwResilientProjectsError(result: ResilientGetResult<unknown>, messag
 export const listProjects = cache(async function listProjects(
   query: Partial<ListProjectsQuery>
 ): Promise<ProjectsListState> {
-  const result = await resilientGet<ListProjectsResponse>({
-    key: 'projects.list',
+  const result = await cachedServerApiGet<ListProjectsResponse>({
     path: `/api/v1/projects${toQueryString(query)}`,
     schema: listProjectsResponseSchema,
-    fallback: 'last-valid',
-    tags: await getProjectSnapshotTags(),
-    maxAgeSeconds: 120,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getProjectCacheTags(),
+    revalidate: 120
   })
-
-  if (resilientResultHasData(result)) {
-    return projectsListResultToState(result)
-  }
 
   return projectsListResultToState(result)
 })
 
 export const getProjectById = cache(async function getProjectById(projectId: string): Promise<ProjectResponse> {
-  const result = await resilientGet<ProjectResponse>({
-    key: 'projects.detail',
+  const result = await cachedServerApiGet<ProjectResponse>({
     path: `/api/v1/projects/${projectId}`,
     schema: projectResponseSchema,
-    fallback: 'last-valid',
-    tags: await getProjectSnapshotTags(projectId),
-    maxAgeSeconds: 120,
-    staleIfErrorSeconds: 900,
-    staleIfRateLimitedSeconds: 1800,
-    tenantScoped: true,
-    userScoped: true
+    tags: await getProjectCacheTags(projectId),
+    revalidate: 120
   })
 
   if (result.status === 'not_found') {
     notFound()
   }
 
-  if (resilientResultHasData(result)) {
+  if (serverGetResultHasData(result)) {
     return result.data
   }
 
-  throwResilientProjectsError(result, 'Unable to load project.')
+  throwServerProjectsError(result, 'Unable to load project.')
 })
 
 export const readErrorMessage = readApiErrorMessage

@@ -4,7 +4,6 @@ export type AppShellOrganizationContextView = {
   organizationName: string
   organizationDetail: string
   activeContextValue: string
-  syncNotice?: string
 }
 
 export function getAppShellOrganizationContextView(state: CurrentOrganizationState): AppShellOrganizationContextView {
@@ -12,8 +11,7 @@ export function getAppShellOrganizationContextView(state: CurrentOrganizationSta
     return {
       organizationName: state.data.organization.name,
       organizationDetail: state.data.currentRole,
-      activeContextValue: state.data.organization.slug,
-      syncNotice: state.freshness === 'stale' ? 'Using last synced context' : undefined
+      activeContextValue: state.data.organization.slug
     }
   }
 

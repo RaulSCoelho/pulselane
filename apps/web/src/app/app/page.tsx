@@ -29,9 +29,6 @@ export default async function AppHomePage() {
             <p className="text-sm text-muted">
               Active workspace for {me.name}. The operational modules can now rely on a stable organization context.
             </p>
-            {currentOrganizationState.freshness === 'stale' ? (
-              <p className="text-sm font-medium text-warning">Using last synced context</p>
-            ) : null}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
