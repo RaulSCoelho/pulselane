@@ -1,13 +1,14 @@
 'use client'
 
+import { FormTextField } from '@/components/ui/form-fields'
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
 import { updateCommentAction } from '@/features/comments/actions/comment-actions'
-import { AlertDialog, Button, FieldError, Form, Label, TextArea, TextField, toast } from '@heroui/react'
+import { AlertDialog, Button, Form, toast } from '@heroui/react'
 import type { CommentResponse } from '@pulselane/contracts/comments'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect } from 'react'
 
 import { initialCommentFormState } from './comment-form-state'
-import { CommentFormSubmitButton } from './comment-form-submit-button'
 
 type CommentEditFormProps = {
   taskId: string
@@ -52,24 +53,21 @@ export function CommentEditForm({ taskId, comment }: CommentEditFormProps) {
                 <input type="hidden" name="taskId" value={taskId} />
                 <input type="hidden" name="commentId" value={comment.id} />
 
-                <TextField
-                  className="flex flex-col gap-2"
-                  defaultValue={state.fields.body}
-                  isInvalid={Boolean(state.fieldErrors.body)}
-                  isRequired
+                <FormTextField
+                  label="Comment"
                   name="body"
-                >
-                  <Label>Comment</Label>
-                  <TextArea variant="secondary" />
-                  <FieldError>{state.fieldErrors.body}</FieldError>
-                </TextField>
+                  defaultValue={state.fields.body}
+                  error={state.fieldErrors.body}
+                  isRequired
+                  multiline
+                />
 
                 <AlertDialog.Footer>
                   <Button slot="close" variant="ghost">
                     Cancel
                   </Button>
 
-                  <CommentFormSubmitButton idleLabel="Save comment" pendingLabel="Saving comment..." />
+                  <PendingSubmitButton idleLabel="Save comment" pendingLabel="Saving comment..." />
                 </AlertDialog.Footer>
               </Form>
             </AlertDialog.Body>

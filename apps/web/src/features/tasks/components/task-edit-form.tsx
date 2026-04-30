@@ -1,21 +1,14 @@
 'use client'
 
+import { FormSelectField, FormTextField } from '@/components/ui/form-fields'
+import { MetadataSummaryCard } from '@/components/ui/metric-card'
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
+import { SectionCard } from '@/components/ui/section-card'
 import { updateTaskAction } from '@/features/tasks/actions/task-actions'
+import { formatDateTime, toDateTimeLocalValue } from '@/lib/formatters'
 import { TASKS_PATH } from '@/lib/tasks/task-constants'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '@/lib/tasks/task-status'
-import {
-  Card,
-  FieldError,
-  Form,
-  Input,
-  Label,
-  ListBox,
-  Select,
-  TextArea,
-  TextField,
-  buttonVariants,
-  toast
-} from '@heroui/react'
+import { Form, buttonVariants, toast } from '@heroui/react'
 import type { MembershipResponse } from '@pulselane/contracts/memberships'
 import type { ProjectResponse } from '@pulselane/contracts/projects'
 import type { TaskResponse } from '@pulselane/contracts/tasks'
@@ -23,27 +16,12 @@ import Link from 'next/link'
 import { useActionState, useEffect } from 'react'
 
 import { initialTaskFormState } from './task-form-state'
-import { TaskFormSubmitButton } from './task-form-submit-button'
 
 type TaskEditFormProps = {
   task: TaskResponse
   projects: ProjectResponse[]
   memberships: MembershipResponse[]
   canEdit: boolean
-}
-
-function toDatetimeLocalValue(value: string | null) {
-  if (!value) {
-    return ''
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return ''
-  }
-
-  return date.toISOString().slice(0, 16)
 }
 
 export function TaskEditForm({ task, projects, memberships, canEdit }: TaskEditFormProps) {
@@ -57,7 +35,7 @@ export function TaskEditForm({ task, projects, memberships, canEdit }: TaskEditF
       status: task.status,
       priority: task.priority,
       blockedReason: task.blockedReason ?? '',
-      dueDate: toDatetimeLocalValue(task.dueDate)
+      dueDate: toDateTimeLocalValue(task.dueDate)
     }
   })
 
@@ -68,217 +46,120 @@ export function TaskEditForm({ task, projects, memberships, canEdit }: TaskEditF
   }, [state.message, state.status])
 
   return (
-    <Card className="border border-black/5">
-      <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-2xl font-semibold tracking-tight">
-          {canEdit ? 'Edit task' : 'Task overview'}
-        </Card.Title>
-        <Card.Description className="text-sm leading-6 text-muted">
-          {canEdit
-            ? 'Update the task while preserving tenant scope and optimistic concurrency.'
-            : 'Your current role is read-only for task management.'}
-        </Card.Description>
-      </Card.Header>
+    <SectionCard
+      title={canEdit ? 'Edit task' : 'Task overview'}
+      description={
+        canEdit
+          ? 'Update the task while preserving tenant scope and optimistic concurrency.'
+          : 'Your current role is read-only for task management.'
+      }
+    >
+      <Form key={state.formKey} action={formAction} className="grid gap-4 md:grid-cols-2">
+        <input type="hidden" name="taskId" value={task.id} />
+        <input type="hidden" name="expectedUpdatedAt" value={task.updatedAt} />
 
-      <Card.Content className="p-8">
-        <Form key={state.formKey} action={formAction} className="grid gap-4 md:grid-cols-2">
-          <input type="hidden" name="taskId" value={task.id} />
-          <input type="hidden" name="expectedUpdatedAt" value={task.updatedAt} />
+        <FormTextField
+          label="Task title"
+          name="title"
+          defaultValue={state.fields.title}
+          error={state.fieldErrors.title}
+          isDisabled={!canEdit}
+          isRequired
+          className="md:col-span-2"
+        />
 
-          <TextField
-            className="flex flex-col gap-2 md:col-span-2"
-            defaultValue={state.fields.title}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.title)}
-            isRequired
-            name="title"
-          >
-            <Label>Task title</Label>
-            <Input type="text" variant="secondary" />
-            <FieldError>{state.fieldErrors.title}</FieldError>
-          </TextField>
+        <FormSelectField
+          label="Project"
+          name="projectId"
+          options={projects.map(project => ({ id: project.id, label: project.name }))}
+          defaultValue={state.fields.projectId}
+          error={state.fieldErrors.projectId}
+          isDisabled={!canEdit}
+          isRequired
+          placeholder="Select project"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={state.fields.projectId}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.projectId)}
-            isRequired
-            name="projectId"
-            placeholder="Select project"
-            variant="secondary"
-          >
-            <Label>Project</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {projects.map(project => (
-                  <ListBox.Item id={project.id} key={project.id} textValue={project.name}>
-                    {project.name}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{state.fieldErrors.projectId}</FieldError>
-          </Select>
+        <FormSelectField
+          label="Assignee"
+          name="assigneeUserId"
+          options={[
+            { id: 'unassigned', label: 'Unassigned' },
+            ...memberships.map(membership => ({ id: membership.userId, label: membership.user.name }))
+          ]}
+          defaultValue={state.fields.assigneeUserId || 'unassigned'}
+          error={state.fieldErrors.assigneeUserId}
+          isDisabled={!canEdit}
+          placeholder="Select assignee"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={state.fields.assigneeUserId || 'unassigned'}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.assigneeUserId)}
-            name="assigneeUserId"
-            placeholder="Select assignee"
-            variant="secondary"
-          >
-            <Label>Assignee</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                <ListBox.Item id="unassigned" textValue="Unassigned">
-                  Unassigned
-                </ListBox.Item>
+        <FormSelectField
+          label="Status"
+          name="status"
+          options={TASK_STATUS_OPTIONS}
+          defaultValue={state.fields.status}
+          error={state.fieldErrors.status}
+          isDisabled={!canEdit}
+          placeholder="Select status"
+        />
 
-                {memberships.map(membership => (
-                  <ListBox.Item id={membership.userId} key={membership.id} textValue={membership.user.name}>
-                    {membership.user.name}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{state.fieldErrors.assigneeUserId}</FieldError>
-          </Select>
+        <FormSelectField
+          label="Priority"
+          name="priority"
+          options={TASK_PRIORITY_OPTIONS}
+          defaultValue={state.fields.priority}
+          error={state.fieldErrors.priority}
+          isDisabled={!canEdit}
+          placeholder="Select priority"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={state.fields.status}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.status)}
-            name="status"
-            placeholder="Select status"
-            variant="secondary"
-          >
-            <Label>Status</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {TASK_STATUS_OPTIONS.map(option => (
-                  <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
-                    {option.label}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{state.fieldErrors.status}</FieldError>
-          </Select>
+        <FormTextField
+          label="Due date"
+          name="dueDate"
+          type="datetime-local"
+          defaultValue={state.fields.dueDate}
+          error={state.fieldErrors.dueDate}
+          isDisabled={!canEdit}
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={state.fields.priority}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.priority)}
-            name="priority"
-            placeholder="Select priority"
-            variant="secondary"
-          >
-            <Label>Priority</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {TASK_PRIORITY_OPTIONS.map(option => (
-                  <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
-                    {option.label}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{state.fieldErrors.priority}</FieldError>
-          </Select>
+        <FormTextField
+          label="Blocked reason"
+          name="blockedReason"
+          defaultValue={state.fields.blockedReason}
+          error={state.fieldErrors.blockedReason}
+          isDisabled={!canEdit}
+        />
 
-          <TextField
-            className="flex flex-col gap-2"
-            defaultValue={state.fields.dueDate}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.dueDate)}
-            name="dueDate"
-          >
-            <Label>Due date</Label>
-            <Input type="datetime-local" variant="secondary" />
-            <FieldError>{state.fieldErrors.dueDate}</FieldError>
-          </TextField>
+        <FormTextField
+          label="Description"
+          name="description"
+          defaultValue={state.fields.description}
+          error={state.fieldErrors.description}
+          isDisabled={!canEdit}
+          multiline
+          className="md:col-span-2"
+        />
 
-          <TextField
-            className="flex flex-col gap-2"
-            defaultValue={state.fields.blockedReason}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.blockedReason)}
-            name="blockedReason"
-          >
-            <Label>Blocked reason</Label>
-            <Input type="text" variant="secondary" />
-            <FieldError>{state.fieldErrors.blockedReason}</FieldError>
-          </TextField>
+        <MetadataSummaryCard
+          className="md:col-span-2"
+          items={[
+            { label: 'Created', value: formatDateTime(task.createdAt) },
+            { label: 'Updated', value: formatDateTime(task.updatedAt) },
+            { label: 'Archived at', value: formatDateTime(task.archivedAt, 'Not archived') }
+          ]}
+        />
 
-          <TextField
-            className="flex flex-col gap-2 md:col-span-2"
-            defaultValue={state.fields.description}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.description)}
-            name="description"
-          >
-            <Label>Description</Label>
-            <TextArea variant="secondary" />
-            <FieldError>{state.fieldErrors.description}</FieldError>
-          </TextField>
+        {state.status === 'error' && state.message ? (
+          <p className="md:col-span-2 text-sm text-danger">{state.message}</p>
+        ) : null}
 
-          <Card className="md:col-span-2" variant="tertiary">
-            <Card.Content className="grid gap-3 p-4 md:grid-cols-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Created</p>
-                <p className="mt-1 text-sm text-foreground">{new Date(task.createdAt).toLocaleString('en-US')}</p>
-              </div>
+        <div className="md:col-span-2 flex flex-wrap justify-end gap-3">
+          <Link href={TASKS_PATH} className={buttonVariants({ variant: 'outline' })}>
+            Back to tasks
+          </Link>
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Updated</p>
-                <p className="mt-1 text-sm text-foreground">{new Date(task.updatedAt).toLocaleString('en-US')}</p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Archived at</p>
-                <p className="mt-1 text-sm text-foreground">
-                  {task.archivedAt ? new Date(task.archivedAt).toLocaleString('en-US') : 'Not archived'}
-                </p>
-              </div>
-            </Card.Content>
-          </Card>
-
-          {state.status === 'error' && state.message ? (
-            <p className="md:col-span-2 text-sm text-danger">{state.message}</p>
-          ) : null}
-
-          <div className="md:col-span-2 flex flex-wrap justify-end gap-3">
-            <Link href={TASKS_PATH} className={buttonVariants({ variant: 'outline' })}>
-              Back to tasks
-            </Link>
-
-            {canEdit ? (
-              <TaskFormSubmitButton idleLabel="Save changes" pendingLabel="Saving changes..." size="lg" />
-            ) : null}
-          </div>
-        </Form>
-      </Card.Content>
-    </Card>
+          {canEdit ? <PendingSubmitButton idleLabel="Save changes" pendingLabel="Saving changes..." size="lg" /> : null}
+        </div>
+      </Form>
+    </SectionCard>
   )
 }

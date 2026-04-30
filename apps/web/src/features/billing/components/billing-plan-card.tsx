@@ -1,4 +1,7 @@
+import { StatusPill } from '@/components/ui/data-table-card'
+import { KeyValueListCard } from '@/components/ui/metric-card'
 import { BillingPlanActionForm } from '@/features/billing/components/billing-plan-action-form'
+import { formatLimit } from '@/lib/formatters'
 import { Card } from '@heroui/react'
 import type { BillingPlanCatalogItem } from '@pulselane/contracts/billing'
 
@@ -20,10 +23,6 @@ function formatPrice(plan: BillingPlanCatalogItem) {
   }).format(amount)
 }
 
-function formatLimit(value: number | null) {
-  return value === null ? 'Unlimited' : String(value)
-}
-
 export function BillingPlanCard({ plan, canManage }: BillingPlanCardProps) {
   return (
     <Card className="border border-black/5">
@@ -34,9 +33,7 @@ export function BillingPlanCard({ plan, canManage }: BillingPlanCardProps) {
             <Card.Description className="text-sm leading-6 text-muted">{plan.description}</Card.Description>
           </div>
 
-          {plan.isCurrent ? (
-            <span className="rounded-full border px-3 py-1 text-xs font-medium text-foreground">Current</span>
-          ) : null}
+          {plan.isCurrent ? <StatusPill>Current</StatusPill> : null}
         </div>
 
         <div>
@@ -46,23 +43,14 @@ export function BillingPlanCard({ plan, canManage }: BillingPlanCardProps) {
       </Card.Header>
 
       <Card.Content className="flex flex-col gap-6 p-6">
-        <div className="grid gap-3">
-          <Card className="border border-black/5" variant="secondary">
-            <Card.Content className="grid grid-cols-2 gap-3 p-4 text-sm">
-              <span className="text-muted">Members</span>
-              <span className="text-right font-medium">{formatLimit(plan.limits.members)}</span>
-
-              <span className="text-muted">Clients</span>
-              <span className="text-right font-medium">{formatLimit(plan.limits.clients)}</span>
-
-              <span className="text-muted">Projects</span>
-              <span className="text-right font-medium">{formatLimit(plan.limits.projects)}</span>
-
-              <span className="text-muted">Active tasks</span>
-              <span className="text-right font-medium">{formatLimit(plan.limits.active_tasks)}</span>
-            </Card.Content>
-          </Card>
-        </div>
+        <KeyValueListCard
+          items={[
+            { label: 'Members', value: formatLimit(plan.limits.members) },
+            { label: 'Clients', value: formatLimit(plan.limits.clients) },
+            { label: 'Projects', value: formatLimit(plan.limits.projects) },
+            { label: 'Active tasks', value: formatLimit(plan.limits.active_tasks) }
+          ]}
+        />
 
         <BillingPlanActionForm plan={plan} canManage={canManage} />
       </Card.Content>

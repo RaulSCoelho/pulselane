@@ -1,14 +1,14 @@
 'use client'
 
+import { FormSelectField } from '@/components/ui/form-fields'
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
 import { updateMembershipRoleAction } from '@/features/memberships/actions/membership-actions'
 import { initialMembershipRoleFormState } from '@/features/memberships/components/membership-action-state'
 import { MEMBERSHIP_ROLE_OPTIONS } from '@/lib/memberships/membership-role'
-import { FieldError, Form, Label, ListBox, Select, toast } from '@heroui/react'
+import { Form, toast } from '@heroui/react'
 import type { MembershipResponse } from '@pulselane/contracts/memberships'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect } from 'react'
-
-import { MembershipFormSubmitButton } from './membership-form-submit-button'
 
 type MembershipRoleFormProps = {
   membership: MembershipResponse
@@ -40,33 +40,19 @@ export function MembershipRoleForm({ membership, isDisabled }: MembershipRoleFor
     <Form key={state.formKey} action={formAction} className="flex items-end gap-2">
       <input type="hidden" name="membershipId" value={membership.id} />
 
-      <Select
-        className="min-w-36"
-        defaultValue={state.fields.role}
-        isDisabled={isDisabled}
-        isInvalid={Boolean(state.fieldErrors.role)}
+      <FormSelectField
+        label="Role"
         name="role"
+        options={MEMBERSHIP_ROLE_OPTIONS}
+        defaultValue={state.fields.role}
+        error={state.fieldErrors.role}
+        isDisabled={isDisabled}
+        labelClassName="sr-only"
+        className="min-w-36"
         placeholder="Select role"
-        variant="secondary"
-      >
-        <Label className="sr-only">Role</Label>
-        <Select.Trigger>
-          <Select.Value />
-          <Select.Indicator />
-        </Select.Trigger>
-        <Select.Popover>
-          <ListBox>
-            {MEMBERSHIP_ROLE_OPTIONS.map(option => (
-              <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
-                {option.label}
-              </ListBox.Item>
-            ))}
-          </ListBox>
-        </Select.Popover>
-        <FieldError>{state.fieldErrors.role}</FieldError>
-      </Select>
+      />
 
-      <MembershipFormSubmitButton idleLabel="Save" pendingLabel="Saving..." size="sm" variant="outline" />
+      <PendingSubmitButton idleLabel="Save" pendingLabel="Saving..." size="sm" variant="outline" />
     </Form>
   )
 }

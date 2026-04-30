@@ -1,12 +1,11 @@
 'use client'
 
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
 import { createCheckoutSessionAction } from '@/features/billing/actions/billing-actions'
 import { initialBillingRedirectActionState } from '@/features/billing/components/billing-action-state'
 import { Alert, Form, toast } from '@heroui/react'
 import type { BillingPlanCatalogItem } from '@pulselane/contracts/billing'
 import { useActionState, useEffect } from 'react'
-
-import { BillingFormSubmitButton } from './billing-form-submit-button'
 
 type BillingPlanActionFormProps = {
   plan: BillingPlanCatalogItem
@@ -60,7 +59,7 @@ export function BillingPlanActionForm({ plan, canManage }: BillingPlanActionForm
 
   if (!isCheckout) {
     return (
-      <BillingFormSubmitButton
+      <PendingSubmitButton
         idleLabel={getActionLabel(plan)}
         pendingLabel="Loading..."
         isDisabled
@@ -74,7 +73,7 @@ export function BillingPlanActionForm({ plan, canManage }: BillingPlanActionForm
       <Form action={formAction}>
         <input type="hidden" name="plan" value={plan.plan} />
 
-        <BillingFormSubmitButton
+        <PendingSubmitButton
           idleLabel={getActionLabel(plan)}
           pendingLabel="Redirecting..."
           isDisabled={!canSubmit}

@@ -1,7 +1,10 @@
 'use client'
 
+import { MetricCard } from '@/components/ui/metric-card'
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
 import { acceptInvitationAction } from '@/features/invitations/actions/accept-invitation-action'
 import { initialInvitationAcceptFormState } from '@/features/invitations/components/invitation-accept-state'
+import { formatDateTime } from '@/lib/formatters'
 import { APP_HOME_PATH, SELECT_ORGANIZATION_PATH } from '@/lib/organizations/organization-context-constants'
 import { Alert, Button, Card, Form, toast } from '@heroui/react'
 import type { PreviewInvitationResponse } from '@pulselane/contracts/invitations'
@@ -9,18 +12,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect } from 'react'
 
-import { InvitationAcceptSubmitButton } from './invitation-accept-submit-button'
-
 type InvitationAcceptCardProps = {
   token: string
   invitation: PreviewInvitationResponse
-}
-
-function formatDatetime(value: string) {
-  return new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  }).format(new Date(value))
 }
 
 export function InvitationAcceptCard({ token, invitation }: InvitationAcceptCardProps) {
@@ -53,26 +47,9 @@ export function InvitationAcceptCard({ token, invitation }: InvitationAcceptCard
 
       <Card.Content className="flex flex-col gap-6 p-8">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Card className="border border-black/5" variant="secondary">
-            <Card.Content className="p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Role</p>
-              <p className="mt-2 text-sm font-medium">{invitation.role}</p>
-            </Card.Content>
-          </Card>
-
-          <Card className="border border-black/5" variant="secondary">
-            <Card.Content className="p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Status</p>
-              <p className="mt-2 text-sm font-medium">{invitation.status}</p>
-            </Card.Content>
-          </Card>
-
-          <Card className="border border-black/5" variant="secondary">
-            <Card.Content className="p-4">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Expires</p>
-              <p className="mt-2 text-sm font-medium">{formatDatetime(invitation.expiresAt)}</p>
-            </Card.Content>
-          </Card>
+          <MetricCard label="Role" value={invitation.role} />
+          <MetricCard label="Status" value={invitation.status} />
+          <MetricCard label="Expires" value={formatDateTime(invitation.expiresAt)} />
         </div>
 
         {!canAccept ? (
@@ -124,7 +101,7 @@ export function InvitationAcceptCard({ token, invitation }: InvitationAcceptCard
           {canAccept && state.status !== 'success' ? (
             <Form action={formAction}>
               <input type="hidden" name="token" value={token} />
-              <InvitationAcceptSubmitButton />
+              <PendingSubmitButton idleLabel="Accept invitation" pendingLabel="Accepting invitation..." size="lg" />
             </Form>
           ) : null}
         </div>

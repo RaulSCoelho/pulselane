@@ -1,14 +1,16 @@
 'use client'
 
+import { FormSelectField, FormTextField } from '@/components/ui/form-fields'
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
+import { SectionCard } from '@/components/ui/section-card'
 import { createTaskAction } from '@/features/tasks/actions/task-actions'
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '@/lib/tasks/task-status'
-import { Card, FieldError, Form, Input, Label, ListBox, Select, TextArea, TextField, toast } from '@heroui/react'
+import { Form, toast } from '@heroui/react'
 import type { MembershipResponse } from '@pulselane/contracts/memberships'
 import type { ProjectResponse } from '@pulselane/contracts/projects'
 import { useActionState, useEffect } from 'react'
 
 import { initialTaskFormState } from './task-form-state'
-import { TaskFormSubmitButton } from './task-form-submit-button'
 
 type TaskCreateFormProps = {
   projects: ProjectResponse[]
@@ -26,175 +28,95 @@ export function TaskCreateForm({ projects, memberships }: TaskCreateFormProps) {
   }, [resolvedState.message, resolvedState.status])
 
   return (
-    <Card className="border border-black/5">
-      <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-2xl font-semibold tracking-tight">Create task</Card.Title>
-        <Card.Description className="text-sm leading-6 text-muted">
-          Add operational work under a project, with priority, assignee and due date when needed.
-        </Card.Description>
-      </Card.Header>
+    <SectionCard
+      title="Create task"
+      description="Add operational work under a project, with priority, assignee and due date when needed."
+    >
+      <Form key={resolvedState.formKey} action={formAction} className="grid gap-4 md:grid-cols-2">
+        <FormTextField
+          label="Task title"
+          name="title"
+          defaultValue={resolvedState.fields.title}
+          error={resolvedState.fieldErrors.title}
+          isRequired
+          placeholder="Review client onboarding flow"
+          className="md:col-span-2"
+        />
 
-      <Card.Content className="p-8">
-        <Form key={resolvedState.formKey} action={formAction} className="grid gap-4 md:grid-cols-2">
-          <TextField
-            className="flex flex-col gap-2 md:col-span-2"
-            defaultValue={resolvedState.fields.title}
-            isInvalid={Boolean(resolvedState.fieldErrors.title)}
-            isRequired
-            name="title"
-          >
-            <Label>Task title</Label>
-            <Input placeholder="Review client onboarding flow" type="text" variant="secondary" />
-            <FieldError>{resolvedState.fieldErrors.title}</FieldError>
-          </TextField>
+        <FormSelectField
+          label="Project"
+          name="projectId"
+          options={projects.map(project => ({ id: project.id, label: project.name }))}
+          defaultValue={resolvedState.fields.projectId || undefined}
+          error={resolvedState.fieldErrors.projectId}
+          isRequired
+          placeholder="Select project"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={resolvedState.fields.projectId || undefined}
-            isInvalid={Boolean(resolvedState.fieldErrors.projectId)}
-            isRequired
-            name="projectId"
-            placeholder="Select project"
-            variant="secondary"
-          >
-            <Label>Project</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {projects.map(project => (
-                  <ListBox.Item id={project.id} key={project.id} textValue={project.name}>
-                    {project.name}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{resolvedState.fieldErrors.projectId}</FieldError>
-          </Select>
+        <FormSelectField
+          label="Assignee"
+          name="assigneeUserId"
+          options={[
+            { id: 'unassigned', label: 'Unassigned' },
+            ...memberships.map(membership => ({ id: membership.userId, label: membership.user.name }))
+          ]}
+          defaultValue={resolvedState.fields.assigneeUserId || 'unassigned'}
+          error={resolvedState.fieldErrors.assigneeUserId}
+          placeholder="Select assignee"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={resolvedState.fields.assigneeUserId || 'unassigned'}
-            isInvalid={Boolean(resolvedState.fieldErrors.assigneeUserId)}
-            name="assigneeUserId"
-            placeholder="Select assignee"
-            variant="secondary"
-          >
-            <Label>Assignee</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                <ListBox.Item id="unassigned" textValue="Unassigned">
-                  Unassigned
-                </ListBox.Item>
+        <FormSelectField
+          label="Status"
+          name="status"
+          options={TASK_STATUS_OPTIONS.filter(option => option.id !== 'archived')}
+          defaultValue={resolvedState.fields.status}
+          error={resolvedState.fieldErrors.status}
+          placeholder="Select status"
+        />
 
-                {memberships.map(membership => (
-                  <ListBox.Item id={membership.userId} key={membership.id} textValue={membership.user.name}>
-                    {membership.user.name}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{resolvedState.fieldErrors.assigneeUserId}</FieldError>
-          </Select>
+        <FormSelectField
+          label="Priority"
+          name="priority"
+          options={TASK_PRIORITY_OPTIONS}
+          defaultValue={resolvedState.fields.priority}
+          error={resolvedState.fieldErrors.priority}
+          placeholder="Select priority"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={resolvedState.fields.status}
-            isInvalid={Boolean(resolvedState.fieldErrors.status)}
-            name="status"
-            placeholder="Select status"
-            variant="secondary"
-          >
-            <Label>Status</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {TASK_STATUS_OPTIONS.filter(option => option.id !== 'archived').map(option => (
-                  <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
-                    {option.label}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{resolvedState.fieldErrors.status}</FieldError>
-          </Select>
+        <FormTextField
+          label="Due date"
+          name="dueDate"
+          type="datetime-local"
+          defaultValue={resolvedState.fields.dueDate}
+          error={resolvedState.fieldErrors.dueDate}
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={resolvedState.fields.priority}
-            isInvalid={Boolean(resolvedState.fieldErrors.priority)}
-            name="priority"
-            placeholder="Select priority"
-            variant="secondary"
-          >
-            <Label>Priority</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {TASK_PRIORITY_OPTIONS.map(option => (
-                  <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
-                    {option.label}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{resolvedState.fieldErrors.priority}</FieldError>
-          </Select>
+        <FormTextField
+          label="Blocked reason"
+          name="blockedReason"
+          defaultValue={resolvedState.fields.blockedReason}
+          error={resolvedState.fieldErrors.blockedReason}
+          placeholder="Required only when status is blocked"
+        />
 
-          <TextField
-            className="flex flex-col gap-2"
-            defaultValue={resolvedState.fields.dueDate}
-            isInvalid={Boolean(resolvedState.fieldErrors.dueDate)}
-            name="dueDate"
-          >
-            <Label>Due date</Label>
-            <Input type="datetime-local" variant="secondary" />
-            <FieldError>{resolvedState.fieldErrors.dueDate}</FieldError>
-          </TextField>
+        <FormTextField
+          label="Description"
+          name="description"
+          defaultValue={resolvedState.fields.description}
+          error={resolvedState.fieldErrors.description}
+          placeholder="Execution notes, context, or acceptance criteria."
+          multiline
+          className="md:col-span-2"
+        />
 
-          <TextField
-            className="flex flex-col gap-2"
-            defaultValue={resolvedState.fields.blockedReason}
-            isInvalid={Boolean(resolvedState.fieldErrors.blockedReason)}
-            name="blockedReason"
-          >
-            <Label>Blocked reason</Label>
-            <Input placeholder="Required only when status is blocked" type="text" variant="secondary" />
-            <FieldError>{resolvedState.fieldErrors.blockedReason}</FieldError>
-          </TextField>
+        {resolvedState.status === 'error' && resolvedState.message ? (
+          <p className="md:col-span-2 text-sm text-danger">{resolvedState.message}</p>
+        ) : null}
 
-          <TextField
-            className="flex flex-col gap-2 md:col-span-2"
-            defaultValue={resolvedState.fields.description}
-            isInvalid={Boolean(resolvedState.fieldErrors.description)}
-            name="description"
-          >
-            <Label>Description</Label>
-            <TextArea placeholder="Execution notes, context, or acceptance criteria." variant="secondary" />
-            <FieldError>{resolvedState.fieldErrors.description}</FieldError>
-          </TextField>
-
-          {resolvedState.status === 'error' && resolvedState.message ? (
-            <p className="md:col-span-2 text-sm text-danger">{resolvedState.message}</p>
-          ) : null}
-
-          <div className="md:col-span-2 flex justify-end">
-            <TaskFormSubmitButton idleLabel="Create task" pendingLabel="Creating task..." size="lg" />
-          </div>
-        </Form>
-      </Card.Content>
-    </Card>
+        <div className="md:col-span-2 flex justify-end">
+          <PendingSubmitButton idleLabel="Create task" pendingLabel="Creating task..." size="lg" />
+        </div>
+      </Form>
+    </SectionCard>
   )
 }

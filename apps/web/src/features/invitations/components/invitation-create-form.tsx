@@ -1,12 +1,14 @@
 'use client'
 
+import { FormSelectField, FormTextField } from '@/components/ui/form-fields'
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
+import { SectionCard } from '@/components/ui/section-card'
 import { createInvitationAction } from '@/features/invitations/actions/invitation-actions'
 import { MEMBERSHIP_ROLE_OPTIONS } from '@/lib/memberships/membership-role'
-import { Card, FieldError, Form, Input, Label, ListBox, Select, TextField, toast } from '@heroui/react'
+import { Form, toast } from '@heroui/react'
 import { useActionState, useEffect } from 'react'
 
 import { initialInvitationFormState } from './invitation-action-state'
-import { InvitationFormSubmitButton } from './invitation-form-submit-button'
 
 export function InvitationCreateForm() {
   const [state, formAction] = useActionState(createInvitationAction, initialInvitationFormState)
@@ -24,59 +26,35 @@ export function InvitationCreateForm() {
   }, [resolvedState.message, resolvedState.status])
 
   return (
-    <Card className="border border-black/5">
-      <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-2xl font-semibold tracking-tight">Create invitation</Card.Title>
-        <Card.Description className="text-sm leading-6 text-muted">
-          Invite a user to the active organization with the correct role from the start.
-        </Card.Description>
-      </Card.Header>
+    <SectionCard
+      title="Create invitation"
+      description="Invite a user to the active organization with the correct role from the start."
+    >
+      <Form key={resolvedState.formKey} action={formAction} className="grid gap-4 md:grid-cols-[1.5fr_1fr_auto]">
+        <FormTextField
+          label="Email"
+          name="email"
+          type="email"
+          defaultValue={resolvedState.fields.email}
+          error={resolvedState.fieldErrors.email}
+          isRequired
+          placeholder="teammate@example.com"
+        />
 
-      <Card.Content className="p-8">
-        <Form key={resolvedState.formKey} action={formAction} className="grid gap-4 md:grid-cols-[1.5fr_1fr_auto]">
-          <TextField
-            className="flex flex-col gap-2"
-            defaultValue={resolvedState.fields.email}
-            isInvalid={Boolean(resolvedState.fieldErrors.email)}
-            isRequired
-            name="email"
-          >
-            <Label>Email</Label>
-            <Input placeholder="teammate@example.com" type="email" variant="secondary" />
-            <FieldError>{resolvedState.fieldErrors.email}</FieldError>
-          </TextField>
+        <FormSelectField
+          label="Role"
+          name="role"
+          options={MEMBERSHIP_ROLE_OPTIONS}
+          defaultValue={resolvedState.fields.role}
+          error={resolvedState.fieldErrors.role}
+          isRequired
+          placeholder="Select role"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={resolvedState.fields.role}
-            isInvalid={Boolean(resolvedState.fieldErrors.role)}
-            isRequired
-            name="role"
-            placeholder="Select role"
-            variant="secondary"
-          >
-            <Label>Role</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {MEMBERSHIP_ROLE_OPTIONS.map(option => (
-                  <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
-                    {option.label}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{resolvedState.fieldErrors.role}</FieldError>
-          </Select>
-
-          <div className="flex items-end justify-end">
-            <InvitationFormSubmitButton idleLabel="Create invitation" pendingLabel="Creating..." size="lg" />
-          </div>
-        </Form>
-      </Card.Content>
-    </Card>
+        <div className="flex items-end justify-end">
+          <PendingSubmitButton idleLabel="Create invitation" pendingLabel="Creating..." size="lg" />
+        </div>
+      </Form>
+    </SectionCard>
   )
 }

@@ -1,11 +1,10 @@
 'use client'
 
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
 import { createBillingPortalSessionAction } from '@/features/billing/actions/billing-actions'
 import { initialBillingRedirectActionState } from '@/features/billing/components/billing-action-state'
 import { Alert, Form, toast } from '@heroui/react'
 import { useActionState, useEffect } from 'react'
-
-import { BillingFormSubmitButton } from './billing-form-submit-button'
 
 type BillingPortalButtonProps = {
   canManage: boolean
@@ -35,7 +34,7 @@ export function BillingPortalButton({ canManage, isAvailable }: BillingPortalBut
   return (
     <div className="flex flex-col gap-3">
       <Form action={formAction}>
-        <BillingFormSubmitButton
+        <PendingSubmitButton
           idleLabel="Open billing portal"
           pendingLabel="Opening portal..."
           isDisabled={!canSubmit}

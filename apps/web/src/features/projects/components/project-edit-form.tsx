@@ -1,28 +1,20 @@
 'use client'
 
+import { FormSelectField, FormTextField } from '@/components/ui/form-fields'
+import { MetadataSummaryCard } from '@/components/ui/metric-card'
+import { PendingSubmitButton } from '@/components/ui/pending-submit-button'
+import { SectionCard } from '@/components/ui/section-card'
 import { updateProjectAction } from '@/features/projects/actions/project-actions'
+import { formatDateTime } from '@/lib/formatters'
 import { PROJECTS_PATH } from '@/lib/projects/project-constants'
 import { PROJECT_STATUS_OPTIONS } from '@/lib/projects/project-status'
-import {
-  Card,
-  FieldError,
-  Form,
-  Input,
-  Label,
-  ListBox,
-  Select,
-  TextArea,
-  TextField,
-  buttonVariants,
-  toast
-} from '@heroui/react'
+import { Form, buttonVariants, toast } from '@heroui/react'
 import type { ClientResponse } from '@pulselane/contracts/clients'
 import type { ProjectResponse } from '@pulselane/contracts/projects'
 import Link from 'next/link'
 import { useActionState, useEffect } from 'react'
 
 import { initialProjectFormState } from './project-form-state'
-import { ProjectFormSubmitButton } from './project-form-submit-button'
 
 type ProjectEditFormProps = {
   project: ProjectResponse
@@ -48,137 +40,80 @@ export function ProjectEditForm({ project, clients, canEdit }: ProjectEditFormPr
   }, [state.message, state.status])
 
   return (
-    <Card className="border border-black/5">
-      <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-2xl font-semibold tracking-tight">
-          {canEdit ? 'Edit project' : 'Project overview'}
-        </Card.Title>
-        <Card.Description className="text-sm leading-6 text-muted">
-          {canEdit
-            ? 'Update the project while preserving tenant scope and optimistic concurrency.'
-            : 'Your current role is read-only for project management.'}
-        </Card.Description>
-      </Card.Header>
+    <SectionCard
+      title={canEdit ? 'Edit project' : 'Project overview'}
+      description={
+        canEdit
+          ? 'Update the project while preserving tenant scope and optimistic concurrency.'
+          : 'Your current role is read-only for project management.'
+      }
+    >
+      <Form key={state.formKey} action={formAction} className="grid gap-4 md:grid-cols-2">
+        <input type="hidden" name="projectId" value={project.id} />
+        <input type="hidden" name="expectedUpdatedAt" value={project.updatedAt} />
 
-      <Card.Content className="p-8">
-        <Form key={state.formKey} action={formAction} className="grid gap-4 md:grid-cols-2">
-          <input type="hidden" name="projectId" value={project.id} />
-          <input type="hidden" name="expectedUpdatedAt" value={project.updatedAt} />
+        <FormTextField
+          label="Project name"
+          name="name"
+          defaultValue={state.fields.name}
+          error={state.fieldErrors.name}
+          isDisabled={!canEdit}
+          isRequired
+          className="md:col-span-2"
+        />
 
-          <TextField
-            className="flex flex-col gap-2 md:col-span-2"
-            defaultValue={state.fields.name}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.name)}
-            isRequired
-            name="name"
-          >
-            <Label>Project name</Label>
-            <Input type="text" variant="secondary" />
-            <FieldError>{state.fieldErrors.name}</FieldError>
-          </TextField>
+        <FormSelectField
+          label="Client"
+          name="clientId"
+          options={clients.map(client => ({ id: client.id, label: client.name }))}
+          defaultValue={state.fields.clientId}
+          error={state.fieldErrors.clientId}
+          isDisabled={!canEdit}
+          isRequired
+          placeholder="Select client"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={state.fields.clientId}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.clientId)}
-            isRequired
-            name="clientId"
-            placeholder="Select client"
-            variant="secondary"
-          >
-            <Label>Client</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {clients.map(client => (
-                  <ListBox.Item id={client.id} key={client.id} textValue={client.name}>
-                    {client.name}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{state.fieldErrors.clientId}</FieldError>
-          </Select>
+        <FormSelectField
+          label="Status"
+          name="status"
+          options={PROJECT_STATUS_OPTIONS}
+          defaultValue={state.fields.status}
+          error={state.fieldErrors.status}
+          isDisabled={!canEdit}
+          placeholder="Select status"
+        />
 
-          <Select
-            className="flex flex-col gap-2"
-            defaultValue={state.fields.status}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.status)}
-            name="status"
-            placeholder="Select status"
-            variant="secondary"
-          >
-            <Label>Status</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {PROJECT_STATUS_OPTIONS.map(option => (
-                  <ListBox.Item id={option.id} key={option.id} textValue={option.label}>
-                    {option.label}
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-            <FieldError>{state.fieldErrors.status}</FieldError>
-          </Select>
+        <FormTextField
+          label="Description"
+          name="description"
+          defaultValue={state.fields.description}
+          error={state.fieldErrors.description}
+          isDisabled={!canEdit}
+          multiline
+          className="md:col-span-2"
+        />
 
-          <TextField
-            className="flex flex-col gap-2 md:col-span-2"
-            defaultValue={state.fields.description}
-            isDisabled={!canEdit}
-            isInvalid={Boolean(state.fieldErrors.description)}
-            name="description"
-          >
-            <Label>Description</Label>
-            <TextArea variant="secondary" />
-            <FieldError>{state.fieldErrors.description}</FieldError>
-          </TextField>
+        <MetadataSummaryCard
+          className="md:col-span-2"
+          items={[
+            { label: 'Created', value: formatDateTime(project.createdAt) },
+            { label: 'Updated', value: formatDateTime(project.updatedAt) },
+            { label: 'Archived at', value: formatDateTime(project.archivedAt, 'Not archived') }
+          ]}
+        />
 
-          <Card className="md:col-span-2" variant="tertiary">
-            <Card.Content className="grid gap-3 p-4 md:grid-cols-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Created</p>
-                <p className="mt-1 text-sm text-foreground">{new Date(project.createdAt).toLocaleString('en-US')}</p>
-              </div>
+        {state.status === 'error' && state.message ? (
+          <p className="md:col-span-2 text-sm text-danger">{state.message}</p>
+        ) : null}
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Updated</p>
-                <p className="mt-1 text-sm text-foreground">{new Date(project.updatedAt).toLocaleString('en-US')}</p>
-              </div>
+        <div className="md:col-span-2 flex flex-wrap justify-end gap-3">
+          <Link href={PROJECTS_PATH} className={buttonVariants({ variant: 'outline' })}>
+            Back to projects
+          </Link>
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Archived at</p>
-                <p className="mt-1 text-sm text-foreground">
-                  {project.archivedAt ? new Date(project.archivedAt).toLocaleString('en-US') : 'Not archived'}
-                </p>
-              </div>
-            </Card.Content>
-          </Card>
-
-          {state.status === 'error' && state.message ? (
-            <p className="md:col-span-2 text-sm text-danger">{state.message}</p>
-          ) : null}
-
-          <div className="md:col-span-2 flex flex-wrap justify-end gap-3">
-            <Link href={PROJECTS_PATH} className={buttonVariants({ variant: 'outline' })}>
-              Back to projects
-            </Link>
-
-            {canEdit ? (
-              <ProjectFormSubmitButton idleLabel="Save changes" pendingLabel="Saving changes..." size="lg" />
-            ) : null}
-          </div>
-        </Form>
-      </Card.Content>
-    </Card>
+          {canEdit ? <PendingSubmitButton idleLabel="Save changes" pendingLabel="Saving changes..." size="lg" /> : null}
+        </div>
+      </Form>
+    </SectionCard>
   )
 }
