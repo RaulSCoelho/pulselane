@@ -70,10 +70,20 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md border border-black/5">
+    <Card className="w-full border border-border shadow-surface">
       <Card.Content className="flex flex-col gap-6 p-8">
+        <div className="flex items-center gap-3">
+          <span className="grid size-10 place-items-center rounded-3xl bg-accent text-sm font-semibold text-accent-foreground">
+            P
+          </span>
+          <div>
+            <p className="font-brand text-base font-semibold leading-tight">Pulselane</p>
+            <p className="text-xs text-muted">Operations hub</p>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Login</h1>
+          <h1 className="text-2xl font-semibold tracking-normal">Sign in</h1>
 
           <p className="text-sm text-muted">Enter your account and continue to the operational workspace.</p>
         </div>
@@ -98,7 +108,7 @@ export function LoginForm() {
 
           {errorMessage ? <p className="text-sm whitespace-pre-wrap text-danger">{errorMessage}</p> : null}
 
-          <Button type="submit" isPending={isPending} size="lg" className="mt-2">
+          <Button type="submit" isPending={isPending} size="lg" className="mt-2 w-full">
             Sign in
           </Button>
         </Form>

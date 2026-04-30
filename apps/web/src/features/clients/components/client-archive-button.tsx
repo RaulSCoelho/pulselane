@@ -10,15 +10,17 @@ import { initialArchiveClientState } from './client-form-state'
 type ClientArchiveButtonProps = {
   clientId: string
   isDisabled?: boolean
+  onArchived?: () => void
 }
 
-export function ClientArchiveButton({ clientId, isDisabled = false }: ClientArchiveButtonProps) {
+export function ClientArchiveButton({ clientId, isDisabled = false, onArchived }: ClientArchiveButtonProps) {
   const router = useRouter()
   const [state, formAction, pending] = useActionState(archiveClientAction, initialArchiveClientState)
 
   useEffect(() => {
     if (state.status === 'success' && state.message && state.archivedClientId === clientId) {
       toast.success(state.message)
+      onArchived?.()
       router.refresh()
       return
     }
@@ -26,7 +28,7 @@ export function ClientArchiveButton({ clientId, isDisabled = false }: ClientArch
     if (state.status === 'error' && state.message) {
       toast.danger(state.message)
     }
-  }, [clientId, router, state.archivedClientId, state.message, state.status])
+  }, [clientId, onArchived, router, state.archivedClientId, state.message, state.status])
 
   return (
     <AlertDialog>

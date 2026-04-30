@@ -6,19 +6,22 @@ import { SectionCard } from '@/components/ui/section-card'
 import { createClientAction } from '@/features/clients/actions/client-actions'
 import { CLIENT_STATUS_OPTIONS } from '@/lib/clients/client-status'
 import { Form, toast } from '@heroui/react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useActionState, useEffect } from 'react'
 
 import { initialClientFormState } from './client-form-state'
 
 export function ClientCreateForm() {
+  const queryClient = useQueryClient()
   const [state, formAction] = useActionState(createClientAction, initialClientFormState)
   const resolvedState = state ?? initialClientFormState
 
   useEffect(() => {
     if (resolvedState.status === 'success' && resolvedState.message) {
       toast.success(resolvedState.message)
+      void queryClient.invalidateQueries({ queryKey: ['clients'] })
     }
-  }, [resolvedState.message, resolvedState.status])
+  }, [queryClient, resolvedState.message, resolvedState.status])
 
   return (
     <SectionCard title="Create client" description="Add the first operational entity that unlocks projects and tasks.">

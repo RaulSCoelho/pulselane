@@ -10,15 +10,17 @@ import { initialArchiveTaskState } from './task-form-state'
 type TaskArchiveButtonProps = {
   taskId: string
   isDisabled?: boolean
+  onArchived?: () => void
 }
 
-export function TaskArchiveButton({ taskId, isDisabled = false }: TaskArchiveButtonProps) {
+export function TaskArchiveButton({ taskId, isDisabled = false, onArchived }: TaskArchiveButtonProps) {
   const router = useRouter()
   const [state, formAction, pending] = useActionState(archiveTaskAction, initialArchiveTaskState)
 
   useEffect(() => {
     if (state.status === 'success' && state.message && state.archivedTaskId === taskId) {
       toast.success(state.message)
+      onArchived?.()
       router.refresh()
       return
     }
@@ -26,7 +28,7 @@ export function TaskArchiveButton({ taskId, isDisabled = false }: TaskArchiveBut
     if (state.status === 'error' && state.message) {
       toast.danger(state.message)
     }
-  }, [taskId, router, state.archivedTaskId, state.message, state.status])
+  }, [onArchived, router, state.archivedTaskId, state.message, state.status, taskId])
 
   return (
     <AlertDialog>

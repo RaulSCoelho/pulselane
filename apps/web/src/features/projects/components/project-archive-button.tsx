@@ -10,15 +10,17 @@ import { initialArchiveProjectState } from './project-form-state'
 type ProjectArchiveButtonProps = {
   projectId: string
   isDisabled?: boolean
+  onArchived?: () => void
 }
 
-export function ProjectArchiveButton({ projectId, isDisabled = false }: ProjectArchiveButtonProps) {
+export function ProjectArchiveButton({ projectId, isDisabled = false, onArchived }: ProjectArchiveButtonProps) {
   const router = useRouter()
   const [state, formAction, pending] = useActionState(archiveProjectAction, initialArchiveProjectState)
 
   useEffect(() => {
     if (state.status === 'success' && state.message && state.archivedProjectId === projectId) {
       toast.success(state.message)
+      onArchived?.()
       router.refresh()
       return
     }
@@ -26,7 +28,7 @@ export function ProjectArchiveButton({ projectId, isDisabled = false }: ProjectA
     if (state.status === 'error' && state.message) {
       toast.danger(state.message)
     }
-  }, [projectId, router, state.archivedProjectId, state.message, state.status])
+  }, [onArchived, projectId, router, state.archivedProjectId, state.message, state.status])
 
   return (
     <AlertDialog>

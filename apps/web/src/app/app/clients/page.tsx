@@ -1,33 +1,12 @@
-import { listClients } from '@/features/clients/api/server-queries'
+import { PageHeader } from '@/components/ui/page-header'
 import { ClientCreateForm } from '@/features/clients/components/client-create-form'
-import { ClientFiltersForm } from '@/features/clients/components/client-filters-form'
-import { ClientsEmptyState } from '@/features/clients/components/clients-empty-state'
 import { ClientsTable } from '@/features/clients/components/clients-table'
-import { ClientsUnavailableState } from '@/features/clients/components/clients-unavailable-state'
 import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
 import { OrganizationContextStatusState } from '@/features/organizations/components/organization-context-status-state'
 import { canCreateClients } from '@/lib/clients/client-permissions'
-import { Card, buttonVariants } from '@heroui/react'
-import { listClientsQuerySchema } from '@pulselane/contracts/clients'
-import Link from 'next/link'
 
-type ClientsPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}
-
-function readSearchParam(source: Record<string, string | string[] | undefined>, key: string) {
-  const value = source[key]
-
-  if (Array.isArray(value)) {
-    return value[0]
-  }
-
-  return value
-}
-
-export default async function ClientsPage({ searchParams }: ClientsPageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : {}
+export default async function ClientsPage() {
   const currentOrganizationState = await getCurrentOrganization()
 
   if (currentOrganizationState.status === 'not_selected') {
@@ -39,103 +18,34 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
   }
 
   const currentOrganization = currentOrganizationState.data
-
-  const rawQuery = {
-    search: readSearchParam(resolvedSearchParams, 'search'),
-    status:
-      readSearchParam(resolvedSearchParams, 'status') && readSearchParam(resolvedSearchParams, 'status') !== 'all'
-        ? readSearchParam(resolvedSearchParams, 'status')
-        : undefined,
-    cursor: readSearchParam(resolvedSearchParams, 'cursor'),
-    includeArchived: readSearchParam(resolvedSearchParams, 'includeArchived'),
-    limit: readSearchParam(resolvedSearchParams, 'limit') ?? '20'
-  }
-
-  const parsedQuery = listClientsQuerySchema.safeParse(rawQuery)
-  const query = parsedQuery.success ? parsedQuery.data : listClientsQuerySchema.parse({ limit: '20' })
-  const clientsState = await listClients(query)
-
-  const hasFilters = Boolean(query.search || query.status || query.cursor || query.includeArchived)
   const allowCreate = canCreateClients(currentOrganization.currentRole)
-  const loadedNow = clientsState.status === 'ready' ? clientsState.data.items.length : 'Unavailable'
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-black/5">
-        <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Operational module</span>
-            <h1 className="text-3xl font-semibold tracking-tight">Clients</h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted">
-              The first real operational entity in Pulselane. Clients unlock project structure and the rest of the
-              execution flow.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-3">
-            <Card className="border border-black/5" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current role</p>
-                <p className="mt-2 text-sm font-medium">{currentOrganization.currentRole}</p>
-              </Card.Content>
-            </Card>
-
-            <Card className="border border-black/5" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Clients usage</p>
-                <p className="mt-2 text-sm font-medium">
-                  {currentOrganization.usage.clients}
-                  {currentOrganization.limits.clients !== null ? ` / ${currentOrganization.limits.clients}` : ''}
-                </p>
-              </Card.Content>
-            </Card>
-
-            <Card className="border border-black/5" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Loaded now</p>
-                <p className="mt-2 text-sm font-medium">{loadedNow}</p>
-              </Card.Content>
-            </Card>
-          </div>
-        </Card.Content>
-      </Card>
-
-      <ClientFiltersForm
-        search={query.search ?? ''}
-        status={query.status ?? 'all'}
-        includeArchived={Boolean(query.includeArchived)}
+      <PageHeader
+        eyebrow="Operational module"
+        title="Clients"
+        description="Manage the operational entities that unlock project structure and execution flow."
+        metrics={[
+          {
+            label: 'Current role',
+            value: currentOrganization.currentRole
+          },
+          {
+            label: 'Clients usage',
+            value: (
+              <>
+                {currentOrganization.usage.clients}
+                {currentOrganization.limits.clients !== null ? ` / ${currentOrganization.limits.clients}` : ''}
+              </>
+            )
+          }
+        ]}
       />
 
-      {clientsState.status === 'ready' ? (
-        <>
-          {allowCreate ? <ClientCreateForm /> : null}
+      {allowCreate ? <ClientCreateForm /> : null}
 
-          {clientsState.data.items.length > 0 ? (
-            <ClientsTable items={clientsState.data.items} currentRole={currentOrganization.currentRole} />
-          ) : (
-            <ClientsEmptyState includeArchived={Boolean(query.includeArchived)} hasFilters={hasFilters} />
-          )}
-        </>
-      ) : (
-        <ClientsUnavailableState reason={clientsState.reason} />
-      )}
-
-      {clientsState.status === 'ready' && clientsState.data.meta.hasNextPage && clientsState.data.meta.nextCursor ? (
-        <div className="flex justify-end">
-          <Link
-            href={`/app/clients?${new URLSearchParams({
-              ...(query.search ? { search: query.search } : {}),
-              ...(query.status ? { status: query.status } : {}),
-              ...(query.includeArchived ? { includeArchived: 'true' } : {}),
-              limit: String(query.limit),
-              cursor: clientsState.data.meta.nextCursor
-            }).toString()}`}
-            className={buttonVariants({ variant: 'outline' })}
-          >
-            Load next page
-          </Link>
-        </div>
-      ) : null}
+      <ClientsTable currentRole={currentOrganization.currentRole} />
     </div>
   )
 }

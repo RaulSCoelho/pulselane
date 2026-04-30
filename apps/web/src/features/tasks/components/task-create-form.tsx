@@ -8,6 +8,7 @@ import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from '@/lib/tasks/task-sta
 import { Form, toast } from '@heroui/react'
 import type { MembershipResponse } from '@pulselane/contracts/memberships'
 import type { ProjectResponse } from '@pulselane/contracts/projects'
+import { useQueryClient } from '@tanstack/react-query'
 import { useActionState, useEffect } from 'react'
 
 import { initialTaskFormState } from './task-form-state'
@@ -18,14 +19,16 @@ type TaskCreateFormProps = {
 }
 
 export function TaskCreateForm({ projects, memberships }: TaskCreateFormProps) {
+  const queryClient = useQueryClient()
   const [state, formAction] = useActionState(createTaskAction, initialTaskFormState)
   const resolvedState = state ?? initialTaskFormState
 
   useEffect(() => {
     if (resolvedState.status === 'success' && resolvedState.message) {
       toast.success(resolvedState.message)
+      void queryClient.invalidateQueries({ queryKey: ['tasks'] })
     }
-  }, [resolvedState.message, resolvedState.status])
+  }, [queryClient, resolvedState.message, resolvedState.status])
 
   return (
     <SectionCard

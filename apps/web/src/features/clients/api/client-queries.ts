@@ -1,45 +1,26 @@
 'use client'
 
-import { createApiHttpError } from '@/http/api-error'
-import { clientApi } from '@/http/client-api-client'
+import { buildClientQueryString, clientApiJson } from '@/http/client-resource'
 import {
-  ListClientsQuery,
-  ListClientsResponse,
+  type ListClientsQuery,
+  type ListClientsResponse,
   listClientsQuerySchema,
   listClientsResponseSchema
 } from '@pulselane/contracts/clients'
-import { queryOptions } from '@tanstack/react-query'
 
-function toQueryString(query: Partial<ListClientsQuery>) {
-  const parsed = listClientsQuerySchema.safeParse(query)
+export async function fetchClientsPage(query: Partial<ListClientsQuery>): Promise<ListClientsResponse> {
+  const parsed = listClientsQuerySchema.parse(query)
+  const queryString = buildClientQueryString({
+    cursor: parsed.cursor,
+    limit: parsed.limit,
+    search: parsed.search,
+    status: parsed.status,
+    includeArchived: parsed.includeArchived
+  })
 
-  if (!parsed.success) {
-    return ''
-  }
-
-  const params = new URLSearchParams()
-
-  if (parsed.data.cursor) params.set('cursor', parsed.data.cursor)
-  if (parsed.data.limit) params.set('limit', String(parsed.data.limit))
-  if (parsed.data.search) params.set('search', parsed.data.search)
-  if (parsed.data.status) params.set('status', parsed.data.status)
-  if (parsed.data.includeArchived) params.set('includeArchived', 'true')
-
-  const serialized = params.toString()
-  return serialized ? `?${serialized}` : ''
-}
-
-export function clientsQueryOptions(query: Partial<ListClientsQuery> = {}) {
-  return queryOptions({
-    queryKey: ['clients', query],
-    queryFn: async (): Promise<ListClientsResponse> => {
-      const response = await clientApi<ListClientsResponse>(`/api/v1/clients${toQueryString(query)}`)
-
-      if (!response.ok) {
-        throw await createApiHttpError(response, `Unable to load clients. Status: ${response.status}`)
-      }
-
-      return listClientsResponseSchema.parse(await response.json())
-    }
+  return clientApiJson({
+    path: `/api/v1/clients${queryString}`,
+    schema: listClientsResponseSchema,
+    fallbackMessage: 'Unable to load clients.'
   })
 }

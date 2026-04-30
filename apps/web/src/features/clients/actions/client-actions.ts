@@ -12,9 +12,11 @@ import { readApiErrorMessage } from '@/http/api-error'
 import { serverApi } from '@/http/server-api-client'
 import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
-import { successResponseSchema } from '@pulselane/contracts'
+import { type ClientStatus, successResponseSchema } from '@pulselane/contracts'
 import {
+  ClientResponse,
   createClientRequestSchema,
+  clientResponseSchema,
   type CreateClientRequest,
   updateClientRequestSchema,
   type UpdateClientRequest
@@ -237,5 +239,66 @@ export async function archiveClientAction(
     status: 'success',
     message: 'Client archived successfully.',
     archivedClientId: clientId
+  }
+}
+
+export async function updateClientStatusAction(input: {
+  clientId: string
+  status: ClientStatus
+  expectedUpdatedAt: string
+}): Promise<{ status: 'success'; client: ClientResponse } | { status: 'error'; message: string }> {
+  const clientId = input.clientId.trim()
+
+  if (!clientId) {
+    return {
+      status: 'error',
+      message: 'Missing client id.'
+    }
+  }
+
+  const parsed = updateClientRequestSchema.safeParse({
+    status: input.status,
+    expectedUpdatedAt: input.expectedUpdatedAt
+  })
+
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Invalid client status update.'
+    }
+  }
+
+  const response = await serverApi(`/api/v1/clients/${clientId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(parsed.data)
+  })
+
+  if (!response.ok) {
+    return {
+      status: 'error',
+      message: await readApiErrorMessage(response, 'Unable to update client status.')
+    }
+  }
+
+  const body = clientResponseSchema.safeParse(await response.json().catch(() => null))
+
+  if (!body.success) {
+    return {
+      status: 'error',
+      message: 'Unable to update client status.'
+    }
+  }
+
+  await updateClientCacheTags(clientId)
+  revalidatePath('/app/clients')
+  revalidatePath(`/app/clients/${clientId}`)
+  revalidatePath(APP_HOME_PATH)
+
+  return {
+    status: 'success',
+    client: body.data
   }
 }

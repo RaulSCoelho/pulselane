@@ -13,11 +13,13 @@ import { serverApi } from '@/http/server-api-client'
 import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import { TASKS_PATH } from '@/lib/tasks/task-constants'
-import { successResponseSchema } from '@pulselane/contracts'
+import { type TaskStatus, successResponseSchema } from '@pulselane/contracts'
 import {
   CreateTaskRequest,
+  TaskResponse,
   UpdateTaskRequest,
   createTaskRequestSchema,
+  taskResponseSchema,
   updateTaskRequestSchema
 } from '@pulselane/contracts/tasks'
 import { revalidatePath, updateTag } from 'next/cache'
@@ -286,5 +288,66 @@ export async function archiveTaskAction(
     status: 'success',
     message: 'Task archived successfully.',
     archivedTaskId: taskId
+  }
+}
+
+export async function updateTaskStatusAction(input: {
+  taskId: string
+  status: TaskStatus
+  expectedUpdatedAt: string
+}): Promise<{ status: 'success'; task: TaskResponse } | { status: 'error'; message: string }> {
+  const taskId = input.taskId.trim()
+
+  if (!taskId) {
+    return {
+      status: 'error',
+      message: 'Missing task id.'
+    }
+  }
+
+  const parsed = updateTaskRequestSchema.safeParse({
+    status: input.status,
+    expectedUpdatedAt: input.expectedUpdatedAt
+  })
+
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Invalid task status update.'
+    }
+  }
+
+  const response = await serverApi(`/api/v1/tasks/${taskId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(parsed.data)
+  })
+
+  if (!response.ok) {
+    return {
+      status: 'error',
+      message: await readApiErrorMessage(response, 'Unable to update task status.')
+    }
+  }
+
+  const body = taskResponseSchema.safeParse(await response.json().catch(() => null))
+
+  if (!body.success) {
+    return {
+      status: 'error',
+      message: 'Unable to update task status.'
+    }
+  }
+
+  await updateTaskCacheTags(taskId)
+  revalidatePath(TASKS_PATH)
+  revalidatePath(`${TASKS_PATH}/${taskId}`)
+  revalidatePath(APP_HOME_PATH)
+
+  return {
+    status: 'success',
+    task: body.data
   }
 }

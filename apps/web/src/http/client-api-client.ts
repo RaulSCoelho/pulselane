@@ -1,8 +1,8 @@
 'use client'
 
 import { getClientApiUrl } from '@/lib/env'
-import { readActiveOrganizationIdFromDocument } from '@/lib/organizations/organization-context'
-import { ACTIVE_ORGANIZATION_HEADER_NAME } from '@/lib/organizations/organization-context-constants'
+import { setOrganizationHeaders } from '@/lib/http/organization-headers'
+import { setSessionHeaders } from '@/lib/http/session-headers'
 import ky, { type KyResponse, type Options } from 'ky'
 
 export type ClientApiOptions = Options
@@ -24,18 +24,11 @@ const clientApiClient = ky.create({
   retry: 0,
   hooks: {
     beforeRequest: [
-      state => {
+      async state => {
         const { request } = state
 
-        if (request.headers.has(ACTIVE_ORGANIZATION_HEADER_NAME)) {
-          return
-        }
-
-        const activeOrganizationId = readActiveOrganizationIdFromDocument()
-
-        if (activeOrganizationId) {
-          request.headers.set(ACTIVE_ORGANIZATION_HEADER_NAME, activeOrganizationId)
-        }
+        await setSessionHeaders(request)
+        await setOrganizationHeaders(request)
       }
     ],
     afterResponse: [

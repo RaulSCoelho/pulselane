@@ -7,6 +7,7 @@ import { createProjectAction } from '@/features/projects/actions/project-actions
 import { PROJECT_STATUS_OPTIONS } from '@/lib/projects/project-status'
 import { Form, toast } from '@heroui/react'
 import type { ClientResponse } from '@pulselane/contracts/clients'
+import { useQueryClient } from '@tanstack/react-query'
 import { useActionState, useEffect } from 'react'
 
 import { initialProjectFormState } from './project-form-state'
@@ -16,14 +17,16 @@ type ProjectCreateFormProps = {
 }
 
 export function ProjectCreateForm({ clients }: ProjectCreateFormProps) {
+  const queryClient = useQueryClient()
   const [state, formAction] = useActionState(createProjectAction, initialProjectFormState)
   const resolvedState = state ?? initialProjectFormState
 
   useEffect(() => {
     if (resolvedState.status === 'success' && resolvedState.message) {
       toast.success(resolvedState.message)
+      void queryClient.invalidateQueries({ queryKey: ['projects'] })
     }
-  }, [resolvedState.message, resolvedState.status])
+  }, [queryClient, resolvedState.message, resolvedState.status])
 
   return (
     <SectionCard

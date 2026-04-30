@@ -1,5 +1,9 @@
+'use client'
+
 import type { CurrentOrganizationState } from '@/features/organizations/api/server-queries'
+import { nextClientApi } from '@/http/client-api-client'
 import { AUDIT_LOGS_PATH } from '@/lib/audit-logs/audit-log-constants'
+import { LOGIN_PATH } from '@/lib/auth/auth-constants'
 import { BILLING_PATH } from '@/lib/billing/billing-constants'
 import { CLIENTS_PATH } from '@/lib/clients/client-constants'
 import { INVITATIONS_PATH } from '@/lib/invitations/invitation-constants'
@@ -8,10 +12,13 @@ import { APP_HOME_PATH, SELECT_ORGANIZATION_PATH } from '@/lib/organizations/org
 import { ORGANIZATION_SETTINGS_PATH } from '@/lib/organizations/organization-settings-constants'
 import { PROJECTS_PATH } from '@/lib/projects/project-constants'
 import { SESSIONS_PATH } from '@/lib/sessions/session-constants'
+import { cn } from '@/lib/styles'
 import { TASKS_PATH } from '@/lib/tasks/task-constants'
-import { Card } from '@heroui/react'
+import { Avatar, Button, Dropdown, Label, Separator, toast } from '@heroui/react'
 import type { MeResponse } from '@pulselane/contracts'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
 
 import { getAppShellOrganizationContextView } from './app-shell-organization-context'
 
@@ -21,124 +28,472 @@ type AppShellProps = {
   children: React.ReactNode
 }
 
-const navigationItems = [
+type NavigationIcon =
+  | 'overview'
+  | 'clients'
+  | 'projects'
+  | 'tasks'
+  | 'members'
+  | 'invitations'
+  | 'organization'
+  | 'sessions'
+  | 'billing'
+  | 'audit'
+  | 'context'
+
+type NavigationItem = {
+  href: string
+  label: string
+  icon: NavigationIcon
+}
+
+const navigationItems: NavigationItem[] = [
   {
     href: APP_HOME_PATH,
-    label: 'Overview'
+    label: 'Overview',
+    icon: 'overview'
   },
   {
     href: CLIENTS_PATH,
-    label: 'Clients'
+    label: 'Clients',
+    icon: 'clients'
   },
   {
     href: PROJECTS_PATH,
-    label: 'Projects'
+    label: 'Projects',
+    icon: 'projects'
   },
   {
     href: TASKS_PATH,
-    label: 'Tasks'
+    label: 'Tasks',
+    icon: 'tasks'
   },
   {
     href: MEMBERS_PATH,
-    label: 'Members'
+    label: 'Members',
+    icon: 'members'
   },
   {
     href: INVITATIONS_PATH,
-    label: 'Invitations'
+    label: 'Invitations',
+    icon: 'invitations'
   },
   {
     href: ORGANIZATION_SETTINGS_PATH,
-    label: 'Organization'
+    label: 'Organization',
+    icon: 'organization'
   },
   {
     href: SESSIONS_PATH,
-    label: 'Sessions'
+    label: 'Sessions',
+    icon: 'sessions'
   },
   {
     href: BILLING_PATH,
-    label: 'Billing'
+    label: 'Billing',
+    icon: 'billing'
   },
   {
     href: AUDIT_LOGS_PATH,
-    label: 'Audit logs'
+    label: 'Audit logs',
+    icon: 'audit'
   },
   {
     href: SELECT_ORGANIZATION_PATH,
-    label: 'Organization context'
+    label: 'Organization context',
+    icon: 'context'
   }
 ]
 
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('')
+}
+
+function isRouteActive(pathname: string, href: string) {
+  if (href === APP_HOME_PATH) {
+    return pathname === href
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+function MenuIcon({ isOpen = false }: { isOpen?: boolean }) {
+  return (
+    <svg aria-hidden="true" className="size-4" viewBox="0 0 16 16" fill="none">
+      {isOpen ? (
+        <>
+          <path d="M4 4L12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M12 4L4 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </>
+      ) : (
+        <>
+          <path d="M2.75 4.5H13.25" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M2.75 8H13.25" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M2.75 11.5H13.25" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </>
+      )}
+    </svg>
+  )
+}
+
+function LogoutIcon() {
+  return (
+    <svg aria-hidden="true" className="size-4" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M6.25 3.25H4.5A1.75 1.75 0 0 0 2.75 5v6A1.75 1.75 0 0 0 4.5 12.75h1.75"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path d="M7.5 8h5.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M11 5.75 13.25 8 11 10.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function RouteIcon({ icon }: { icon: NavigationIcon }) {
+  const common = {
+    'aria-hidden': true,
+    className: 'size-4',
+    viewBox: '0 0 16 16',
+    fill: 'none'
+  } as const
+
+  switch (icon) {
+    case 'overview':
+      return (
+        <svg {...common}>
+          <path d="M2.75 8.25 8 3.5l5.25 4.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M4.25 7.5v5h7.5v-5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'clients':
+    case 'members':
+      return (
+        <svg {...common}>
+          <path d="M6.5 7.25a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M2.75 12.75c.55-2 1.85-3 3.75-3s3.2 1 3.75 3" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M11.2 7.25a1.65 1.65 0 1 0 0-3.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M11.25 9.8c1.15.2 1.95.95 2.4 2.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )
+    case 'projects':
+      return (
+        <svg {...common}>
+          <path d="M2.75 5.5h4l1.2-1.5h5.3v8.25H2.75V5.5Z" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M2.75 7.5h10.5" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      )
+    case 'tasks':
+      return (
+        <svg {...common}>
+          <path d="M3 4.25h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M3 11.75h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="m10.25 11.3 1 1 2-2.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )
+    case 'invitations':
+      return (
+        <svg {...common}>
+          <path d="M2.75 5.25 8 8.5l5.25-3.25" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M2.75 4.5h10.5v7H2.75v-7Z" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      )
+    case 'organization':
+      return (
+        <svg {...common}>
+          <path d="M3.25 13V3.25h5.5V13" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M8.75 6.25h4V13" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M5 5.75h2M5 8h2M5 10.25h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )
+    case 'sessions':
+      return (
+        <svg {...common}>
+          <path d="M3.25 4.25h9.5v7.5h-9.5v-7.5Z" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M5.5 13h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M8 11.75V13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )
+    case 'billing':
+      return (
+        <svg {...common}>
+          <path d="M3 5.25h10v6.5H3v-6.5Z" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M3 7h10" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M5 10h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )
+    case 'audit':
+      return (
+        <svg {...common}>
+          <path d="M4.25 2.75h7.5v10.5h-7.5V2.75Z" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M6 5.5h4M6 8h4M6 10.5h2.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )
+    case 'context':
+      return (
+        <svg {...common}>
+          <path d="M8 2.75v10.5M2.75 8h10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M4.25 4.25h7.5v7.5h-7.5v-7.5Z" stroke="currentColor" strokeWidth="1.5" />
+        </svg>
+      )
+  }
+}
+
+function SidebarNavigation({
+  pathname,
+  isCollapsed,
+  onNavigate
+}: {
+  pathname: string
+  isCollapsed: boolean
+  onNavigate?: () => void
+}) {
+  return (
+    <nav className="flex flex-col gap-1" aria-label="Primary navigation">
+      {navigationItems.map(item => {
+        const isActive = isRouteActive(pathname, item.href)
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            aria-current={isActive ? 'page' : undefined}
+            className={cn(
+              'group flex items-center gap-3 rounded-2xl px-3 text-sm font-medium outline-none transition duration-150 ease-out',
+              isCollapsed ? 'h-9 justify-center' : 'h-10 justify-start',
+              isActive
+                ? 'bg-accent text-accent-foreground shadow-sm'
+                : 'text-muted hover:bg-surface-secondary hover:text-foreground focus-visible:bg-surface-secondary focus-visible:text-foreground'
+            )}
+          >
+            <span
+              className={cn(
+                'grid size-7 shrink-0 place-items-center rounded-xl transition',
+                isActive ? 'bg-white/15' : 'bg-background text-muted group-hover:text-foreground'
+              )}
+            >
+              <RouteIcon icon={item.icon} />
+            </span>
+            {isCollapsed ? <span className="sr-only">{item.label}</span> : <span>{item.label}</span>}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
+function SidebarPanel({
+  pathname,
+  organizationName,
+  organizationDetail,
+  isCollapsed,
+  onNavigate,
+  mode
+}: {
+  pathname: string
+  organizationName: string
+  organizationDetail: string
+  isCollapsed: boolean
+  onNavigate?: () => void
+  mode: 'desktop' | 'mobile'
+}) {
+  return (
+    <aside
+      className={cn(
+        'flex sticky top-0 h-screen flex-col border-r border-border bg-surface text-surface-foreground shadow-surface transition-[width] duration-200 ease-out',
+        mode === 'desktop' ? (isCollapsed ? 'w-(--app-sidebar-collapsed-width)' : 'w-(--app-sidebar-width)') : 'w-80'
+      )}
+    >
+      <div className="flex h-16 items-center justify-between gap-3 border-b border-separator px-4">
+        <Link href={APP_HOME_PATH} className="flex min-w-0 items-center gap-3" onClick={onNavigate}>
+          <span className="grid size-9 shrink-0 place-items-center rounded-2xl bg-accent text-sm font-semibold text-accent-foreground">
+            P
+          </span>
+          {!isCollapsed ? (
+            <span className="min-w-0">
+              <span className="block truncate font-brand text-sm font-semibold leading-tight">Pulselane</span>
+              <span className="block truncate text-xs text-muted">Operations hub</span>
+            </span>
+          ) : (
+            <span className="sr-only">Pulselane</span>
+          )}
+        </Link>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
+        <SidebarNavigation pathname={pathname} isCollapsed={isCollapsed} onNavigate={onNavigate} />
+      </div>
+
+      <div className="border-t border-separator p-4">
+        {isCollapsed ? (
+          <div className="mx-auto size-2 rounded-full bg-success" aria-label="Organization context active" />
+        ) : (
+          <div className="rounded-2xl bg-surface-secondary p-4">
+            <p className="text-xs font-medium uppercase text-muted">Current organization</p>
+            <p className="mt-2 truncate text-sm font-medium">{organizationName}</p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted">{organizationDetail}</p>
+          </div>
+        )}
+      </div>
+    </aside>
+  )
+}
+
 export function AppShell({ me, organizationState, children }: AppShellProps) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [isLogoutPending, startLogoutTransition] = useTransition()
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const organizationContext = getAppShellOrganizationContextView(organizationState)
 
+  function handleLogout() {
+    startLogoutTransition(async () => {
+      const response = await nextClientApi('/api/v1/auth/logout', {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        toast.danger('Unable to sign out. Try again.')
+        return
+      }
+
+      toast.success('Signed out successfully.')
+      router.replace(LOGIN_PATH)
+      router.refresh()
+    })
+  }
+
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-6 py-6">
-        <aside className="hidden w-72 shrink-0 lg:block">
-          <Card className="sticky top-6 border border-black/5 shadow-sm">
-            <Card.Content className="flex flex-col gap-6 p-6">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Pulselane</span>
-                <h1 className="text-xl font-semibold tracking-tight">Operations hub</h1>
-              </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="hidden min-h-screen lg:flex">
+        <SidebarPanel
+          pathname={pathname}
+          organizationName={organizationContext.organizationName}
+          organizationDetail={organizationContext.organizationDetail}
+          isCollapsed={isDesktopSidebarCollapsed}
+          mode="desktop"
+        />
 
-              <nav className="flex flex-col gap-2">
-                {navigationItems.map(item => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="rounded-xl px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-
-              <Card className="border border-black/5" variant="secondary">
-                <Card.Content className="p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current organization</p>
-                  <p className="mt-2 font-medium">{organizationContext.organizationName}</p>
-                  <p className="mt-1 text-sm text-muted">{organizationContext.organizationDetail}</p>
-                </Card.Content>
-              </Card>
-            </Card.Content>
-          </Card>
-        </aside>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <header>
-            <Card className="border border-black/5 shadow-sm">
-              <Card.Content className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-                    Authenticated workspace
-                  </span>
-                  <h2 className="text-2xl font-semibold tracking-tight">{me.name}</h2>
-                  <p className="text-sm text-muted">{me.email}</p>
-                </div>
-
-                <div className="grid gap-3 sm:min-w-80 sm:grid-cols-2">
-                  <Card className="border border-black/5" variant="secondary">
-                    <Card.Content className="p-4">
-                      <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Organizations</p>
-                      <p className="mt-2 text-sm font-medium">{me.memberships.length}</p>
-                    </Card.Content>
-                  </Card>
-
-                  <Card className="border border-black/5" variant="secondary">
-                    <Card.Content className="p-4">
-                      <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Active context</p>
-                      <p className="mt-2 text-sm font-medium">{organizationContext.activeContextValue}</p>
-                    </Card.Content>
-                  </Card>
-                </div>
-              </Card.Content>
-            </Card>
-          </header>
-
-          <main className="min-w-0">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar
+            me={me}
+            organizationName={organizationContext.organizationName}
+            activeContextValue={organizationContext.activeContextValue}
+            onMenuPress={() => setIsDesktopSidebarCollapsed(value => !value)}
+            onLogout={handleLogout}
+            isLogoutPending={isLogoutPending}
+          />
+          <main className="page-container animate-in min-w-0 flex-1">{children}</main>
         </div>
       </div>
+
+      <div className="min-h-screen lg:hidden">
+        {isMobileSidebarOpen ? (
+          <div className="fixed inset-0 z-50 flex">
+            <button
+              aria-label="Close navigation"
+              className="absolute inset-0 bg-backdrop"
+              type="button"
+              onClick={() => setIsMobileSidebarOpen(false)}
+            />
+            <div className="animate-slide-in-left relative z-10 h-full">
+              <SidebarPanel
+                pathname={pathname}
+                organizationName={organizationContext.organizationName}
+                organizationDetail={organizationContext.organizationDetail}
+                isCollapsed={false}
+                onNavigate={() => setIsMobileSidebarOpen(false)}
+                mode="mobile"
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <Topbar
+          me={me}
+          organizationName={organizationContext.organizationName}
+          activeContextValue={organizationContext.activeContextValue}
+          onMenuPress={() => setIsMobileSidebarOpen(true)}
+          onLogout={handleLogout}
+          isLogoutPending={isLogoutPending}
+        />
+        <main className="page-container animate-in min-w-0">{children}</main>
+      </div>
     </div>
+  )
+}
+
+function Topbar({
+  me,
+  organizationName,
+  activeContextValue,
+  onMenuPress,
+  onLogout,
+  isLogoutPending
+}: {
+  me: MeResponse
+  organizationName: string
+  activeContextValue: string
+  onMenuPress: () => void
+  onLogout: () => void
+  isLogoutPending: boolean
+}) {
+  return (
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-separator bg-background/85 px-4 backdrop-blur md:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <Button aria-label="Toggle navigation" isIconOnly size="sm" variant="secondary" onPress={onMenuPress}>
+          <MenuIcon />
+        </Button>
+
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{organizationName}</p>
+          <p className="truncate text-xs text-muted">{activeContextValue}</p>
+        </div>
+      </div>
+
+      <Dropdown>
+        <Button
+          aria-label="Open user menu"
+          className="h-10 rounded-full pl-1 pr-3"
+          isDisabled={isLogoutPending}
+          variant="secondary"
+        >
+          <Avatar size="sm" color="accent" variant="soft">
+            <Avatar.Fallback>{getInitials(me.name) || 'U'}</Avatar.Fallback>
+          </Avatar>
+          <span className="hidden max-w-36 truncate text-sm font-medium sm:inline">{me.name}</span>
+        </Button>
+        <Dropdown.Popover className="min-w-64">
+          <Dropdown.Menu
+            onAction={key => {
+              if (key === 'logout') {
+                onLogout()
+              }
+            }}
+          >
+            <Dropdown.Item id="account" textValue={me.email}>
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label className="truncate text-sm font-medium">{me.name}</Label>
+                <span className="truncate text-xs text-muted">{me.email}</span>
+              </div>
+            </Dropdown.Item>
+            <Separator />
+            <Dropdown.Item id="logout" textValue="Sign out" variant="danger">
+              <LogoutIcon />
+              <Label>{isLogoutPending ? 'Signing out...' : 'Sign out'}</Label>
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown.Popover>
+      </Dropdown>
+    </header>
   )
 }

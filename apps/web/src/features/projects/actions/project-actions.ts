@@ -13,11 +13,13 @@ import { serverApi } from '@/http/server-api-client'
 import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
 import { getActiveOrganizationIdFromServerCookies } from '@/lib/organizations/organization-context-server'
 import { PROJECTS_PATH } from '@/lib/projects/project-constants'
-import { successResponseSchema } from '@pulselane/contracts'
+import { type ProjectStatus, successResponseSchema } from '@pulselane/contracts'
 import {
   CreateProjectRequest,
+  ProjectResponse,
   UpdateProjectRequest,
   createProjectRequestSchema,
+  projectResponseSchema,
   updateProjectRequestSchema
 } from '@pulselane/contracts/projects'
 import { revalidatePath, updateTag } from 'next/cache'
@@ -243,5 +245,66 @@ export async function archiveProjectAction(
     status: 'success',
     message: 'Project archived successfully.',
     archivedProjectId: projectId
+  }
+}
+
+export async function updateProjectStatusAction(input: {
+  projectId: string
+  status: ProjectStatus
+  expectedUpdatedAt: string
+}): Promise<{ status: 'success'; project: ProjectResponse } | { status: 'error'; message: string }> {
+  const projectId = input.projectId.trim()
+
+  if (!projectId) {
+    return {
+      status: 'error',
+      message: 'Missing project id.'
+    }
+  }
+
+  const parsed = updateProjectRequestSchema.safeParse({
+    status: input.status,
+    expectedUpdatedAt: input.expectedUpdatedAt
+  })
+
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Invalid project status update.'
+    }
+  }
+
+  const response = await serverApi(`/api/v1/projects/${projectId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(parsed.data)
+  })
+
+  if (!response.ok) {
+    return {
+      status: 'error',
+      message: await readApiErrorMessage(response, 'Unable to update project status.')
+    }
+  }
+
+  const body = projectResponseSchema.safeParse(await response.json().catch(() => null))
+
+  if (!body.success) {
+    return {
+      status: 'error',
+      message: 'Unable to update project status.'
+    }
+  }
+
+  await updateProjectCacheTags(projectId)
+  revalidatePath(PROJECTS_PATH)
+  revalidatePath(`${PROJECTS_PATH}/${projectId}`)
+  revalidatePath(APP_HOME_PATH)
+
+  return {
+    status: 'success',
+    project: body.data
   }
 }
