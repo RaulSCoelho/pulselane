@@ -25,10 +25,7 @@ export function AuthPageFrame({ title, description, children }: AuthPageFramePro
         <div className="absolute inset-0 bg-brand-dark-background/80" />
 
         <div className="relative z-10 flex flex-1 flex-col justify-between">
-          <div className="flex flex-col gap-2">
-            <BrandLogo variant="dark" className="h-10 max-w-48" priority />
-            <p className="text-sm text-brand-light-text/65">Operations workspace</p>
-          </div>
+          <BrandLogo variant="dark" className="h-auto max-w-48" priority />
 
           <div className="max-w-xl">
             <p className="text-sm font-medium uppercase text-brand-light-text/55">Clients, projects and tasks</p>

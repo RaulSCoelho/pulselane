@@ -73,12 +73,8 @@ export function LoginForm() {
   return (
     <Card className="w-full border border-border shadow-surface">
       <Card.Content className="flex flex-col gap-6 p-8">
-        <div className="flex items-center gap-3">
-          <BrandLogo variant="symbol" alt="" className="size-10 shrink-0" priority />
-          <div>
-            <BrandLogo alt="Pulselane" className="h-6 max-w-32" priority />
-            <p className="text-xs text-muted">Operations hub</p>
-          </div>
+        <div className="flex flex-col items-center">
+          <BrandLogo alt="Pulselane" className="h-auto max-w-32" priority />
         </div>
 
         <div className="flex flex-col gap-2">

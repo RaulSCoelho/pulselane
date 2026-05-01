@@ -1,17 +1,12 @@
 import './globals.css'
 
 import { Providers } from '@/app/providers'
-import favicon from '@pulselane/assets/favicon.png'
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 
 export const metadata: Metadata = {
   title: 'Pulselane',
-  description: 'Operational SaaS for clients, projects and tasks.',
-  icons: {
-    icon: favicon.src,
-    apple: favicon.src
-  }
+  description: 'Operational SaaS for clients, projects and tasks.'
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

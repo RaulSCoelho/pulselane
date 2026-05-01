@@ -73,7 +73,7 @@ export async function PublicHomePage() {
       <section className="relative mx-auto flex w-full max-w-7xl flex-col gap-12 px-6 py-8 sm:py-10 lg:px-8">
         <header className="flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <BrandLogo className="h-8 max-w-44" priority />
+            <BrandLogo className="h-auto max-w-44" priority />
             <p className="text-sm text-muted">Operational SaaS for clients, projects and execution flow</p>
           </div>
 
@@ -136,7 +136,7 @@ export async function PublicHomePage() {
               alt=""
               priority
               sizes="(min-width: 1024px) 420px, 100vw"
-              className="aspect-[16/9] w-full border-b border-separator object-cover"
+              className="aspect-video w-full border-b border-separator object-cover"
               aria-hidden="true"
             />
             <Card.Header className="flex flex-col gap-3 p-8 pb-0">
