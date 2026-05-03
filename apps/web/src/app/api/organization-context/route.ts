@@ -1,7 +1,7 @@
 import {
-  ACTIVE_ORGANIZATION_COOKIE_MAX_AGE_IN_SECONDS,
-  ACTIVE_ORGANIZATION_COOKIE_NAME
-} from '@/lib/organizations/organization-context-constants'
+  clearActiveOrganizationCookie,
+  setActiveOrganizationCookie
+} from '@/lib/organizations/organization-context-cookie'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -19,13 +19,7 @@ export async function POST(request: Request) {
 
   const response = NextResponse.json({ ok: true })
 
-  response.cookies.set({
-    name: ACTIVE_ORGANIZATION_COOKIE_NAME,
-    value: parsedBody.data.organizationId,
-    maxAge: ACTIVE_ORGANIZATION_COOKIE_MAX_AGE_IN_SECONDS,
-    sameSite: 'lax',
-    path: '/'
-  })
+  setActiveOrganizationCookie(response, parsedBody.data.organizationId)
 
   return response
 }
@@ -33,13 +27,7 @@ export async function POST(request: Request) {
 export async function DELETE() {
   const response = NextResponse.json({ ok: true })
 
-  response.cookies.set({
-    name: ACTIVE_ORGANIZATION_COOKIE_NAME,
-    value: '',
-    maxAge: 0,
-    sameSite: 'lax',
-    path: '/'
-  })
+  clearActiveOrganizationCookie(response)
 
   return response
 }

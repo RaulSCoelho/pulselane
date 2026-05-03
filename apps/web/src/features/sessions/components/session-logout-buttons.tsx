@@ -2,6 +2,7 @@
 
 import { nextClientApi } from '@/http/client-api-client'
 import { Button, toast } from '@heroui/react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
@@ -11,6 +12,7 @@ type SessionLogoutButtonsProps = {
 
 export function SessionLogoutButtons({ hasOtherActiveSessions }: SessionLogoutButtonsProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isLoggingOutCurrent, setIsLoggingOutCurrent] = useState(false)
   const [isLoggingOutAll, setIsLoggingOutAll] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -32,6 +34,7 @@ export function SessionLogoutButtons({ hasOtherActiveSessions }: SessionLogoutBu
         }
 
         toast.success('Current session logged out.')
+        queryClient.clear()
         router.replace('/login')
         router.refresh()
       } catch {
@@ -58,6 +61,7 @@ export function SessionLogoutButtons({ hasOtherActiveSessions }: SessionLogoutBu
         }
 
         toast.success('All sessions logged out.')
+        queryClient.clear()
         router.replace('/login')
         router.refresh()
       } catch {

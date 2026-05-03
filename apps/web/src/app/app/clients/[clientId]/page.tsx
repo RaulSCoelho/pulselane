@@ -41,14 +41,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             </p>
           </div>
 
-          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-2">
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Role</p>
-                <p className="mt-2 text-sm font-medium">{currentOrganization.currentRole}</p>
-              </Card.Content>
-            </Card>
-
+          <div className="grid gap-3 sm:min-w-48">
             <Card className="border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Status</p>

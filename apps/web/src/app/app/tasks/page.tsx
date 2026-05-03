@@ -49,21 +49,6 @@ export default async function TasksPage() {
         eyebrow="Operational module"
         title="Tasks"
         description="Track execution by project, assignee, priority, due date and status."
-        metrics={[
-          {
-            label: 'Current role',
-            value: currentOrganization.currentRole
-          },
-          {
-            label: 'Tasks usage',
-            value: (
-              <>
-                {currentOrganization.usage.activeTasks}
-                {currentOrganization.limits.activeTasks !== null ? ` / ${currentOrganization.limits.activeTasks}` : ''}
-              </>
-            )
-          }
-        ]}
       />
 
       {allowCreate && projects.length > 0 ? <TaskCreateForm projects={projects} memberships={memberships} /> : null}

@@ -1,6 +1,7 @@
 import { serverApi } from '@/http/server-api-client'
 import { setAccessTokenCookie } from '@/lib/auth/auth-token'
 import { appendSetCookies } from '@/lib/http/set-cookie'
+import { clearActiveOrganizationCookie } from '@/lib/organizations/organization-context-cookie'
 import { AuthResponse } from '@pulselane/contracts/auth'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
   const response = new NextResponse(null, { status: 204 })
 
   setAccessTokenCookie(response, data.accessToken)
+  clearActiveOrganizationCookie(response)
   appendSetCookies(backendResponse, response)
 
   return response

@@ -1,6 +1,8 @@
+import { PageHeader } from '@/components/ui/page-header'
+import { SectionCard } from '@/components/ui/section-card'
 import { getBillingPlans } from '@/features/billing/api/server-queries'
-import { BillingCurrentSummaryCard } from '@/features/billing/components/billing-current-summary-card'
 import { BillingPlansGrid } from '@/features/billing/components/billing-plans-grid'
+import { BillingPortalButton } from '@/features/billing/components/billing-portal-button'
 import { BillingUnavailableState } from '@/features/billing/components/billing-unavailable-state'
 import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
@@ -25,43 +27,11 @@ export default async function BillingPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-border">
-        <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Plan and billing</span>
-            <h1 className="font-semibold tracking-normal">Billing</h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted">
-              Review the active subscription, compare plan limits and start Stripe checkout or portal sessions when
-              available.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-3">
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current role</p>
-                <p className="mt-2 text-sm font-medium">{currentOrganization.currentRole}</p>
-              </Card.Content>
-            </Card>
-
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Organization</p>
-                <p className="mt-2 text-sm font-medium">{currentOrganization.organization.name}</p>
-              </Card.Content>
-            </Card>
-
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Plan</p>
-                <p className="mt-2 text-sm font-medium">
-                  {billingState.status === 'ready' ? billingState.data.current.plan : currentOrganization.plan.plan}
-                </p>
-              </Card.Content>
-            </Card>
-          </div>
-        </Card.Content>
-      </Card>
+      <PageHeader
+        eyebrow="Plan and billing"
+        title="Billing"
+        description="Compare plan limits and start Stripe checkout or portal sessions when available."
+      />
 
       {!canManage ? (
         <Card className="border border-border">
@@ -75,7 +45,16 @@ export default async function BillingPage() {
 
       {billingState.status === 'ready' ? (
         <>
-          <BillingCurrentSummaryCard billing={billingState.data.current} canManage={canManage} />
+          <SectionCard
+            title="Billing portal"
+            description="Stripe redirects are not treated as payment confirmation. The backend webhook remains the source of truth."
+            contentClassName="flex justify-end p-8"
+          >
+            <BillingPortalButton
+              canManage={canManage}
+              isAvailable={billingState.data.current.stripeCustomerConfigured}
+            />
+          </SectionCard>
 
           <BillingPlansGrid plans={billingState.data.plans} canManage={canManage} />
         </>

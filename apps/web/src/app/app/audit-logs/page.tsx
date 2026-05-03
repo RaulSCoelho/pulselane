@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/page-header'
 import { listAuditLogs } from '@/features/audit-logs/api/server-queries'
 import { AuditLogsAccessDeniedState } from '@/features/audit-logs/components/audit-logs-access-denied-state'
 import { AuditLogsEmptyState } from '@/features/audit-logs/components/audit-logs-empty-state'
@@ -8,7 +9,7 @@ import { getCurrentOrganization } from '@/features/organizations/api/server-quer
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
 import { OrganizationContextStatusState } from '@/features/organizations/components/organization-context-status-state'
 import { canReadAuditLogs } from '@/lib/audit-logs/audit-log-permissions'
-import { Card, buttonVariants } from '@heroui/react'
+import { buttonVariants } from '@heroui/react'
 import { listAuditLogsQuerySchema } from '@pulselane/contracts/audit-logs'
 import Link from 'next/link'
 
@@ -58,47 +59,14 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
 
   const hasFilters = Boolean(query.action || query.entityType || query.entityId || query.actorUserId || query.cursor)
   const auditLogsState = allowRead ? await listAuditLogs(query) : null
-  const loadedNow =
-    auditLogsState?.status === 'ready' ? auditLogsState.data.items.length : allowRead ? 'Unavailable' : 'Restricted'
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-border">
-        <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-              Administrative traceability
-            </span>
-            <h1 className="font-semibold tracking-normal">Audit logs</h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted">
-              Inspect important organization events for operational accountability, support, and security review.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-3">
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current role</p>
-                <p className="mt-2 text-sm font-medium">{currentOrganization.currentRole}</p>
-              </Card.Content>
-            </Card>
-
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Organization</p>
-                <p className="mt-2 text-sm font-medium">{currentOrganization.organization.name}</p>
-              </Card.Content>
-            </Card>
-
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Loaded now</p>
-                <p className="mt-2 text-sm font-medium">{loadedNow}</p>
-              </Card.Content>
-            </Card>
-          </div>
-        </Card.Content>
-      </Card>
+      <PageHeader
+        eyebrow="Administrative traceability"
+        title="Audit logs"
+        description="Inspect important organization events for operational accountability, support, and security review."
+      />
 
       {!allowRead ? (
         <AuditLogsAccessDeniedState />

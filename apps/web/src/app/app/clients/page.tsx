@@ -26,21 +26,6 @@ export default async function ClientsPage() {
         eyebrow="Operational module"
         title="Clients"
         description="Manage the operational entities that unlock project structure and execution flow."
-        metrics={[
-          {
-            label: 'Current role',
-            value: currentOrganization.currentRole
-          },
-          {
-            label: 'Clients usage',
-            value: (
-              <>
-                {currentOrganization.usage.clients}
-                {currentOrganization.limits.clients !== null ? ` / ${currentOrganization.limits.clients}` : ''}
-              </>
-            )
-          }
-        ]}
       />
 
       {allowCreate ? <ClientCreateForm /> : null}

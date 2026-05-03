@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/page-header'
 import { listInvitations } from '@/features/invitations/api/server-queries'
 import { InvitationCreateForm } from '@/features/invitations/components/invitation-create-form'
 import { InvitationsEmptyState } from '@/features/invitations/components/invitations-empty-state'
@@ -56,47 +57,14 @@ export default async function InvitationsPage({ searchParams }: InvitationsPageP
 
   const hasFilters = Boolean(query.email || query.status || query.cursor)
   const allowCreate = canCreateInvitations(currentOrganization.currentRole)
-  const loadedNow = invitationsState.status === 'ready' ? invitationsState.data.items.length : 'Unavailable'
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-border">
-        <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Organization access</span>
-            <h1 className="font-semibold tracking-normal">Invitations</h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted">
-              Create, resend and revoke organization invitations before they become active memberships.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-3">
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Current role</p>
-                <p className="mt-2 text-sm font-medium">{currentOrganization.currentRole}</p>
-              </Card.Content>
-            </Card>
-
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Members usage</p>
-                <p className="mt-2 text-sm font-medium">
-                  {currentOrganization.usage.members}
-                  {currentOrganization.limits.members !== null ? ` / ${currentOrganization.limits.members}` : ''}
-                </p>
-              </Card.Content>
-            </Card>
-
-            <Card className="border border-border" variant="secondary">
-              <Card.Content className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Loaded now</p>
-                <p className="mt-2 text-sm font-medium">{loadedNow}</p>
-              </Card.Content>
-            </Card>
-          </div>
-        </Card.Content>
-      </Card>
+      <PageHeader
+        eyebrow="Organization access"
+        title="Invitations"
+        description="Create, resend and revoke organization invitations before they become active memberships."
+      />
 
       {!allowCreate ? (
         <Card className="border border-border">

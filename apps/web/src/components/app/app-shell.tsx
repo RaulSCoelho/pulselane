@@ -17,6 +17,7 @@ import { cn } from '@/lib/styles'
 import { TASKS_PATH } from '@/lib/tasks/task-constants'
 import { Avatar, Button, Dropdown, Label, Separator, toast } from '@heroui/react'
 import type { MeResponse } from '@pulselane/contracts'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Building2,
   ClipboardList,
@@ -257,6 +258,7 @@ function SidebarPanel({
 export function AppShell({ me, organizationState, children }: AppShellProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isLogoutPending, startLogoutTransition] = useTransition()
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
@@ -274,6 +276,7 @@ export function AppShell({ me, organizationState, children }: AppShellProps) {
       }
 
       toast.success('Signed out successfully.')
+      queryClient.clear()
       router.replace(LOGIN_PATH)
       router.refresh()
     })

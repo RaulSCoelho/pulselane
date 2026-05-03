@@ -7,6 +7,7 @@ import { sanitizeRedirectTo } from '@/lib/auth/auth-redirect'
 import { Button, Card, FieldError, Form, Input, Label, TextField, toast } from '@heroui/react'
 import { ErrorResponse } from '@pulselane/contracts'
 import { AuthResponse, loginRequestSchema } from '@pulselane/contracts/auth'
+import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useTransition } from 'react'
@@ -16,6 +17,7 @@ type LoginFieldErrors = Partial<Record<'email' | 'password', string>>
 
 export function LoginForm() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -65,6 +67,7 @@ export function LoginForm() {
       }
 
       toast.success('Signed in successfully.')
+      queryClient.clear()
       router.replace(redirectTo || DEFAULT_AUTHENTICATED_PATH)
       router.refresh()
     })

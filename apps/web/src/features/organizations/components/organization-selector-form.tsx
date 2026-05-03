@@ -4,6 +4,7 @@ import { nextClientApi } from '@/http/client-api-client'
 import { APP_HOME_PATH } from '@/lib/organizations/organization-context-constants'
 import { Alert, Button, Card, toast } from '@heroui/react'
 import { MeMembership } from '@pulselane/contracts/auth'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
@@ -14,6 +15,7 @@ type OrganizationSelectorFormProps = {
 
 export function OrganizationSelectorForm({ memberships, activeOrganizationId }: OrganizationSelectorFormProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -42,6 +44,7 @@ export function OrganizationSelectorForm({ memberships, activeOrganizationId }: 
         }
 
         toast.success('Organization context updated.')
+        queryClient.clear()
         router.replace(APP_HOME_PATH)
         router.refresh()
       } catch {

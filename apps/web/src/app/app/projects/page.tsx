@@ -37,21 +37,6 @@ export default async function ProjectsPage() {
         eyebrow="Operational module"
         title="Projects"
         description="Connect client ownership to execution. Keep scope, status and delivery context visible."
-        metrics={[
-          {
-            label: 'Current role',
-            value: currentOrganization.currentRole
-          },
-          {
-            label: 'Projects usage',
-            value: (
-              <>
-                {currentOrganization.usage.projects}
-                {currentOrganization.limits.projects !== null ? ` / ${currentOrganization.limits.projects}` : ''}
-              </>
-            )
-          }
-        ]}
       />
 
       {allowCreate && clients.length > 0 ? <ProjectCreateForm clients={clients} /> : null}

@@ -1,6 +1,7 @@
 import { serverApi } from '@/http/server-api-client'
 import { clearAccessTokenCookie } from '@/lib/auth/auth-token'
 import { appendSetCookies } from '@/lib/http/set-cookie'
+import { clearActiveOrganizationCookie } from '@/lib/organizations/organization-context-cookie'
 import { NextResponse } from 'next/server'
 
 export async function POST() {
@@ -16,6 +17,7 @@ export async function POST() {
   const response = new NextResponse(null, { status: 204 })
 
   clearAccessTokenCookie(response)
+  clearActiveOrganizationCookie(response)
   appendSetCookies(backendResponse, response)
 
   return response
