@@ -25,11 +25,11 @@ function formatPrice(plan: BillingPlanCatalogItem) {
 
 export function BillingPlanCard({ plan, canManage }: BillingPlanCardProps) {
   return (
-    <Card className="border border-border">
-      <Card.Header className="flex flex-col gap-3 p-6 pb-0">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <Card.Title className="text-2xl font-semibold tracking-normal">{plan.displayName}</Card.Title>
+    <Card className="min-w-0 border border-border">
+      <Card.Header className="flex min-w-0 flex-col gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="flex min-w-0 flex-col gap-1">
+            <Card.Title className="text-xl font-semibold tracking-normal sm:text-2xl">{plan.displayName}</Card.Title>
             <Card.Description className="text-sm leading-6 text-muted">{plan.description}</Card.Description>
           </div>
 
@@ -42,7 +42,7 @@ export function BillingPlanCard({ plan, canManage }: BillingPlanCardProps) {
         </div>
       </Card.Header>
 
-      <Card.Content className="flex flex-col gap-6 p-6">
+      <Card.Content className="flex min-w-0 flex-col gap-6 p-5 sm:p-6">
         <KeyValueListCard
           items={[
             { label: 'Members', value: formatLimit(plan.limits.members) },

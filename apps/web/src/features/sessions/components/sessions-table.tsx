@@ -39,6 +39,7 @@ export function SessionsTable({ items }: SessionsTableProps) {
       title="Sessions list"
       description="Active and historical authentication sessions associated with your account."
       ariaLabel="Sessions list"
+      minTableWidthClassName="min-w-220"
     >
       <Table.Header>
         <Table.Column id="device" isRowHeader>
@@ -55,7 +56,7 @@ export function SessionsTable({ items }: SessionsTableProps) {
         {session => (
           <Table.Row id={session.id} className="align-top">
             <Table.Cell>
-              <div className="flex max-w-96 flex-col gap-1">
+              <div className="flex max-w-96 min-w-0 flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{session.isCurrent ? 'Current session' : 'Other session'}</span>
 
@@ -63,7 +64,7 @@ export function SessionsTable({ items }: SessionsTableProps) {
                 </div>
 
                 <span className="line-clamp-2 text-xs text-muted">{formatUserAgent(session.userAgent)}</span>
-                <span className="text-xs text-muted">Device: {session.deviceId}</span>
+                <span className="text-xs text-muted break-all">Device: {session.deviceId}</span>
               </div>
             </Table.Cell>
 

@@ -51,8 +51,13 @@ export function InvitationCreateForm() {
           placeholder="Select role"
         />
 
-        <div className="flex items-end justify-end">
-          <PendingSubmitButton idleLabel="Create invitation" pendingLabel="Creating..." size="lg" />
+        <div className="flex items-end justify-stretch sm:justify-end">
+          <PendingSubmitButton
+            className="w-full sm:w-auto"
+            idleLabel="Create invitation"
+            pendingLabel="Creating..."
+            size="lg"
+          />
         </div>
       </Form>
     </SectionCard>

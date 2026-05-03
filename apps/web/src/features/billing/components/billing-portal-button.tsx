@@ -32,9 +32,10 @@ export function BillingPortalButton({ canManage, isAvailable }: BillingPortalBut
   }, [state.actionKey, state.message, state.redirectUrl, state.status])
 
   return (
-    <div className="flex flex-col gap-3">
-      <Form action={formAction}>
+    <div className="flex w-full flex-col gap-3 sm:w-auto">
+      <Form action={formAction} className="w-full sm:w-auto">
         <PendingSubmitButton
+          className="w-full sm:w-auto"
           idleLabel="Open billing portal"
           pendingLabel="Opening portal..."
           isDisabled={!canSubmit}

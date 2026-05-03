@@ -25,6 +25,7 @@ export function MembershipsTable({ items, currentRole, currentUserId }: Membersh
       title="Members list"
       description="Users with access to the active organization and their current roles."
       ariaLabel="Members list"
+      minTableWidthClassName="min-w-190"
     >
       <Table.Header>
         <Table.Column id="member" isRowHeader>

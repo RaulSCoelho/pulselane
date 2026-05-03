@@ -167,7 +167,7 @@ function DataTableMessage({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+    <div className="flex flex-col items-center gap-3 px-4 py-8 text-center sm:py-10">
       <p className="text-sm font-medium">{title}</p>
       {description ? <p className="max-w-md text-sm text-muted">{description}</p> : null}
       {action ? <div>{action}</div> : null}
@@ -302,20 +302,20 @@ export function RemoteDataTable<TItem extends object>({
   }
 
   return (
-    <Card className="overflow-hidden border border-border shadow-surface">
-      <Card.Header className="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between">
+    <Card className="min-w-0 overflow-hidden border border-border shadow-surface">
+      <Card.Header className="flex min-w-0 flex-col gap-4 p-4 sm:p-5 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <Card.Title className="text-xl font-medium tracking-normal">{title}</Card.Title>
           {description ? <Card.Description className="mt-1 text-sm text-muted">{description}</Card.Description> : null}
         </div>
-        <div className="text-sm text-muted">
+        <div className="shrink-0 text-sm text-muted">
           {tableQuery.isFetching && !tableQuery.isFetchingNextPage ? 'Refreshing' : `${rows.length} loaded`}
         </div>
       </Card.Header>
 
       {filters.length > 0 ? (
         <form
-          className="grid gap-3 border-y border-separator bg-surface-secondary/60 p-4 md:grid-cols-[repeat(auto-fit,minmax(180px,1fr))]"
+          className="grid min-w-0 gap-3 border-y border-separator bg-surface-secondary/60 p-4 md:grid-cols-[repeat(auto-fit,minmax(180px,1fr))]"
           onSubmit={handleApplyFilters}
         >
           {filters.map(filter => {
@@ -323,7 +323,7 @@ export function RemoteDataTable<TItem extends object>({
               return (
                 <TextField
                   key={filter.id}
-                  className={cn('flex flex-col gap-2', filter.className)}
+                  className={cn('flex min-w-0 flex-col gap-2', filter.className)}
                   value={String(draftFilters[filter.id] ?? '')}
                   onChange={value =>
                     setDraftFilters(current => ({
@@ -342,7 +342,7 @@ export function RemoteDataTable<TItem extends object>({
               return (
                 <Select
                   key={filter.id}
-                  className={cn('flex flex-col gap-2', filter.className)}
+                  className={cn('flex min-w-0 flex-col gap-2', filter.className)}
                   placeholder={filter.placeholder}
                   selectedKey={String(draftFilters[filter.id] ?? filter.defaultValue ?? '')}
                   variant="secondary"
@@ -377,7 +377,7 @@ export function RemoteDataTable<TItem extends object>({
             }
 
             return (
-              <div key={filter.id} className={cn('flex items-end', filter.className)}>
+              <div key={filter.id} className={cn('flex min-h-10 min-w-0 items-center md:items-end', filter.className)}>
                 <Checkbox
                   isSelected={Boolean(draftFilters[filter.id])}
                   value="true"
@@ -399,7 +399,7 @@ export function RemoteDataTable<TItem extends object>({
           })}
 
           <Select
-            className="flex flex-col gap-2"
+            className="flex min-w-0 flex-col gap-2"
             placeholder="Rows"
             selectedKey={draftLimit}
             variant="secondary"
@@ -426,11 +426,11 @@ export function RemoteDataTable<TItem extends object>({
             </Select.Popover>
           </Select>
 
-          <div className="flex items-end gap-2">
-            <Button type="submit" variant="secondary">
+          <div className="flex flex-col gap-2 sm:flex-row md:items-end">
+            <Button className="w-full sm:w-auto" type="submit" variant="secondary">
               Apply
             </Button>
-            <Button type="button" variant="outline" onPress={handleResetFilters}>
+            <Button className="w-full sm:w-auto" type="button" variant="outline" onPress={handleResetFilters}>
               Clear
             </Button>
           </div>
@@ -438,8 +438,8 @@ export function RemoteDataTable<TItem extends object>({
       ) : null}
 
       <Table variant="secondary">
-        <Table.ScrollContainer>
-          <Table.Content aria-label={ariaLabel} className={cn(minTableWidthClassName)}>
+        <Table.ScrollContainer className="max-w-full overflow-x-auto">
+          <Table.Content aria-label={ariaLabel} className={cn('w-full', minTableWidthClassName)}>
             <Table.Header>
               {columns.map(column => (
                 <Table.Column
@@ -471,7 +471,7 @@ export function RemoteDataTable<TItem extends object>({
                   ))}
                   {renderRowActions ? (
                     <Table.Cell>
-                      <div className="flex justify-end gap-2">{renderRowActions(item)}</div>
+                      <div className="flex min-w-max justify-end gap-2">{renderRowActions(item)}</div>
                     </Table.Cell>
                   ) : null}
                 </Table.Row>
@@ -484,6 +484,7 @@ export function RemoteDataTable<TItem extends object>({
       <div ref={loadMoreRef} className="flex items-center justify-center border-t border-separator px-4 py-4">
         {tableQuery.hasNextPage ? (
           <Button
+            className="w-full sm:w-auto"
             isPending={tableQuery.isFetchingNextPage}
             size="sm"
             variant="outline"

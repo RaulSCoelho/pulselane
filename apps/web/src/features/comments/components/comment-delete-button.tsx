@@ -36,7 +36,7 @@ export function CommentDeleteButton({ taskId, commentId }: CommentDeleteButtonPr
 
       <AlertDialog.Backdrop>
         <AlertDialog.Container>
-          <AlertDialog.Dialog>
+          <AlertDialog.Dialog className="max-w-[calc(100vw-2rem)]">
             <AlertDialog.Header>
               <AlertDialog.Heading>Delete comment</AlertDialog.Heading>
             </AlertDialog.Header>
@@ -46,16 +46,16 @@ export function CommentDeleteButton({ taskId, commentId }: CommentDeleteButtonPr
               rules.
             </AlertDialog.Body>
 
-            <AlertDialog.Footer>
-              <Button slot="close" variant="ghost">
+            <AlertDialog.Footer className="flex-col sm:flex-row">
+              <Button className="w-full sm:w-auto" slot="close" variant="ghost">
                 Cancel
               </Button>
 
-              <form action={formAction}>
+              <form action={formAction} className="w-full sm:w-auto">
                 <input type="hidden" name="taskId" value={taskId} />
                 <input type="hidden" name="commentId" value={commentId} />
 
-                <Button isPending={pending} size="sm" type="submit" variant="danger">
+                <Button className="w-full sm:w-auto" isPending={pending} size="sm" type="submit" variant="danger">
                   Confirm delete
                 </Button>
               </form>

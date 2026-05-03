@@ -38,7 +38,7 @@ export function TaskArchiveButton({ taskId, isDisabled = false, onArchived }: Ta
 
       <AlertDialog.Backdrop>
         <AlertDialog.Container>
-          <AlertDialog.Dialog>
+          <AlertDialog.Dialog className="max-w-[calc(100vw-2rem)]">
             <AlertDialog.Header>
               <AlertDialog.Heading>Archive task</AlertDialog.Heading>
             </AlertDialog.Header>
@@ -47,15 +47,15 @@ export function TaskArchiveButton({ taskId, isDisabled = false, onArchived }: Ta
               This keeps the execution history preserved while removing the task from active work.
             </AlertDialog.Body>
 
-            <AlertDialog.Footer>
-              <Button slot="close" variant="ghost">
+            <AlertDialog.Footer className="flex-col sm:flex-row">
+              <Button className="w-full sm:w-auto" slot="close" variant="ghost">
                 Cancel
               </Button>
 
-              <form action={formAction}>
+              <form action={formAction} className="w-full sm:w-auto">
                 <input type="hidden" name="taskId" value={taskId} />
 
-                <Button isPending={pending} size="sm" type="submit" variant="danger">
+                <Button className="w-full sm:w-auto" isPending={pending} size="sm" type="submit" variant="danger">
                   Confirm archive
                 </Button>
               </form>

@@ -36,7 +36,7 @@ export function InvitationRevokeButton({ invitationId, email, isDisabled }: Invi
 
       <AlertDialog.Backdrop>
         <AlertDialog.Container>
-          <AlertDialog.Dialog>
+          <AlertDialog.Dialog className="max-w-[calc(100vw-2rem)]">
             <AlertDialog.Header>
               <AlertDialog.Heading>Revoke invitation</AlertDialog.Heading>
             </AlertDialog.Header>
@@ -45,15 +45,15 @@ export function InvitationRevokeButton({ invitationId, email, isDisabled }: Invi
               Revoke the pending invitation for {email}. The user will no longer be able to accept this invitation.
             </AlertDialog.Body>
 
-            <AlertDialog.Footer>
-              <Button slot="close" variant="ghost">
+            <AlertDialog.Footer className="flex-col sm:flex-row">
+              <Button className="w-full sm:w-auto" slot="close" variant="ghost">
                 Cancel
               </Button>
 
-              <form action={formAction}>
+              <form action={formAction} className="w-full sm:w-auto">
                 <input type="hidden" name="invitationId" value={invitationId} />
 
-                <Button isPending={pending} size="sm" type="submit" variant="danger">
+                <Button className="w-full sm:w-auto" isPending={pending} size="sm" type="submit" variant="danger">
                   Confirm revoke
                 </Button>
               </form>

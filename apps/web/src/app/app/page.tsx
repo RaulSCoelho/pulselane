@@ -43,7 +43,7 @@ export default async function AppHomePage() {
           key={group.title}
           title={group.title}
           description={group.description}
-          contentClassName="grid gap-3 p-8 sm:grid-cols-2 xl:grid-cols-3"
+          contentClassName="grid gap-3 p-5 sm:grid-cols-2 sm:p-8 xl:grid-cols-3"
         >
           {group.metrics.map(metric => (
             <MetricCard key={metric.label} label={metric.label} value={metric.value} />

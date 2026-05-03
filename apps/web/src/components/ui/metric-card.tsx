@@ -1,3 +1,4 @@
+import { cn } from '@/lib/styles'
 import { Card } from '@heroui/react'
 import type { ReactNode } from 'react'
 
@@ -8,10 +9,10 @@ type MetricCardProps = {
 
 export function MetricCard({ label, value }: MetricCardProps) {
   return (
-    <Card className="border border-border" variant="secondary">
+    <Card className="min-w-0 border border-border" variant="secondary">
       <Card.Content className="p-4">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">{label}</p>
-        <p className="mt-2 text-sm font-medium">{value}</p>
+        <p className="mt-2 text-sm font-medium break-words">{value}</p>
       </Card.Content>
     </Card>
   )
@@ -26,12 +27,12 @@ type KeyValueListCardProps = {
 
 export function KeyValueListCard({ items }: KeyValueListCardProps) {
   return (
-    <Card className="border border-border" variant="secondary">
-      <Card.Content className="grid grid-cols-2 gap-3 p-4 text-sm">
+    <Card className="min-w-0 border border-border" variant="secondary">
+      <Card.Content className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-4 text-sm">
         {items.map(item => (
           <span key={String(item.label)} className="contents">
-            <span className="text-muted">{item.label}</span>
-            <span className="text-right font-medium">{item.value}</span>
+            <span className="min-w-0 text-muted break-words">{item.label}</span>
+            <span className="min-w-0 text-right font-medium break-words">{item.value}</span>
           </span>
         ))}
       </Card.Content>
@@ -49,12 +50,12 @@ type MetadataSummaryCardProps = {
 
 export function MetadataSummaryCard({ items, className }: MetadataSummaryCardProps) {
   return (
-    <Card className={className} variant="tertiary">
+    <Card className={cn('min-w-0', className)} variant="tertiary">
       <Card.Content className="grid gap-3 p-4 md:grid-cols-3">
         {items.map(item => (
-          <div key={String(item.label)}>
+          <div key={String(item.label)} className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{item.label}</p>
-            <p className="mt-1 text-sm text-foreground">{item.value}</p>
+            <p className="mt-1 text-sm text-foreground break-words">{item.value}</p>
           </div>
         ))}
       </Card.Content>

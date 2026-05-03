@@ -16,6 +16,7 @@ export function AuditLogsTable({ items }: AuditLogsTableProps) {
       title="Audit history"
       description="Read-only trace of important organization events recorded by the backend."
       ariaLabel="Audit logs list"
+      minTableWidthClassName="min-w-240"
     >
       <Table.Header>
         <Table.Column id="event" isRowHeader>

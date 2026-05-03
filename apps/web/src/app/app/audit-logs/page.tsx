@@ -92,7 +92,7 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
           {auditLogsState?.status === 'ready' &&
           auditLogsState.data.meta.hasNextPage &&
           auditLogsState.data.meta.nextCursor ? (
-            <div className="flex justify-end">
+            <div className="flex justify-stretch sm:justify-end">
               <Link
                 href={`/app/audit-logs?${new URLSearchParams({
                   ...(query.action ? { action: query.action } : {}),
@@ -102,7 +102,7 @@ export default async function AuditLogsPage({ searchParams }: AuditLogsPageProps
                   limit: String(query.limit),
                   cursor: auditLogsState.data.meta.nextCursor
                 }).toString()}`}
-                className={buttonVariants({ variant: 'outline' })}
+                className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}
               >
                 Load next page
               </Link>

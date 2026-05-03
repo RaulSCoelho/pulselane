@@ -116,8 +116,13 @@ export function TaskCreateForm({ projects, memberships }: TaskCreateFormProps) {
           <p className="md:col-span-2 text-sm text-danger">{resolvedState.message}</p>
         ) : null}
 
-        <div className="md:col-span-2 flex justify-end">
-          <PendingSubmitButton idleLabel="Create task" pendingLabel="Creating task..." size="lg" />
+        <div className="flex justify-stretch md:col-span-2 sm:justify-end">
+          <PendingSubmitButton
+            className="w-full sm:w-auto"
+            idleLabel="Create task"
+            pendingLabel="Creating task..."
+            size="lg"
+          />
         </div>
       </Form>
     </SectionCard>

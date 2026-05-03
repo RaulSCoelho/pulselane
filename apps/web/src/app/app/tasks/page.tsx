@@ -54,14 +54,14 @@ export default async function TasksPage() {
       {allowCreate && projects.length > 0 ? <TaskCreateForm projects={projects} memberships={memberships} /> : null}
 
       {allowCreate && projects.length === 0 ? (
-        <Card className="border border-border shadow-surface">
-          <Card.Content className="flex flex-col gap-3 p-6">
+        <Card className="min-w-0 border border-border shadow-surface">
+          <Card.Content className="flex min-w-0 flex-col gap-3 p-5 sm:p-6">
             <h2 className="text-xl font-medium tracking-normal">Create a project first</h2>
             <p className="text-sm leading-6 text-muted">
               Tasks require an active project. Create a project before starting operational execution.
             </p>
-            <div>
-              <Link href={PROJECTS_PATH} className={buttonVariants({ variant: 'outline' })}>
+            <div className="flex justify-stretch sm:justify-start">
+              <Link href={PROJECTS_PATH} className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}>
                 Go to projects
               </Link>
             </div>

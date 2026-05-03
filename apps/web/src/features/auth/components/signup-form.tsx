@@ -81,7 +81,7 @@ export function SignupForm() {
 
   return (
     <Card className="w-full border border-border shadow-surface">
-      <Card.Content className="flex flex-col gap-6 p-8">
+      <Card.Content className="flex min-w-0 flex-col gap-6 p-5 sm:p-8">
         <div className="flex flex-col items-center">
           <BrandLogo alt="Pulselane" className="h-auto max-w-32" priority />
         </div>
@@ -93,37 +93,47 @@ export function SignupForm() {
         </div>
 
         <Form className="flex flex-col gap-4" onSubmit={handleSubmit} validationBehavior="aria">
-          <TextField className="flex flex-col gap-2" isInvalid={Boolean(fieldErrors.name)} isRequired name="name">
+          <TextField
+            className="flex min-w-0 flex-col gap-2"
+            isInvalid={Boolean(fieldErrors.name)}
+            isRequired
+            name="name"
+          >
             <Label>Full name</Label>
-            <Input autoComplete="name" type="text" variant="secondary" />
+            <Input className="min-w-0" autoComplete="name" type="text" variant="secondary" />
             <FieldError>{fieldErrors.name}</FieldError>
           </TextField>
 
           <TextField
-            className="flex flex-col gap-2"
+            className="flex min-w-0 flex-col gap-2"
             isInvalid={Boolean(fieldErrors.organizationName)}
             isRequired
             name="organizationName"
           >
             <Label>Organization name</Label>
-            <Input autoComplete="organization" type="text" variant="secondary" />
+            <Input className="min-w-0" autoComplete="organization" type="text" variant="secondary" />
             <FieldError>{fieldErrors.organizationName}</FieldError>
           </TextField>
 
-          <TextField className="flex flex-col gap-2" isInvalid={Boolean(fieldErrors.email)} isRequired name="email">
+          <TextField
+            className="flex min-w-0 flex-col gap-2"
+            isInvalid={Boolean(fieldErrors.email)}
+            isRequired
+            name="email"
+          >
             <Label>Email</Label>
-            <Input autoComplete="email" type="email" variant="secondary" />
+            <Input className="min-w-0" autoComplete="email" type="email" variant="secondary" />
             <FieldError>{fieldErrors.email}</FieldError>
           </TextField>
 
           <TextField
-            className="flex flex-col gap-2"
+            className="flex min-w-0 flex-col gap-2"
             isInvalid={Boolean(fieldErrors.password)}
             isRequired
             name="password"
           >
             <Label>Password</Label>
-            <Input autoComplete="new-password" type="password" variant="secondary" />
+            <Input className="min-w-0" autoComplete="new-password" type="password" variant="secondary" />
             <FieldError>{fieldErrors.password}</FieldError>
           </TextField>
 

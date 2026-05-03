@@ -195,7 +195,11 @@ function SidebarNavigation({
             >
               <RouteIcon icon={item.icon} />
             </span>
-            {isCollapsed ? <span className="sr-only">{item.label}</span> : <span>{item.label}</span>}
+            {isCollapsed ? (
+              <span className="sr-only">{item.label}</span>
+            ) : (
+              <span className="truncate">{item.label}</span>
+            )}
           </Link>
         )
       })}
@@ -218,11 +222,17 @@ function SidebarPanel({
   onNavigate?: () => void
   mode: 'desktop' | 'mobile'
 }) {
+  let widthClassName = 'w-[min(20rem,calc(100vw-2rem))] max-w-full'
+
+  if (mode === 'desktop') {
+    widthClassName = isCollapsed ? 'w-(--app-sidebar-collapsed-width)' : 'w-(--app-sidebar-width)'
+  }
+
   return (
     <aside
       className={cn(
         'flex sticky top-0 h-screen flex-col border-r border-border bg-surface text-surface-foreground shadow-surface transition-[width] duration-200 ease-out',
-        mode === 'desktop' ? (isCollapsed ? 'w-(--app-sidebar-collapsed-width)' : 'w-(--app-sidebar-width)') : 'w-80'
+        widthClassName
       )}
     >
       <div className="flex h-16 items-center justify-between gap-3 border-b border-separator px-4">
@@ -358,7 +368,7 @@ function Topbar({
   isLogoutPending: boolean
 }) {
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-separator bg-background/85 px-4 backdrop-blur md:px-6">
+    <header className="sticky top-0 z-40 flex h-16 min-w-0 items-center justify-between gap-3 border-b border-separator bg-background/85 px-4 backdrop-blur md:px-6">
       <div className="flex min-w-0 items-center gap-3">
         <Button aria-label="Toggle navigation" isIconOnly size="sm" variant="secondary" onPress={onMenuPress}>
           <Menu aria-hidden="true" className="size-4" strokeWidth={1.8} />
@@ -382,7 +392,7 @@ function Topbar({
           </Avatar>
           <span className="hidden max-w-36 truncate text-sm font-medium sm:inline">{me.name}</span>
         </Button>
-        <Dropdown.Popover className="min-w-64">
+        <Dropdown.Popover className="min-w-64 max-w-[calc(100vw-2rem)]">
           <Dropdown.Menu
             onAction={key => {
               if (key === 'logout') {

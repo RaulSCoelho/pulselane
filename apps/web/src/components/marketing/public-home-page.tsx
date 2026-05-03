@@ -70,19 +70,22 @@ export async function PublicHomePage() {
 
   return (
     <main className="bg-background text-foreground">
-      <section className="relative mx-auto flex w-full max-w-7xl flex-col gap-12 px-6 py-8 sm:py-10 lg:px-8">
-        <header className="flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
+      <section className="relative mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-1">
             <BrandLogo className="h-auto max-w-44" priority />
             <p className="text-sm text-muted">Operational SaaS for clients, projects and execution flow</p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link href={LOGIN_PATH} className={buttonVariants({ variant: 'ghost', size: 'md' })}>
+          <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:items-center">
+            <Link href={LOGIN_PATH} className={`${buttonVariants({ variant: 'ghost', size: 'md' })} w-full sm:w-auto`}>
               Sign in
             </Link>
 
-            <Link href={primaryHref} className={buttonVariants({ variant: 'primary', size: 'md' })}>
+            <Link
+              href={primaryHref}
+              className={`${buttonVariants({ variant: 'primary', size: 'md' })} w-full sm:w-auto`}
+            >
               {primaryLabel}
             </Link>
           </div>
@@ -108,12 +111,18 @@ export async function PublicHomePage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link href={primaryHref} className={buttonVariants({ variant: 'primary', size: 'lg' })}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link
+                href={primaryHref}
+                className={`${buttonVariants({ variant: 'primary', size: 'lg' })} w-full sm:w-auto`}
+              >
                 {primaryLabel}
               </Link>
 
-              <Link href={secondaryHref} className={buttonVariants({ variant: 'outline', size: 'lg' })}>
+              <Link
+                href={secondaryHref}
+                className={`${buttonVariants({ variant: 'outline', size: 'lg' })} w-full sm:w-auto`}
+              >
                 {secondaryLabel}
               </Link>
             </div>
@@ -130,7 +139,7 @@ export async function PublicHomePage() {
             </div>
           </div>
 
-          <Card className="overflow-hidden border border-border bg-surface shadow-surface">
+          <Card className="min-w-0 overflow-hidden border border-border bg-surface shadow-surface">
             <Image
               src={heroVisual}
               alt=""
@@ -139,7 +148,7 @@ export async function PublicHomePage() {
               className="aspect-video w-full border-b border-separator object-cover"
               aria-hidden="true"
             />
-            <Card.Header className="flex flex-col gap-3 p-8 pb-0">
+            <Card.Header className="flex min-w-0 flex-col gap-3 p-5 pb-0 sm:p-8 sm:pb-0">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Why it converts</span>
               <Card.Title className="font-semibold tracking-normal text-foreground">
                 Built around operational clarity
@@ -150,7 +159,7 @@ export async function PublicHomePage() {
               </Card.Description>
             </Card.Header>
 
-            <Card.Content className="flex flex-col gap-4 p-8">
+            <Card.Content className="flex min-w-0 flex-col gap-4 p-5 sm:p-8">
               <div className="rounded-lg border border-border bg-surface-secondary p-5">
                 <p className="text-sm font-medium text-muted">What gets fixed</p>
                 <ul className="mt-3 space-y-3 text-sm leading-6 text-foreground">
@@ -181,7 +190,7 @@ export async function PublicHomePage() {
         </div>
       </section>
 
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-6 lg:px-8 lg:py-10">
+      <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
         <div className="flex flex-col gap-3">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Core capabilities</span>
           <h2 className="font-semibold tracking-normal text-foreground">
@@ -195,15 +204,15 @@ export async function PublicHomePage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {featureCards.map(card => (
-            <Card key={card.title} variant="secondary" className="border border-border shadow-surface">
-              <Card.Header className="flex flex-col gap-2 p-6 pb-0">
+            <Card key={card.title} variant="secondary" className="min-w-0 border border-border shadow-surface">
+              <Card.Header className="flex min-w-0 flex-col gap-2 p-5 pb-0 sm:p-6 sm:pb-0">
                 <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-primary">
                   {card.eyebrow}
                 </span>
                 <Card.Title className="text-xl font-medium tracking-normal text-foreground">{card.title}</Card.Title>
               </Card.Header>
 
-              <Card.Content className="p-6 pt-4">
+              <Card.Content className="p-5 pt-4 sm:p-6 sm:pt-4">
                 <p className="text-sm leading-6 text-muted">{card.description}</p>
               </Card.Content>
             </Card>
@@ -211,18 +220,18 @@ export async function PublicHomePage() {
         </div>
       </section>
 
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-6 lg:px-8 lg:py-10">
+      <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
         <div className="grid gap-4 lg:grid-cols-3">
           {workflowSteps.map((step, index) => (
-            <Card key={step.title} className="border border-border shadow-surface">
-              <Card.Header className="flex flex-col gap-3 p-6 pb-0">
+            <Card key={step.title} className="min-w-0 border border-border shadow-surface">
+              <Card.Header className="flex min-w-0 flex-col gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
                 <span className="inline-flex size-10 items-center justify-center rounded-lg bg-brand-dark-background text-sm font-semibold text-brand-light-text">
                   {index + 1}
                 </span>
                 <Card.Title className="text-xl font-medium tracking-normal text-foreground">{step.title}</Card.Title>
               </Card.Header>
 
-              <Card.Content className="p-6 pt-4">
+              <Card.Content className="p-5 pt-4 sm:p-6 sm:pt-4">
                 <p className="text-sm leading-6 text-muted">{step.description}</p>
               </Card.Content>
             </Card>
@@ -230,10 +239,10 @@ export async function PublicHomePage() {
         </div>
       </section>
 
-      <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 lg:px-8 lg:py-12">
-        <Card className="border border-brand-dark-border bg-brand-dark-background text-brand-light-text shadow-surface">
-          <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
-            <div className="flex max-w-3xl flex-col gap-3">
+      <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+        <Card className="min-w-0 border border-brand-dark-border bg-brand-dark-background text-brand-light-text shadow-surface">
+          <Card.Content className="flex min-w-0 flex-col gap-6 p-5 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
+            <div className="flex max-w-3xl min-w-0 flex-col gap-3">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-cyan">
                 Ready to explore
               </span>
@@ -246,8 +255,11 @@ export async function PublicHomePage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link href={primaryHref} className={buttonVariants({ variant: 'primary', size: 'lg' })}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link
+                href={primaryHref}
+                className={`${buttonVariants({ variant: 'primary', size: 'lg' })} w-full sm:w-auto`}
+              >
                 {primaryLabel}
               </Link>
 
@@ -255,7 +267,7 @@ export async function PublicHomePage() {
                 href={secondaryHref}
                 className={
                   buttonVariants({ variant: 'outline', size: 'lg' }) +
-                  ' border-brand-light-text/25 text-brand-light-text hover:bg-brand-light-text/10'
+                  ' w-full border-brand-light-text/25 text-brand-light-text hover:bg-brand-light-text/10 sm:w-auto'
                 }
               >
                 {secondaryLabel}

@@ -28,10 +28,17 @@ export function InvitationResendButton({ invitationId, isDisabled }: InvitationR
   }, [invitationId, router, state.invitationId, state.message, state.status])
 
   return (
-    <form action={formAction}>
+    <form action={formAction} className="w-full sm:w-auto">
       <input type="hidden" name="invitationId" value={invitationId} />
 
-      <Button isDisabled={isDisabled} isPending={pending} size="sm" type="submit" variant="outline">
+      <Button
+        className="w-full sm:w-auto"
+        isDisabled={isDisabled}
+        isPending={pending}
+        size="sm"
+        type="submit"
+        variant="outline"
+      >
         Resend
       </Button>
     </form>

@@ -23,7 +23,7 @@ export function CommentCreateForm({ taskId }: CommentCreateFormProps) {
   }, [resolvedState.message, resolvedState.status])
 
   return (
-    <Card className="border border-border" variant="secondary">
+    <Card className="min-w-0 border border-border" variant="secondary">
       <Card.Content className="p-4">
         <Form key={resolvedState.formKey} action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="taskId" value={taskId} />
@@ -42,8 +42,12 @@ export function CommentCreateForm({ taskId }: CommentCreateFormProps) {
             <p className="text-sm text-danger">{resolvedState.message}</p>
           ) : null}
 
-          <div className="flex justify-end">
-            <PendingSubmitButton idleLabel="Add comment" pendingLabel="Adding comment..." />
+          <div className="flex justify-stretch sm:justify-end">
+            <PendingSubmitButton
+              className="w-full sm:w-auto"
+              idleLabel="Add comment"
+              pendingLabel="Adding comment..."
+            />
           </div>
         </Form>
       </Card.Content>

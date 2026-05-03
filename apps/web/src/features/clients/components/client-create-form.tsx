@@ -67,8 +67,13 @@ export function ClientCreateForm() {
           <p className="md:col-span-2 text-sm text-danger">{resolvedState.message}</p>
         ) : null}
 
-        <div className="md:col-span-2 flex justify-end">
-          <PendingSubmitButton idleLabel="Create client" pendingLabel="Creating client..." size="lg" />
+        <div className="flex justify-stretch md:col-span-2 sm:justify-end">
+          <PendingSubmitButton
+            className="w-full sm:w-auto"
+            idleLabel="Create client"
+            pendingLabel="Creating client..."
+            size="lg"
+          />
         </div>
       </Form>
     </SectionCard>

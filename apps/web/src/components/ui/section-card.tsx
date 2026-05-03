@@ -26,11 +26,13 @@ export function SectionCard({
   const hasHeader = Boolean(title || description)
 
   return (
-    <Card className={cn('border border-border', className)}>
+    <Card className={cn('min-w-0 border border-border', className)}>
       {hasHeader ? (
-        <Card.Header className={cn('flex flex-col gap-2 p-8 pb-0', headerClassName)}>
+        <Card.Header className={cn('flex min-w-0 flex-col gap-2', headerClassName ?? 'p-5 pb-0 sm:p-8 sm:pb-0')}>
           {title ? (
-            <Card.Title className={cn('text-2xl font-semibold tracking-normal', titleClassName)}>{title}</Card.Title>
+            <Card.Title className={cn('font-semibold tracking-normal', titleClassName ?? 'text-xl sm:text-2xl')}>
+              {title}
+            </Card.Title>
           ) : null}
           {description ? (
             <Card.Description className={cn('text-sm leading-6 text-muted', descriptionClassName)}>
@@ -40,7 +42,7 @@ export function SectionCard({
         </Card.Header>
       ) : null}
 
-      <Card.Content className={cn('p-8', contentClassName)}>{children}</Card.Content>
+      <Card.Content className={cn('min-w-0', contentClassName ?? 'p-5 sm:p-8')}>{children}</Card.Content>
     </Card>
   )
 }

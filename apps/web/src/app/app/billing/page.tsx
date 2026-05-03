@@ -48,7 +48,7 @@ export default async function BillingPage() {
           <SectionCard
             title="Billing portal"
             description="Stripe redirects are not treated as payment confirmation. The backend webhook remains the source of truth."
-            contentClassName="flex justify-end p-8"
+            contentClassName="flex justify-stretch p-5 sm:justify-end sm:p-8"
           >
             <BillingPortalButton
               canManage={canManage}

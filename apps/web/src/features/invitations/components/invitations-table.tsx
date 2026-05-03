@@ -28,6 +28,7 @@ export function InvitationsTable({ items, currentRole }: InvitationsTableProps) 
       title="Invitations list"
       description="Pending and historical invitations for the active organization."
       ariaLabel="Invitations list"
+      minTableWidthClassName="min-w-220"
     >
       <Table.Header>
         <Table.Column id="email" isRowHeader>
@@ -70,7 +71,7 @@ export function InvitationsTable({ items, currentRole }: InvitationsTableProps) 
               </Table.Cell>
 
               <Table.Cell>
-                <div className="flex justify-end gap-2">
+                <div className="flex min-w-max justify-end gap-2">
                   <InvitationResendButton invitationId={invitation.id} isDisabled={!canResend} />
 
                   <InvitationRevokeButton

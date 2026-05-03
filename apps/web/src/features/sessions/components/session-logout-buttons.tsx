@@ -72,8 +72,9 @@ export function SessionLogoutButtons({ hasOtherActiveSessions }: SessionLogoutBu
   }
 
   return (
-    <div className="flex flex-wrap justify-end gap-3">
+    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
       <Button
+        className="w-full sm:w-auto"
         type="button"
         variant="outline"
         isPending={isPending && isLoggingOutCurrent}
@@ -84,6 +85,7 @@ export function SessionLogoutButtons({ hasOtherActiveSessions }: SessionLogoutBu
       </Button>
 
       <Button
+        className="w-full sm:w-auto"
         type="button"
         variant="danger"
         isPending={isPending && isLoggingOutAll}

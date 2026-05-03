@@ -47,15 +47,15 @@ export function TaskActivityHistoryPanel({
   activityCursor
 }: TaskActivityHistoryPanelProps) {
   return (
-    <Card className="border border-border">
-      <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-2xl font-semibold tracking-normal">Activity history</Card.Title>
+    <Card className="min-w-0 border border-border">
+      <Card.Header className="flex min-w-0 flex-col gap-2 p-5 pb-0 sm:p-8 sm:pb-0">
+        <Card.Title className="text-xl font-semibold tracking-normal sm:text-2xl">Activity history</Card.Title>
         <Card.Description className="text-sm leading-6 text-muted">
           Minimal timeline combining comments and audit-log activity for this task.
         </Card.Description>
       </Card.Header>
 
-      <Card.Content className="flex flex-col gap-4 p-8">
+      <Card.Content className="flex min-w-0 flex-col gap-4 p-5 sm:p-8">
         {state.status === 'temporarily_unavailable' ? (
           <Card className="border border-border" variant="secondary">
             <Card.Content className="p-4">
@@ -79,10 +79,10 @@ export function TaskActivityHistoryPanel({
               const metadata = formatMetadata(item.metadata)
 
               return (
-                <Card key={`${item.source}-${item.id}`} className="border border-border" variant="secondary">
-                  <Card.Content className="flex flex-col gap-3 p-4">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
+                <Card key={`${item.source}-${item.id}`} className="min-w-0 border border-border" variant="secondary">
+                  <Card.Content className="flex min-w-0 flex-col gap-3 p-4">
+                    <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold">
                           {item.action} · {item.entityType}
                         </p>
@@ -91,7 +91,7 @@ export function TaskActivityHistoryPanel({
                         </p>
                       </div>
 
-                      <span className="rounded-full border px-3 py-1 text-xs font-medium text-foreground">
+                      <span className="w-fit rounded-full border px-3 py-1 text-xs font-medium text-foreground">
                         {item.source}
                       </span>
                     </div>
@@ -110,10 +110,10 @@ export function TaskActivityHistoryPanel({
           : null}
 
         {state.status === 'ready' && state.data.meta.hasNextPage && state.data.meta.nextCursor ? (
-          <div className="flex justify-end">
+          <div className="flex justify-stretch sm:justify-end">
             <Link
               href={buildNextHref(taskId, commentsCursor, state.data.meta.nextCursor)}
-              className={buttonVariants({ variant: 'outline' })}
+              className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}
             >
               Load more activity
             </Link>

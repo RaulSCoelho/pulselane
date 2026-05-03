@@ -112,7 +112,7 @@ export function ClientsTable({ currentRole }: ClientsTableProps) {
       {
         id: 'email',
         header: 'Email',
-        cellClassName: 'text-muted',
+        cellClassName: 'text-muted break-all',
         render: client => client.email || '-'
       },
       {

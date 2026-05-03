@@ -10,23 +10,30 @@ type MembershipsFilterFormProps = {
 
 export function MembershipsFilterForm({ search, role }: MembershipsFilterFormProps) {
   return (
-    <Card className="border border-border">
-      <Card.Header className="flex flex-col gap-2 p-8 pb-0">
+    <Card className="min-w-0 border border-border">
+      <Card.Header className="flex min-w-0 flex-col gap-2 p-5 pb-0 sm:p-8 sm:pb-0">
         <Card.Title className="text-xl font-medium tracking-normal">Filters</Card.Title>
         <Card.Description className="text-sm text-muted">
           Search members and narrow the list by organization role.
         </Card.Description>
       </Card.Header>
 
-      <Card.Content className="p-8">
+      <Card.Content className="min-w-0 p-5 sm:p-8">
         <form method="GET" className="grid gap-4 md:grid-cols-[1.5fr_1fr_auto]">
-          <TextField className="flex flex-col gap-2" defaultValue={search}>
+          <TextField className="flex min-w-0 flex-col gap-2" defaultValue={search}>
             <Label htmlFor="search">Search</Label>
-            <Input id="search" name="search" type="text" variant="secondary" placeholder="Search by member name" />
+            <Input
+              className="min-w-0"
+              id="search"
+              name="search"
+              type="text"
+              variant="secondary"
+              placeholder="Search by member name"
+            />
           </TextField>
 
           <Select
-            className="flex flex-col gap-2"
+            className="flex min-w-0 flex-col gap-2"
             defaultValue={role || 'all'}
             name="role"
             placeholder="Select role"
@@ -48,12 +55,12 @@ export function MembershipsFilterForm({ search, role }: MembershipsFilterFormPro
             </Select.Popover>
           </Select>
 
-          <div className="flex items-end justify-end gap-3">
-            <Button type="submit" variant="secondary">
+          <div className="flex flex-col gap-3 sm:flex-row md:items-end md:justify-end">
+            <Button className="w-full sm:w-auto" type="submit" variant="secondary">
               Apply
             </Button>
 
-            <Link href={MEMBERS_PATH} className={buttonVariants({ variant: 'outline' })}>
+            <Link href={MEMBERS_PATH} className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}>
               Clear
             </Link>
           </div>

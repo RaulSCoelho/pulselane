@@ -35,12 +35,12 @@ export function AuditLogsFilterForm({ action, entityType, entityId, actorUserId 
 
         <FormTextField label="Actor user id" name="actorUserId" defaultValue={actorUserId} placeholder="User id" />
 
-        <div className="flex items-end justify-end gap-3">
-          <Button type="submit" variant="secondary">
+        <div className="flex flex-col gap-3 sm:flex-row lg:items-end lg:justify-end">
+          <Button className="w-full sm:w-auto" type="submit" variant="secondary">
             Apply
           </Button>
 
-          <Link href={AUDIT_LOGS_PATH} className={buttonVariants({ variant: 'outline' })}>
+          <Link href={AUDIT_LOGS_PATH} className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}>
             Clear
           </Link>
         </div>

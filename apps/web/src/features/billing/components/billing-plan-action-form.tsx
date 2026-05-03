@@ -60,6 +60,7 @@ export function BillingPlanActionForm({ plan, canManage }: BillingPlanActionForm
   if (!isCheckout) {
     return (
       <PendingSubmitButton
+        className="w-full"
         idleLabel={getActionLabel(plan)}
         pendingLabel="Loading..."
         isDisabled
@@ -70,10 +71,11 @@ export function BillingPlanActionForm({ plan, canManage }: BillingPlanActionForm
 
   return (
     <div className="flex flex-col gap-3">
-      <Form action={formAction}>
+      <Form action={formAction} className="w-full">
         <input type="hidden" name="plan" value={plan.plan} />
 
         <PendingSubmitButton
+          className="w-full"
           idleLabel={getActionLabel(plan)}
           pendingLabel="Redirecting..."
           isDisabled={!canSubmit}

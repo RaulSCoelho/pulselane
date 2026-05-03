@@ -106,12 +106,19 @@ export function ProjectEditForm({ project, clients, canEdit }: ProjectEditFormPr
           <p className="md:col-span-2 text-sm text-danger">{state.message}</p>
         ) : null}
 
-        <div className="md:col-span-2 flex flex-wrap justify-end gap-3">
-          <Link href={PROJECTS_PATH} className={buttonVariants({ variant: 'outline' })}>
+        <div className="flex flex-col gap-3 md:col-span-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          <Link href={PROJECTS_PATH} className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}>
             Back to projects
           </Link>
 
-          {canEdit ? <PendingSubmitButton idleLabel="Save changes" pendingLabel="Saving changes..." size="lg" /> : null}
+          {canEdit ? (
+            <PendingSubmitButton
+              className="w-full sm:w-auto"
+              idleLabel="Save changes"
+              pendingLabel="Saving changes..."
+              size="lg"
+            />
+          ) : null}
         </div>
       </Form>
     </SectionCard>

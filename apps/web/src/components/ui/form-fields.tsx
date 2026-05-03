@@ -35,15 +35,21 @@ export function FormTextField({
 }: FormTextFieldProps) {
   return (
     <TextField
-      className={cn('flex flex-col gap-2', className)}
+      className={cn('flex min-w-0 flex-col gap-2', className)}
       isInvalid={isInvalid ?? Boolean(error)}
       {...textFieldProps}
     >
       <Label className={labelClassName}>{label}</Label>
       {multiline ? (
-        <TextArea placeholder={placeholder} variant="secondary" />
+        <TextArea className="min-w-0" placeholder={placeholder} variant="secondary" />
       ) : (
-        <Input autoComplete={autoComplete} placeholder={placeholder} type={type} variant="secondary" />
+        <Input
+          className="min-w-0"
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          type={type}
+          variant="secondary"
+        />
       )}
       {error !== undefined ? <FieldError>{error}</FieldError> : null}
     </TextField>
@@ -76,7 +82,7 @@ export function FormSelectField({
 }: FormSelectFieldProps) {
   return (
     <Select
-      className={cn('flex flex-col gap-2', className)}
+      className={cn('flex min-w-0 flex-col gap-2', className)}
       isInvalid={isInvalid ?? Boolean(error)}
       variant="secondary"
       {...selectProps}

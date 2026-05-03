@@ -12,7 +12,7 @@ export function BillingPlansGrid({ plans, canManage }: BillingPlansGridProps) {
     <SectionCard
       title="Available plans"
       description="Choose a plan based on operational limits. Enforcement stays in the backend, not in this UI."
-      contentClassName="grid gap-4 p-8 xl:grid-cols-3"
+      contentClassName="grid gap-4 p-5 sm:p-8 xl:grid-cols-3"
     >
       {plans.map(plan => (
         <BillingPlanCard key={plan.plan} plan={plan} canManage={canManage} />

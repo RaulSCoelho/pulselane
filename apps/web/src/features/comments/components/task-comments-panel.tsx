@@ -51,15 +51,15 @@ export function TaskCommentsPanel({
   const allowDelete = canDeleteComments(currentRole)
 
   return (
-    <Card className="border border-border">
-      <Card.Header className="flex flex-col gap-2 p-8 pb-0">
-        <Card.Title className="text-2xl font-semibold tracking-normal">Comments</Card.Title>
+    <Card className="min-w-0 border border-border">
+      <Card.Header className="flex min-w-0 flex-col gap-2 p-5 pb-0 sm:p-8 sm:pb-0">
+        <Card.Title className="text-xl font-semibold tracking-normal sm:text-2xl">Comments</Card.Title>
         <Card.Description className="text-sm leading-6 text-muted">
           Keep task decisions, blockers and execution context attached to the work item.
         </Card.Description>
       </Card.Header>
 
-      <Card.Content className="flex flex-col gap-4 p-8">
+      <Card.Content className="flex min-w-0 flex-col gap-4 p-5 sm:p-8">
         {allowCreate ? <CommentCreateForm taskId={taskId} /> : null}
 
         {state.status === 'temporarily_unavailable' ? (
@@ -80,10 +80,10 @@ export function TaskCommentsPanel({
 
         {state.status === 'ready'
           ? state.data.items.map(comment => (
-              <Card key={comment.id} className="border border-border" variant="secondary">
+              <Card key={comment.id} className="min-w-0 border border-border" variant="secondary">
                 <Card.Content className="flex flex-col gap-4 p-4">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
                       <p className="text-sm font-semibold">{comment.author.name}</p>
                       <p className="text-xs text-muted">
                         {formatDatetime(comment.createdAt)}
@@ -96,7 +96,7 @@ export function TaskCommentsPanel({
                     {comment.deletedAt ? (
                       <span className="text-xs font-medium text-danger">Deleted</span>
                     ) : (
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {allowEdit ? <CommentEditForm taskId={taskId} comment={comment} /> : null}
                         {allowDelete ? <CommentDeleteButton taskId={taskId} commentId={comment.id} /> : null}
                       </div>
@@ -112,10 +112,10 @@ export function TaskCommentsPanel({
           : null}
 
         {state.status === 'ready' && state.data.meta.hasNextPage && state.data.meta.nextCursor ? (
-          <div className="flex justify-end">
+          <div className="flex justify-stretch sm:justify-end">
             <Link
               href={buildNextHref(taskId, commentsCursor, activityCursor, state.data.meta.nextCursor)}
-              className={buttonVariants({ variant: 'outline' })}
+              className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}
             >
               Load more comments
             </Link>

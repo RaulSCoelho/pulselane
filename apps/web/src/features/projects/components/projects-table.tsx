@@ -134,6 +134,7 @@ export function ProjectsTable({ currentRole, clients }: ProjectsTableProps) {
       {
         id: 'client',
         header: 'Client',
+        cellClassName: 'text-muted',
         render: project => project.client.name
       },
       {

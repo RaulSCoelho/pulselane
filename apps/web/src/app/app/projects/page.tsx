@@ -42,14 +42,14 @@ export default async function ProjectsPage() {
       {allowCreate && clients.length > 0 ? <ProjectCreateForm clients={clients} /> : null}
 
       {allowCreate && clients.length === 0 ? (
-        <Card className="border border-border shadow-surface">
-          <Card.Content className="flex flex-col gap-3 p-6">
+        <Card className="min-w-0 border border-border shadow-surface">
+          <Card.Content className="flex min-w-0 flex-col gap-3 p-5 sm:p-6">
             <h2 className="text-xl font-medium tracking-normal">Create a client first</h2>
             <p className="text-sm leading-6 text-muted">
               Projects require an active client. Create a client before starting project work.
             </p>
-            <div>
-              <Link href="/app/clients" className={buttonVariants({ variant: 'outline' })}>
+            <div className="flex justify-stretch sm:justify-start">
+              <Link href="/app/clients" className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}>
                 Go to clients
               </Link>
             </div>

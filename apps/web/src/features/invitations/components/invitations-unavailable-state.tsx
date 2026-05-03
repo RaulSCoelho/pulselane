@@ -14,8 +14,8 @@ const reasonMessage: Record<InvitationsUnavailableReason, string> = {
 
 export function InvitationsUnavailableState({ reason }: InvitationsUnavailableStateProps) {
   return (
-    <Card className="border border-border">
-      <Card.Content className="flex flex-col gap-2 p-8">
+    <Card className="min-w-0 border border-border">
+      <Card.Content className="flex min-w-0 flex-col gap-2 p-5 sm:p-8">
         <h2 className="text-xl font-medium tracking-normal">Invitations temporarily unavailable</h2>
         <p className="text-sm leading-6 text-muted">{reasonMessage[reason]}</p>
       </Card.Content>

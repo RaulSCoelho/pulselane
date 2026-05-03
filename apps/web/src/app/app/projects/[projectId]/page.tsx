@@ -41,9 +41,9 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-border">
-        <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
+      <Card className="min-w-0 border border-border">
+        <Card.Content className="flex min-w-0 flex-col gap-6 p-5 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex min-w-0 flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Project record</span>
             <h1 className="font-semibold tracking-normal">{project.name}</h1>
             <p className="max-w-2xl text-sm leading-6 text-muted">
@@ -51,15 +51,15 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
             </p>
           </div>
 
-          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-2">
-            <Card className="border border-border" variant="secondary">
+          <div className="grid w-full gap-3 sm:min-w-80 sm:grid-cols-2 lg:w-auto">
+            <Card className="min-w-0 border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Status</p>
                 <p className="mt-2 text-sm font-medium">{project.status}</p>
               </Card.Content>
             </Card>
 
-            <Card className="border border-border" variant="secondary">
+            <Card className="min-w-0 border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Client</p>
                 <p className="mt-2 text-sm font-medium">{project.client.name}</p>

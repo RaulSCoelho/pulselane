@@ -9,7 +9,7 @@ type AppRouteErrorProps = {
 
 export default function AppRouteError({ error, reset }: AppRouteErrorProps) {
   return (
-    <main className="flex min-h-[60vh] items-center px-6 py-16">
+    <main className="flex min-h-[60vh] items-center px-0 py-16 sm:px-2">
       <AppErrorState
         title="Authenticated area failed to load"
         description="The authenticated workspace could not be rendered safely."

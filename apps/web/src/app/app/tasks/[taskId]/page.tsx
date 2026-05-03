@@ -86,9 +86,9 @@ export default async function TaskDetailPage({ params, searchParams }: TaskDetai
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border border-border">
-        <Card.Content className="flex flex-col gap-6 p-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-2">
+      <Card className="min-w-0 border border-border">
+        <Card.Content className="flex min-w-0 flex-col gap-6 p-5 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex min-w-0 flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Task record</span>
             <h1 className="font-semibold tracking-normal">{task.title}</h1>
             <p className="max-w-2xl text-sm leading-6 text-muted">
@@ -97,22 +97,22 @@ export default async function TaskDetailPage({ params, searchParams }: TaskDetai
             </p>
           </div>
 
-          <div className="grid gap-3 sm:min-w-80 sm:grid-cols-3">
-            <Card className="border border-border" variant="secondary">
+          <div className="grid w-full gap-3 sm:min-w-80 sm:grid-cols-3 lg:w-auto">
+            <Card className="min-w-0 border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Status</p>
                 <p className="mt-2 text-sm font-medium">{task.status}</p>
               </Card.Content>
             </Card>
 
-            <Card className="border border-border" variant="secondary">
+            <Card className="min-w-0 border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Priority</p>
                 <p className="mt-2 text-sm font-medium">{task.priority}</p>
               </Card.Content>
             </Card>
 
-            <Card className="border border-border" variant="secondary">
+            <Card className="min-w-0 border border-border" variant="secondary">
               <Card.Content className="p-4">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Assignee</p>
                 <p className="mt-2 text-sm font-medium">{task.assignee?.name ?? 'Unassigned'}</p>

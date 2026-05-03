@@ -96,8 +96,13 @@ export function OrganizationSettingsForm({ currentOrganization, canEdit }: Organ
         ) : null}
 
         {canEdit ? (
-          <div className="flex justify-end md:col-span-2">
-            <PendingSubmitButton idleLabel="Save organization" pendingLabel="Saving organization..." size="lg" />
+          <div className="flex justify-stretch md:col-span-2 sm:justify-end">
+            <PendingSubmitButton
+              className="w-full sm:w-auto"
+              idleLabel="Save organization"
+              pendingLabel="Saving organization..."
+              size="lg"
+            />
           </div>
         ) : null}
       </Form>

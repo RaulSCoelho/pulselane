@@ -25,20 +25,20 @@ export default async function InvitationAcceptPage({ searchParams }: InvitationA
   const previewState = await previewInvitation(token)
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
       {previewState.status === 'ready' ? (
         <InvitationAcceptCard token={token} invitation={previewState.data} />
       ) : (
-        <Card className="w-full max-w-2xl border border-border shadow-sm">
-          <Card.Header className="flex flex-col gap-2 p-8 pb-0">
+        <Card className="w-full max-w-2xl min-w-0 border border-border shadow-sm">
+          <Card.Header className="flex min-w-0 flex-col gap-2 p-5 pb-0 sm:p-8 sm:pb-0">
             <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Pulselane invitation</span>
-            <Card.Title className="text-2xl font-semibold tracking-normal">Invalid invitation</Card.Title>
+            <Card.Title className="text-xl font-semibold tracking-normal sm:text-2xl">Invalid invitation</Card.Title>
             <Card.Description className="text-sm leading-6 text-muted">
               The invitation link could not be validated.
             </Card.Description>
           </Card.Header>
 
-          <Card.Content className="flex flex-col gap-6 p-8">
+          <Card.Content className="flex min-w-0 flex-col gap-6 p-5 sm:p-8">
             <Alert status="danger">
               <Alert.Indicator />
               <Alert.Content>
@@ -47,9 +47,11 @@ export default async function InvitationAcceptPage({ searchParams }: InvitationA
               </Alert.Content>
             </Alert>
 
-            <div className="flex justify-end">
-              <Link href={APP_HOME_PATH}>
-                <Button variant="outline">Go to app</Button>
+            <div className="flex justify-stretch sm:justify-end">
+              <Link href={APP_HOME_PATH} className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto" variant="outline">
+                  Go to app
+                </Button>
               </Link>
             </div>
           </Card.Content>

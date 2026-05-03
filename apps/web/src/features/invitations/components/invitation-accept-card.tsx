@@ -36,16 +36,18 @@ export function InvitationAcceptCard({ token, invitation }: InvitationAcceptCard
   const canAccept = invitation.canAccept && !invitation.isExpired && invitation.status === 'pending'
 
   return (
-    <Card className="w-full max-w-2xl border border-border shadow-sm">
-      <Card.Header className="flex flex-col gap-2 p-8 pb-0">
+    <Card className="w-full max-w-2xl min-w-0 border border-border shadow-sm">
+      <Card.Header className="flex min-w-0 flex-col gap-2 p-5 pb-0 sm:p-8 sm:pb-0">
         <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Pulselane invitation</span>
-        <Card.Title className="text-2xl font-semibold tracking-normal">Join {invitation.organizationName}</Card.Title>
+        <Card.Title className="text-xl font-semibold tracking-normal sm:text-2xl">
+          Join {invitation.organizationName}
+        </Card.Title>
         <Card.Description className="text-sm leading-6 text-muted">
           {invitation.invitedByName} invited {invitation.email} to join this organization as {invitation.role}.
         </Card.Description>
       </Card.Header>
 
-      <Card.Content className="flex flex-col gap-6 p-8">
+      <Card.Content className="flex min-w-0 flex-col gap-6 p-5 sm:p-8">
         <div className="grid gap-3 sm:grid-cols-3">
           <MetricCard label="Role" value={invitation.role} />
           <MetricCard label="Status" value={invitation.status} />
@@ -87,21 +89,30 @@ export function InvitationAcceptCard({ token, invitation }: InvitationAcceptCard
           </Alert>
         ) : null}
 
-        <div className="flex flex-wrap justify-end gap-3">
-          <Link href={APP_HOME_PATH}>
-            <Button variant="outline">Go to app</Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+          <Link href={APP_HOME_PATH} className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto" variant="outline">
+              Go to app
+            </Button>
           </Link>
 
           {state.status === 'success' ? (
-            <Link href={SELECT_ORGANIZATION_PATH}>
-              <Button variant="primary">Select organization</Button>
+            <Link href={SELECT_ORGANIZATION_PATH} className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto" variant="primary">
+                Select organization
+              </Button>
             </Link>
           ) : null}
 
           {canAccept && state.status !== 'success' ? (
-            <Form action={formAction}>
+            <Form action={formAction} className="w-full sm:w-auto">
               <input type="hidden" name="token" value={token} />
-              <PendingSubmitButton idleLabel="Accept invitation" pendingLabel="Accepting invitation..." size="lg" />
+              <PendingSubmitButton
+                className="w-full sm:w-auto"
+                idleLabel="Accept invitation"
+                pendingLabel="Accepting invitation..."
+                size="lg"
+              />
             </Form>
           ) : null}
         </div>

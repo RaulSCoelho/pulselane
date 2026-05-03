@@ -93,7 +93,7 @@ export default async function InvitationsPage({ searchParams }: InvitationsPageP
       {invitationsState.status === 'ready' &&
       invitationsState.data.meta.hasNextPage &&
       invitationsState.data.meta.nextCursor ? (
-        <div className="flex justify-end">
+        <div className="flex justify-stretch sm:justify-end">
           <Link
             href={`/app/invitations?${new URLSearchParams({
               ...(query.email ? { email: query.email } : {}),
@@ -101,7 +101,7 @@ export default async function InvitationsPage({ searchParams }: InvitationsPageP
               limit: String(query.limit),
               cursor: invitationsState.data.meta.nextCursor
             }).toString()}`}
-            className={buttonVariants({ variant: 'outline' })}
+            className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}
           >
             Load next page
           </Link>

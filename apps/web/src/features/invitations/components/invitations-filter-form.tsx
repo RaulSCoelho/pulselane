@@ -35,12 +35,12 @@ export function InvitationsFilterForm({ email, status }: InvitationsFilterFormPr
           placeholder="Select status"
         />
 
-        <div className="flex items-end justify-end gap-3">
-          <Button type="submit" variant="secondary">
+        <div className="flex flex-col gap-3 sm:flex-row md:items-end md:justify-end">
+          <Button className="w-full sm:w-auto" type="submit" variant="secondary">
             Apply
           </Button>
 
-          <Link href={INVITATIONS_PATH} className={buttonVariants({ variant: 'outline' })}>
+          <Link href={INVITATIONS_PATH} className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}>
             Clear
           </Link>
         </div>

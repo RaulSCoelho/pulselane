@@ -43,7 +43,7 @@ export function CommentEditForm({ taskId, comment }: CommentEditFormProps) {
 
       <AlertDialog.Backdrop>
         <AlertDialog.Container>
-          <AlertDialog.Dialog>
+          <AlertDialog.Dialog className="max-w-[calc(100vw-2rem)]">
             <AlertDialog.Header>
               <AlertDialog.Heading>Edit comment</AlertDialog.Heading>
             </AlertDialog.Header>
@@ -62,12 +62,16 @@ export function CommentEditForm({ taskId, comment }: CommentEditFormProps) {
                   multiline
                 />
 
-                <AlertDialog.Footer>
-                  <Button slot="close" variant="ghost">
+                <AlertDialog.Footer className="flex-col sm:flex-row">
+                  <Button className="w-full sm:w-auto" slot="close" variant="ghost">
                     Cancel
                   </Button>
 
-                  <PendingSubmitButton idleLabel="Save comment" pendingLabel="Saving comment..." />
+                  <PendingSubmitButton
+                    className="w-full sm:w-auto"
+                    idleLabel="Save comment"
+                    pendingLabel="Saving comment..."
+                  />
                 </AlertDialog.Footer>
               </Form>
             </AlertDialog.Body>

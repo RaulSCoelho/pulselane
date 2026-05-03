@@ -97,7 +97,7 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
       {membershipsState.status === 'ready' &&
       membershipsState.data.meta.hasNextPage &&
       membershipsState.data.meta.nextCursor ? (
-        <div className="flex justify-end">
+        <div className="flex justify-stretch sm:justify-end">
           <Link
             href={`/app/members?${new URLSearchParams({
               ...(query.search ? { search: query.search } : {}),
@@ -105,7 +105,7 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
               limit: String(query.limit),
               cursor: membershipsState.data.meta.nextCursor
             }).toString()}`}
-            className={buttonVariants({ variant: 'outline' })}
+            className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}
           >
             Load next page
           </Link>
