@@ -49,9 +49,15 @@ export type CurrentUserResponse = {
 export type SessionResponse = {
   id: string
   deviceId: string
+  userAgent: string | null
+  ipAddress: string | null
+  createdAt: string
+  lastUsedAt: string | null
+  expiresAt: string
   isCurrent: boolean
   isActive: boolean
   revokedAt: string | null
+  compromisedAt: string | null
 }
 
 export type ClientResponse = {

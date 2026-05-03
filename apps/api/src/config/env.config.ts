@@ -2,6 +2,7 @@ export type EmailTransport = 'logger' | 'smtp'
 export type CorsOriginResolver =
   | string[]
   | ((origin: string | undefined, callback: (error: Error | null, allow: boolean) => void) => void)
+export type TrustProxyConfig = boolean | string | string[] | number
 export type EnvConfig = ReturnType<typeof configuration>
 
 function parseAllowedCorsOrigins(rawValue: string): CorsOriginResolver {
@@ -45,6 +46,42 @@ function parseAllowedCorsOrigins(rawValue: string): CorsOriginResolver {
     .filter(Boolean)
 }
 
+export function parseTrustProxy(rawValue: string | undefined): TrustProxyConfig {
+  const value = rawValue?.trim()
+
+  if (!value) {
+    return false
+  }
+
+  const lowerValue = value.toLowerCase()
+
+  if (lowerValue === 'true') {
+    return true
+  }
+
+  if (lowerValue === 'false') {
+    return false
+  }
+
+  if (/^\d+$/.test(value)) {
+    const hopCount = Number(value)
+
+    if (hopCount <= 0) {
+      throw new Error('TRUST_PROXY hop count must be greater than 0.')
+    }
+
+    return hopCount
+  }
+
+  const entries = value.split(',').map(entry => entry.trim())
+
+  if (entries.some(entry => !entry)) {
+    throw new Error('TRUST_PROXY contains an empty proxy entry.')
+  }
+
+  return entries.length === 1 ? entries[0] : entries
+}
+
 export function configuration() {
   const nodeEnv = process.env.NODE_ENV ?? 'development'
 
@@ -53,6 +90,7 @@ export function configuration() {
     port: Number(process.env.PORT ?? 3001),
     nodeEnv,
     allowedCorsOrigins: parseAllowedCorsOrigins(process.env.ALLOWED_CORS_ORIGINS ?? ''),
+    trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
 
     // observability
     logLevel: process.env.LOG_LEVEL ?? (nodeEnv === 'production' ? 'info' : 'debug'),

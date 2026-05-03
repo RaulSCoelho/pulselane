@@ -74,6 +74,7 @@ PORT=10000
 NODE_ENV=production
 ALLOWED_CORS_ORIGINS=https://app.semicekinnovations.com
 APP_WEB_URL=https://app.semicekinnovations.com
+TRUST_PROXY=true
 ```
 
 ## Database

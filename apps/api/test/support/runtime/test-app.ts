@@ -1,5 +1,5 @@
 import { AppModule } from '@/app.module'
-import { EnvConfig } from '@/config/env.config'
+import { EnvConfig, configuration } from '@/config/env.config'
 import fastifyCookie from '@fastify/cookie'
 import { RequestMethod, ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -14,7 +14,11 @@ async function createTestApp(): Promise<NestFastifyApplication> {
     imports: [AppModule]
   }).compile()
 
-  const nextApp = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter(), { rawBody: true })
+  const bootstrapConfig = configuration()
+  const nextApp = moduleRef.createNestApplication<NestFastifyApplication>(
+    new FastifyAdapter({ trustProxy: bootstrapConfig.trustProxy }),
+    { rawBody: true }
+  )
 
   const configService = nextApp.get(ConfigService<EnvConfig, true>)
   const logger = nextApp.get(Logger)

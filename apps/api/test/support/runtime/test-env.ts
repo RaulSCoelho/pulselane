@@ -7,7 +7,8 @@ const DEFAULTS = {
   JWT_ACCESS_SECRET: 'test-access-secret',
   JWT_REFRESH_SECRET: 'test-refresh-secret',
   COOKIE_SECRET: 'test-cookie-secret',
-  ALLOWED_CORS_ORIGINS: 'http://localhost:3000'
+  ALLOWED_CORS_ORIGINS: 'http://localhost:3000',
+  TRUST_PROXY: 'true'
 } satisfies Partial<NodeJS.ProcessEnv>
 
 for (const [key, value] of Object.entries(DEFAULTS)) {

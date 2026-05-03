@@ -9,7 +9,9 @@ import { getTestContext } from '../../support/runtime/test-context'
 
 export function registerAuthSignupAndMeCase(): void {
   it('should signup, create organization membership and return current user', async () => {
-    const { app } = await getTestContext()
+    const { app, prisma } = await getTestContext()
+    const clientIp = '203.0.113.42'
+    const forwardedFor = `${clientIp}, 10.0.0.10`
 
     const payload: SignupDto = {
       name: 'Raul',
@@ -19,7 +21,7 @@ export function registerAuthSignupAndMeCase(): void {
     }
 
     const signupResponse = await expectTyped<TokenResponse>(
-      request(app.getHttpServer()).post('/api/auth/signup').send(payload),
+      request(app.getHttpServer()).post('/api/auth/signup').set('x-forwarded-for', forwardedFor).send(payload),
       201
     )
 
@@ -35,5 +37,16 @@ export function registerAuthSignupAndMeCase(): void {
     expect(meResponse.body.memberships).toHaveLength(1)
     expect(meResponse.body.memberships[0].role).toBe('owner')
     expect(meResponse.body.memberships[0].organization.name).toBe('Auth Signup Workspace')
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: payload.email
+      },
+      include: {
+        authSessions: true
+      }
+    })
+
+    expect(user?.authSessions[0].ipAddress).toBe(clientIp)
   })
 }

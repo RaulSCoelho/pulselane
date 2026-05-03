@@ -1,5 +1,20 @@
 import Joi from 'joi'
 
+import { parseTrustProxy } from './env.config'
+
+function validateTrustProxy(value: unknown, helpers: Joi.CustomHelpers): string | Joi.ErrorReport {
+  if (typeof value !== 'string') {
+    return helpers.error('string.base')
+  }
+
+  try {
+    parseTrustProxy(value)
+    return value
+  } catch (error) {
+    return helpers.error('any.invalid', { message: error instanceof Error ? error.message : 'Invalid TRUST_PROXY' })
+  }
+}
+
 export const envValidationSchema = Joi.object({
   PORT: Joi.number().default(3001),
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
@@ -7,6 +22,7 @@ export const envValidationSchema = Joi.object({
     .trim()
     .pattern(/^(\*|(\.[a-z0-9.-]+)|(https?:\/\/[^,\s]+)(\s*,\s*https?:\/\/[^,\s]+)*)$/i)
     .required(),
+  TRUST_PROXY: Joi.string().trim().custom(validateTrustProxy).default('false'),
 
   DATABASE_URL: Joi.string().uri().required(),
 

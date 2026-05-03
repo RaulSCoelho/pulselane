@@ -174,6 +174,7 @@ Common variables:
 - `PORT`
 - `NODE_ENV`
 - `ALLOWED_CORS_ORIGINS`
+- `TRUST_PROXY` to let Fastify derive `request.ip` from trusted `x-forwarded-*` headers
 - `COOKIE_SECURE`
 - `COOKIE_SAME_SITE`
 - `COOKIE_DOMAIN`

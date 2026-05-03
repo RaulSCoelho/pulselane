@@ -10,6 +10,7 @@ import { getTestContext } from '../../support/runtime/test-context'
 export function registerAuthRefreshSessionsLogoutCase(): void {
   it('should refresh token, list sessions and revoke current session on logout', async () => {
     const { app, prisma } = await getTestContext()
+    const refreshedClientIp = '198.51.100.24'
 
     const { response } = await signupUser(app, {
       name: 'Session User',
@@ -25,7 +26,10 @@ export function registerAuthRefreshSessionsLogoutCase(): void {
     expect(initialCookies.length).toBeGreaterThan(0)
 
     const refreshResponse = await expectTyped<TokenResponse>(
-      request(app.getHttpServer()).post('/api/auth/refresh').set('Cookie', initialCookies),
+      request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .set('Cookie', initialCookies)
+        .set('x-forwarded-for', refreshedClientIp),
       200
     )
 
@@ -44,6 +48,7 @@ export function registerAuthRefreshSessionsLogoutCase(): void {
     expect(sessionsResponse.body[0].isCurrent).toBe(true)
     expect(sessionsResponse.body[0].isActive).toBe(true)
     expect(sessionsResponse.body[0].deviceId).toBeTypeOf('string')
+    expect(sessionsResponse.body[0].ipAddress).toBe(refreshedClientIp)
 
     await expectTyped<{ success: true }>(
       withAccessToken(request(app.getHttpServer()).post('/api/auth/logout'), refreshedAccessToken),

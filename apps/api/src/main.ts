@@ -7,12 +7,17 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { Logger } from 'nestjs-pino'
 
 import { AppModule } from './app.module'
-import { EnvConfig } from './config/env.config'
+import { EnvConfig, configuration } from './config/env.config'
 import { PrismaService } from './infra/prisma/prisma.service'
 import { DEVICE_COOKIE_NAME, REFRESH_COOKIE_NAME } from './modules/auth/auth.constants'
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), { rawBody: true })
+  const bootstrapConfig = configuration()
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({ trustProxy: bootstrapConfig.trustProxy }),
+    { rawBody: true }
+  )
 
   const configService = app.get(ConfigService<EnvConfig, true>)
   const logger = app.get(Logger)
@@ -22,6 +27,7 @@ async function bootstrap() {
   const port = configService.getOrThrow('port', { infer: true })
   const nodeEnv = configService.getOrThrow('nodeEnv', { infer: true })
   const allowedCorsOrigins = configService.getOrThrow('allowedCorsOrigins', { infer: true })
+  const trustProxy = configService.getOrThrow('trustProxy', { infer: true })
   const cookieSecret = configService.getOrThrow('cookieSecret', { infer: true })
 
   await app.register(fastifyCookie, {
@@ -86,7 +92,8 @@ async function bootstrap() {
     environment: nodeEnv,
     port,
     url: await app.getUrl(),
-    allowed_cors_origins: allowedCorsOrigins
+    allowed_cors_origins: allowedCorsOrigins,
+    trust_proxy: trustProxy
   })
 }
 

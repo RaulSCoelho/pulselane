@@ -4,17 +4,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify'
 
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
-  protected async getTracker(request: FastifyRequest): Promise<string> {
-    const forwardedFor = request.headers['x-forwarded-for']
-
-    if (typeof forwardedFor === 'string' && forwardedFor.trim().length > 0) {
-      return forwardedFor.split(',')[0].trim()
-    }
-
-    if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-      return forwardedFor[0]
-    }
-
+  protected getTracker(request: FastifyRequest): Promise<string> {
     return Promise.resolve(request.ip)
   }
 
