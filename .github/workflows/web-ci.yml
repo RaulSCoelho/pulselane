@@ -60,4 +60,4 @@ jobs:
         uses: vercel/repository-dispatch/actions/status@v1
         if: always()
         with:
-          name: Vercel - pulselane: web-ci
+          name: "Vercel - pulselane: web-ci"
