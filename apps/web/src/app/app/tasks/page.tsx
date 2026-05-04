@@ -4,13 +4,14 @@ import { getCurrentOrganization } from '@/features/organizations/api/server-quer
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
 import { OrganizationContextStatusState } from '@/features/organizations/components/organization-context-status-state'
 import { listProjects } from '@/features/projects/api/server-queries'
-import { TaskCreateForm } from '@/features/tasks/components/task-create-form'
+import { TaskCreateModal } from '@/features/tasks/components/task-create-modal'
 import { TasksTable } from '@/features/tasks/components/tasks-table'
 import { PROJECTS_PATH } from '@/lib/projects/project-constants'
 import { canCreateTasks } from '@/lib/tasks/task-permissions'
-import { Card, buttonVariants } from '@heroui/react'
+import { buttonVariants } from '@heroui/react'
 import { listMembershipsQuerySchema } from '@pulselane/contracts/memberships'
 import { listProjectsQuerySchema } from '@pulselane/contracts/projects'
+import { FolderPlus } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function TasksPage() {
@@ -49,25 +50,17 @@ export default async function TasksPage() {
         eyebrow="Operational module"
         title="Tasks"
         description="Track execution by project, assignee, priority, due date and status."
+        actions={
+          allowCreate && projects.length > 0 ? (
+            <TaskCreateModal projects={projects} memberships={memberships} />
+          ) : allowCreate ? (
+            <Link href={PROJECTS_PATH} className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}>
+              <FolderPlus aria-hidden="true" className="size-4" strokeWidth={1.8} />
+              Create project first
+            </Link>
+          ) : null
+        }
       />
-
-      {allowCreate && projects.length > 0 ? <TaskCreateForm projects={projects} memberships={memberships} /> : null}
-
-      {allowCreate && projects.length === 0 ? (
-        <Card className="min-w-0 border border-border shadow-surface">
-          <Card.Content className="flex min-w-0 flex-col gap-3 p-5 sm:p-6">
-            <h2 className="text-xl font-medium tracking-normal">Create a project first</h2>
-            <p className="text-sm leading-6 text-muted">
-              Tasks require an active project. Create a project before starting operational execution.
-            </p>
-            <div className="flex justify-stretch sm:justify-start">
-              <Link href={PROJECTS_PATH} className={`${buttonVariants({ variant: 'outline' })} w-full sm:w-auto`}>
-                Go to projects
-              </Link>
-            </div>
-          </Card.Content>
-        </Card>
-      ) : null}
 
       <TasksTable currentRole={currentOrganization.currentRole} projects={projects} memberships={memberships} />
     </div>

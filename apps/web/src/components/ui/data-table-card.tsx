@@ -1,5 +1,5 @@
 import { cn } from '@/lib/styles'
-import { Table } from '@heroui/react'
+import { Chip, Table } from '@heroui/react'
 import type { ReactNode } from 'react'
 
 import { SectionCard } from './section-card'
@@ -61,21 +61,27 @@ type StatusPillProps = {
   className?: string
 }
 
+const statusPillColorMap = {
+  default: 'default',
+  success: 'success',
+  warning: 'warning',
+  danger: 'danger',
+  info: 'accent'
+} satisfies Record<NonNullable<StatusPillProps['tone']>, 'default' | 'accent' | 'success' | 'warning' | 'danger'>
+
 export function StatusPill({ children, tone = 'default', className }: StatusPillProps) {
   return (
-    <span
+    <Chip
+      color={statusPillColorMap[tone]}
+      size="sm"
+      variant="soft"
       className={cn(
-        'inline-flex min-h-7 items-center rounded-full border px-3 py-1 text-xs font-medium capitalize',
-        'max-w-full whitespace-nowrap',
-        tone === 'default' && 'border-border bg-surface-secondary text-muted',
-        tone === 'success' && 'border-success/25 bg-success/10 text-success',
-        tone === 'warning' && 'border-warning/25 bg-warning/10 text-warning',
-        tone === 'danger' && 'border-danger/25 bg-danger/10 text-danger',
+        'max-w-full whitespace-nowrap capitalize',
         tone === 'info' && 'border-info/25 bg-info/10 text-info',
         className
       )}
     >
       {children}
-    </span>
+    </Chip>
   )
 }

@@ -1,6 +1,6 @@
 import { PageHeader } from '@/components/ui/page-header'
 import { listInvitations } from '@/features/invitations/api/server-queries'
-import { InvitationCreateForm } from '@/features/invitations/components/invitation-create-form'
+import { InvitationCreateModal } from '@/features/invitations/components/invitation-create-modal'
 import { InvitationsEmptyState } from '@/features/invitations/components/invitations-empty-state'
 import { InvitationsFilterForm } from '@/features/invitations/components/invitations-filter-form'
 import { InvitationsTable } from '@/features/invitations/components/invitations-table'
@@ -64,6 +64,7 @@ export default async function InvitationsPage({ searchParams }: InvitationsPageP
         eyebrow="Organization access"
         title="Invitations"
         description="Create, resend and revoke organization invitations before they become active memberships."
+        actions={allowCreate ? <InvitationCreateModal /> : null}
       />
 
       {!allowCreate ? (
@@ -75,8 +76,6 @@ export default async function InvitationsPage({ searchParams }: InvitationsPageP
           </Card.Content>
         </Card>
       ) : null}
-
-      {allowCreate ? <InvitationCreateForm /> : null}
 
       <InvitationsFilterForm email={query.email ?? ''} status={query.status ?? 'all'} />
 

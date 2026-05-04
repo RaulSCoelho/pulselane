@@ -7,7 +7,7 @@ import { formatDateTime } from '@/lib/formatters'
 import { INVITATION_ACCEPT_PATH } from '@/lib/invitations/invitation-accept-constants'
 import { canResendInvitations, canRevokeInvitations } from '@/lib/invitations/invitation-permissions'
 import { Table } from '@heroui/react'
-import type { MembershipRole } from '@pulselane/contracts'
+import type { MembershipRole, OrganizationInvitationStatus } from '@pulselane/contracts'
 import type { InvitationResponse } from '@pulselane/contracts/invitations'
 
 type InvitationsTableProps = {
@@ -17,6 +17,30 @@ type InvitationsTableProps = {
 
 function buildAcceptPath(token: string) {
   return `${INVITATION_ACCEPT_PATH}?token=${encodeURIComponent(token)}`
+}
+
+function getInvitationStatusTone(status: OrganizationInvitationStatus) {
+  if (status === 'accepted') {
+    return 'success' as const
+  }
+
+  if (status === 'pending') {
+    return 'warning' as const
+  }
+
+  return 'danger' as const
+}
+
+function getRoleTone(role: MembershipRole) {
+  if (role === 'owner') {
+    return 'warning' as const
+  }
+
+  if (role === 'admin') {
+    return 'info' as const
+  }
+
+  return 'default' as const
 }
 
 export function InvitationsTable({ items, currentRole }: InvitationsTableProps) {
@@ -55,11 +79,11 @@ export function InvitationsTable({ items, currentRole }: InvitationsTableProps) 
               </Table.Cell>
 
               <Table.Cell>
-                <StatusPill>{invitation.role}</StatusPill>
+                <StatusPill tone={getRoleTone(invitation.role)}>{invitation.role}</StatusPill>
               </Table.Cell>
 
               <Table.Cell>
-                <StatusPill>{invitation.status}</StatusPill>
+                <StatusPill tone={getInvitationStatusTone(invitation.status)}>{invitation.status}</StatusPill>
               </Table.Cell>
 
               <Table.Cell className="whitespace-nowrap">{formatDateTime(invitation.expiresAt)}</Table.Cell>

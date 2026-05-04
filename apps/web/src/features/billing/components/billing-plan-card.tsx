@@ -33,7 +33,7 @@ export function BillingPlanCard({ plan, canManage }: BillingPlanCardProps) {
             <Card.Description className="text-sm leading-6 text-muted">{plan.description}</Card.Description>
           </div>
 
-          {plan.isCurrent ? <StatusPill>Current</StatusPill> : null}
+          {plan.isCurrent ? <StatusPill tone="success">Current</StatusPill> : null}
         </div>
 
         <div>

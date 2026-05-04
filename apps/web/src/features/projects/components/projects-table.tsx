@@ -146,6 +146,7 @@ export function ProjectsTable({ currentRole, clients }: ProjectsTableProps) {
               label={`Update ${project.name} status`}
               value={project.status}
               options={PROJECT_STATUS_OPTIONS}
+              tone={getStatusTone(project.status)}
               isDisabled={updateStatusMutation.isPending}
               onChange={status =>
                 updateStatusMutation.mutate({

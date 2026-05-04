@@ -239,6 +239,7 @@ export function TasksTable({ currentRole, projects, memberships }: TasksTablePro
               label={`Update ${task.title} status`}
               value={task.status}
               options={TASK_STATUS_OPTIONS}
+              tone={getStatusTone(task.status)}
               isDisabled={updateStatusMutation.isPending}
               onChange={status =>
                 updateStatusMutation.mutate({

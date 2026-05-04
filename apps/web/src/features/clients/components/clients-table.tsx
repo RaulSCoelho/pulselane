@@ -124,6 +124,7 @@ export function ClientsTable({ currentRole }: ClientsTableProps) {
               label={`Update ${client.name} status`}
               value={client.status}
               options={CLIENT_STATUS_OPTIONS}
+              tone={getStatusTone(client.status)}
               isDisabled={updateStatusMutation.isPending}
               onChange={status =>
                 updateStatusMutation.mutate({

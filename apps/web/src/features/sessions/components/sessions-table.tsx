@@ -25,6 +25,18 @@ function getSessionStatus(session: SessionResponse) {
   return 'active'
 }
 
+function getSessionStatusTone(session: SessionResponse) {
+  if (session.compromisedAt || session.revokedAt) {
+    return 'danger' as const
+  }
+
+  if (!session.isActive) {
+    return 'warning' as const
+  }
+
+  return 'success' as const
+}
+
 function formatUserAgent(userAgent: string | null) {
   if (!userAgent) {
     return 'Unknown device'
@@ -60,7 +72,11 @@ export function SessionsTable({ items }: SessionsTableProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{session.isCurrent ? 'Current session' : 'Other session'}</span>
 
-                  {session.isCurrent ? <StatusPill className="px-2 py-0.5">current</StatusPill> : null}
+                  {session.isCurrent ? (
+                    <StatusPill className="px-2 py-0.5" tone="info">
+                      current
+                    </StatusPill>
+                  ) : null}
                 </div>
 
                 <span className="line-clamp-2 text-xs text-muted">{formatUserAgent(session.userAgent)}</span>
@@ -71,7 +87,7 @@ export function SessionsTable({ items }: SessionsTableProps) {
             <Table.Cell>{session.ipAddress ?? 'Unknown'}</Table.Cell>
 
             <Table.Cell>
-              <StatusPill>{getSessionStatus(session)}</StatusPill>
+              <StatusPill tone={getSessionStatusTone(session)}>{getSessionStatus(session)}</StatusPill>
             </Table.Cell>
 
             <Table.Cell className="whitespace-nowrap">{formatDateTime(session.createdAt)}</Table.Cell>

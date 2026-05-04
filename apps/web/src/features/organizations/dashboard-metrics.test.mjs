@@ -107,6 +107,26 @@ test('dashboard formats usage, billing and session metric values from the active
   assert.equal(metrics['Current session'], 'Detected')
 })
 
+test('dashboard marks usage metrics near or above limits as danger', () => {
+  const groups = buildOrganizationDashboardMetricGroups({
+    currentOrganization: {
+      ...currentOrganization,
+      usage: {
+        ...currentOrganization.usage,
+        members: 3,
+        clients: 10
+      }
+    },
+    currentBilling,
+    sessions
+  })
+
+  const metrics = Object.fromEntries(groups.flatMap(group => group.metrics.map(metric => [metric.label, metric])))
+
+  assert.equal(metrics['Members usage'].tone, 'danger')
+  assert.equal(metrics['Clients usage'].tone, 'danger')
+})
+
 test('legacy pages no longer render duplicated dashboard metrics', () => {
   const dashboardPage = readFileSync('src/app/app/page.tsx', 'utf8')
 

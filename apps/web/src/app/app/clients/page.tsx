@@ -1,5 +1,5 @@
 import { PageHeader } from '@/components/ui/page-header'
-import { ClientCreateForm } from '@/features/clients/components/client-create-form'
+import { ClientCreateModal } from '@/features/clients/components/client-create-modal'
 import { ClientsTable } from '@/features/clients/components/clients-table'
 import { getCurrentOrganization } from '@/features/organizations/api/server-queries'
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
@@ -26,9 +26,8 @@ export default async function ClientsPage() {
         eyebrow="Operational module"
         title="Clients"
         description="Manage the operational entities that unlock project structure and execution flow."
+        actions={allowCreate ? <ClientCreateModal /> : null}
       />
-
-      {allowCreate ? <ClientCreateForm /> : null}
 
       <ClientsTable currentRole={currentOrganization.currentRole} />
     </div>
