@@ -20,6 +20,10 @@ on:
       - "pnpm-workspace.yaml"
       - ".github/workflows/web-ci.yml"
 
+permissions:
+  contents: read
+  statuses: write
+
 jobs:
   web-ci:
     name: Web CI
