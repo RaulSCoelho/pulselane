@@ -8,9 +8,72 @@ import { getCurrentOrganization } from '@/features/organizations/api/server-quer
 import { OrganizationContextEmptyState } from '@/features/organizations/components/organization-context-empty-state'
 import { OrganizationContextStatusState } from '@/features/organizations/components/organization-context-status-state'
 import { canManageBilling } from '@/lib/billing/billing-permissions'
-import { Card } from '@heroui/react'
+import { Alert, Card } from '@heroui/react'
 
-export default async function BillingPage() {
+type BillingPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}
+
+type BillingRedirectNotice = {
+  status: 'success' | 'warning' | 'danger'
+  title: string
+  description: string
+}
+
+function readSearchParam(source: Record<string, string | string[] | undefined>, key: string): string | undefined {
+  const value = source[key]
+
+  if (Array.isArray(value)) {
+    return value[0]
+  }
+
+  return value
+}
+
+function getBillingRedirectNotice(
+  searchParams: Record<string, string | string[] | undefined>
+): BillingRedirectNotice | null {
+  const checkout = readSearchParam(searchParams, 'checkout')
+  const billing = readSearchParam(searchParams, 'billing')
+
+  if (checkout === 'success') {
+    return {
+      status: 'success',
+      title: 'Checkout completed',
+      description: 'Stripe returned successfully. Billing changes appear after the webhook sync completes.'
+    }
+  }
+
+  if (checkout === 'canceled' || checkout === 'cancelled') {
+    return {
+      status: 'warning',
+      title: 'Checkout canceled',
+      description: 'No billing change was made. You can start checkout again when you are ready.'
+    }
+  }
+
+  if (checkout === 'error') {
+    return {
+      status: 'danger',
+      title: 'Checkout could not be completed',
+      description: 'Stripe returned an error state. Try again or open the billing portal if a customer exists.'
+    }
+  }
+
+  if (billing === 'portal') {
+    return {
+      status: 'success',
+      title: 'Returned from billing portal',
+      description: 'Any billing portal changes will be reflected after Stripe sends the webhook update.'
+    }
+  }
+
+  return null
+}
+
+export default async function BillingPage({ searchParams }: BillingPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const redirectNotice = getBillingRedirectNotice(resolvedSearchParams)
   const currentOrganizationState = await getCurrentOrganization()
 
   if (currentOrganizationState.status === 'not_selected') {
@@ -32,6 +95,16 @@ export default async function BillingPage() {
         title="Billing"
         description="Compare plan limits and start Stripe checkout or portal sessions when available."
       />
+
+      {redirectNotice ? (
+        <Alert status={redirectNotice.status}>
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{redirectNotice.title}</Alert.Title>
+            <Alert.Description>{redirectNotice.description}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
 
       {!canManage ? (
         <Card className="border border-border">

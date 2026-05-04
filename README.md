@@ -289,14 +289,22 @@ The web environment file lives at:
 apps/web/.env.local
 ```
 
-Current public variable:
+Current public variables:
 
 * `NEXT_PUBLIC_API_BASE_URL`
+* `NEXT_PUBLIC_SENTRY_DSN` enables frontend Sentry when set
+* `NEXT_PUBLIC_SENTRY_ENABLED=false` explicitly disables frontend Sentry
+* `NEXT_PUBLIC_SENTRY_ENVIRONMENT`
+* `NEXT_PUBLIC_SENTRY_RELEASE`
+* `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE`
 
 Production example:
 
 ```txt
 NEXT_PUBLIC_API_BASE_URL=https://api.your-domain.com
+NEXT_PUBLIC_SENTRY_DSN=https://public-key@o0.ingest.sentry.io/project-id
+NEXT_PUBLIC_SENTRY_ENVIRONMENT=production
+NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0
 ```
 
 ## Platform guarantees

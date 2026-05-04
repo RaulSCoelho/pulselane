@@ -24,6 +24,7 @@ export function InvitationAcceptCard({ token, invitation }: InvitationAcceptCard
   useEffect(() => {
     if (state.status === 'success' && state.message) {
       toast.success(state.message)
+      router.replace(SELECT_ORGANIZATION_PATH)
       router.refresh()
       return
     }

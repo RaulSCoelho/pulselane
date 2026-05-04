@@ -1,6 +1,9 @@
 'use client'
 
 import { AppErrorState } from '@/components/feedback/app-error-state'
+import { isFrontendSentryConfigured } from '@/lib/sentry/frontend-sentry-config'
+import * as Sentry from '@sentry/nextjs'
+import { useEffect } from 'react'
 
 type GlobalErrorProps = {
   error: Error & { digest?: string }
@@ -8,6 +11,12 @@ type GlobalErrorProps = {
 }
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
+  useEffect(() => {
+    if (isFrontendSentryConfigured()) {
+      Sentry.captureException(error)
+    }
+  }, [error])
+
   return (
     <html lang="en">
       <body className="min-h-screen bg-background text-foreground font-sans">

@@ -80,8 +80,8 @@ export class StripeBillingService {
 
     const session = await this.stripe!.checkout.sessions.create({
       mode: 'subscription',
-      success_url: `${this.configService.getOrThrow('appWebUrl', { infer: true })}/settings/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${this.configService.getOrThrow('appWebUrl', { infer: true })}/settings/billing?checkout=canceled`,
+      success_url: `${this.getAppWebUrl('/app/billing')}?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${this.getAppWebUrl('/app/billing')}?checkout=canceled`,
       customer: billing.stripeCustomerId ?? undefined,
       line_items: [
         {
@@ -136,7 +136,7 @@ export class StripeBillingService {
 
     const session = await this.stripe!.billingPortal.sessions.create({
       customer: billing.stripeCustomerId,
-      return_url: `${this.configService.getOrThrow('appWebUrl', { infer: true })}/settings/billing`
+      return_url: `${this.getAppWebUrl('/app/billing')}?billing=portal`
     })
 
     await this.auditLogsService.create({
@@ -438,6 +438,13 @@ export class StripeBillingService {
     }
 
     return priceId
+  }
+
+  private getAppWebUrl(path: string): string {
+    const appWebUrl = this.configService.getOrThrow('appWebUrl', { infer: true }).replace(/\/+$/, '')
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`
+
+    return `${appWebUrl}${normalizedPath}`
   }
 
   private assertStripeEnabled() {
