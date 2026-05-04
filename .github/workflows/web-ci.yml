@@ -55,3 +55,9 @@ jobs:
 
       - name: Run web resilience tests
         run: pnpm --dir apps/web test:resilience
+
+      - name: Notify Vercel
+        uses: vercel/repository-dispatch/actions/status@v1
+        if: always()
+        with:
+          name: Vercel - pulselane: web-ci
