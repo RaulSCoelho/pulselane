@@ -236,11 +236,11 @@ function SidebarPanel({
       )}
     >
       <div className="flex h-16 items-center justify-between gap-3 border-b border-separator px-4">
-        <Link href={APP_HOME_PATH} className="flex min-w-0 items-center gap-3" onClick={onNavigate}>
+        <Link href={APP_HOME_PATH} className="flex min-w-0 items-center shrink-0 gap-3" onClick={onNavigate}>
           <BrandLogo
             variant={isCollapsed ? 'symbol' : 'horizontal'}
             alt="Pulselane"
-            className={isCollapsed ? 'size-9 shrink-0' : 'h-auto max-w-32'}
+            className={isCollapsed ? 'size-9' : 'h-auto max-w-32'}
             priority
           />
         </Link>

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/styles'
-import darkLogo from '@pulselane/assets/dark_logo.png'
-import horizontalLogo from '@pulselane/assets/horizontal_logo.png'
-import symbolLogo from '@pulselane/assets/symbol.png'
+import darkLogo from '@pulselane/assets/logo-dark.svg'
+import horizontalLogo from '@pulselane/assets/logo.svg'
+import symbolLogo from '@pulselane/assets/symbol.svg'
 import Image from 'next/image'
 
 type BrandLogoProps = {
@@ -12,9 +12,9 @@ type BrandLogoProps = {
 }
 
 const logoAssets = {
-  horizontal: horizontalLogo,
-  dark: darkLogo,
-  symbol: symbolLogo
+  horizontal: { src: horizontalLogo, width: 757, height: 216 },
+  dark: { src: darkLogo, width: 790, height: 247 },
+  symbol: { src: symbolLogo, width: 457, height: 427 }
 }
 
 export function BrandLogo({ variant = 'horizontal', alt = 'Pulselane', className, priority = false }: BrandLogoProps) {
@@ -23,8 +23,10 @@ export function BrandLogo({ variant = 'horizontal', alt = 'Pulselane', className
 
   return (
     <Image
-      src={asset}
+      src={asset.src}
       alt={alt}
+      width={asset.width}
+      height={asset.height}
       className={cn(isSymbol ? 'size-8 object-contain' : 'h-8 w-auto object-contain', className)}
       priority={priority}
       sizes={isSymbol ? '32px' : '180px'}
