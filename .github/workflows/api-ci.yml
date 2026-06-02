@@ -54,6 +54,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/pulselane_ci?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/pulselane_ci?schema=public
       PORT: "3001"
       NODE_ENV: test
       ALLOWED_CORS_ORIGINS: http://localhost:3000

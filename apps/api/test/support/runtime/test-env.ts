@@ -36,4 +36,7 @@ function buildSharedTestDatabaseUrl(databaseUrl: string): string {
 export const SHARED_TEST_DATABASE_URL =
   process.env.DATABASE_URL_TEST ?? buildSharedTestDatabaseUrl(process.env.DATABASE_URL)
 
+export const SHARED_TEST_DIRECT_URL = process.env.DIRECT_URL_TEST ?? SHARED_TEST_DATABASE_URL
+
 process.env.DATABASE_URL = SHARED_TEST_DATABASE_URL
+process.env.DIRECT_URL = SHARED_TEST_DIRECT_URL

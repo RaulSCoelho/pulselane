@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { execFileSync } from 'node:child_process'
 
-import { SHARED_TEST_DATABASE_URL } from './test-env'
+import { SHARED_TEST_DATABASE_URL, SHARED_TEST_DIRECT_URL } from './test-env'
 
 const PROTECTED_DATABASES = new Set(['postgres', 'template0', 'template1'])
 const VALID_DB_NAME = /^[a-zA-Z0-9_-]+$/
@@ -87,7 +87,8 @@ function runMigrations(): void {
     stdio: 'inherit',
     env: {
       ...process.env,
-      DATABASE_URL: SHARED_TEST_DATABASE_URL
+      DATABASE_URL: SHARED_TEST_DATABASE_URL,
+      DIRECT_URL: SHARED_TEST_DIRECT_URL
     }
   })
 }
