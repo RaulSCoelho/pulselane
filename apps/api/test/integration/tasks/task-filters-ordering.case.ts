@@ -8,6 +8,8 @@ import type { CursorPageResponse, TaskResponse } from '../../support/http/respon
 import { expectTyped } from '../../support/http/typed-response'
 import { getTestContext } from '../../support/runtime/test-context'
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000
+
 export function registerTaskFiltersOrderingCase(): void {
   it('should filter overdue tasks, filter by due date interval, and paginate with due date ordering', async () => {
     const { app, prisma } = await getTestContext()
@@ -33,6 +35,12 @@ export function registerTaskFiltersOrderingCase(): void {
     })
 
     const now = Date.now()
+    const overdueOpenDueDate = new Date(now - 3 * DAY_IN_MS)
+    const overdueDoneDueDate = new Date(now - 2 * DAY_IN_MS)
+    const rangeFirstDueDate = new Date(now + 10 * DAY_IN_MS)
+    const rangeSecondDueDate = new Date(now + 12 * DAY_IN_MS)
+    const rangeFrom = new Date(now + 9 * DAY_IN_MS)
+    const rangeTo = new Date(now + 13 * DAY_IN_MS)
 
     await prisma.task.createMany({
       data: [
@@ -41,28 +49,28 @@ export function registerTaskFiltersOrderingCase(): void {
           projectId: project.id,
           title: 'Overdue open',
           status: TaskStatus.todo,
-          dueDate: new Date(now - 3 * 24 * 60 * 60 * 1000)
+          dueDate: overdueOpenDueDate
         },
         {
           organizationId: owner.organizationId,
           projectId: project.id,
           title: 'Overdue done',
           status: TaskStatus.done,
-          dueDate: new Date(now - 2 * 24 * 60 * 60 * 1000)
+          dueDate: overdueDoneDueDate
         },
         {
           organizationId: owner.organizationId,
           projectId: project.id,
           title: 'Range first',
           status: TaskStatus.in_progress,
-          dueDate: new Date('2026-05-10T10:00:00.000Z')
+          dueDate: rangeFirstDueDate
         },
         {
           organizationId: owner.organizationId,
           projectId: project.id,
           title: 'Range second',
           status: TaskStatus.todo,
-          dueDate: new Date('2026-05-12T10:00:00.000Z')
+          dueDate: rangeSecondDueDate
         },
         {
           organizationId: owner.organizationId,
@@ -85,8 +93,8 @@ export function registerTaskFiltersOrderingCase(): void {
     const intervalResponse = await expectTyped<CursorPageResponse<TaskResponse>>(
       withOrgAuth(
         request(app.getHttpServer()).get('/api/tasks').query({
-          dueDateFrom: '2026-05-10T00:00:00.000Z',
-          dueDateTo: '2026-05-12T23:59:59.999Z',
+          dueDateFrom: rangeFrom.toISOString(),
+          dueDateTo: rangeTo.toISOString(),
           sortBy: 'due_date',
           sortDirection: 'asc'
         }),
